@@ -15,6 +15,10 @@
 - リリース：`v1.*` のタグは `v1/CHANGELOG.md` の節を公開し `v1/pyproject.toml` と照合します。`v2.*` のタグは `v2/` を読みます。`tools/release_notes.py` はタグのメジャー版から系列を選びます。
 - `tools/check_publication.py` はリポジトリ全体を監査し、1.x系の検査（必須ファイル、READMEの主要な測定値と引用、文書一覧、構成の頁、固定値）を `v1/` に当てます。CIは1.x系の検査を `v1/` で回します。
 
+### Tools
+
+- `tools/decode_check.py` が TensorFold 相手でも使えるようになりました。MTP の受理長と token id は応答の `tensorfold` ブロックから取ります（受理長は 1＋accepted／rounds で、vLLM 相手と同じ定義です。TensorFold は choice に id を返しません）。各サンプルの前に `TF_GLM_CACHE_ENTRIES` 本の短い別の要求を送って保持 prompt を追い出すので、どのサンプルも prompt を最初から prefill します（各行の `cached` が 0）。vLLM 相手の要求と出力は変わりません。
+
 ## 1.27.3 — 2026-10-03
 
 ### Documentation

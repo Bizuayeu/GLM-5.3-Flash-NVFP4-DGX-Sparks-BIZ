@@ -13,6 +13,10 @@
 - Releases: a `v1.*` tag publishes the section of `v1/CHANGELOG.md` and checks `v1/pyproject.toml`; a `v2.*` tag reads `v2/`. `tools/release_notes.py` picks the line from the tag's major version.
 - `tools/check_publication.py` audits the whole repository and applies the 1.x checks (required files, README headline and citation, document map, architecture page, pins) to `v1/`. CI runs the 1.x checks in `v1/`.
 
+### Tools
+
+- `tools/decode_check.py` works against TensorFold too: the MTP acceptance length comes from each reply's `tensorfold` block (1 + accepted / rounds, the same definition as against vLLM), the token ids from the same block (TensorFold returns none in the choices), and before each sample `TF_GLM_CACHE_ENTRIES` short distinct requests push TensorFold's kept prompts out, so every sample prefills the whole prompt (`cached` 0 in each row). Against vLLM its requests and output are unchanged.
+
 ## 1.27.3 — 2026-10-03
 
 ### Documentation
