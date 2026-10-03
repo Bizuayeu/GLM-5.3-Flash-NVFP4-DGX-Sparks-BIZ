@@ -2,7 +2,7 @@
 
 [English](SETUP.md) · [2.x系の概要](README.ja.md) · [検証](docs/validation.ja.md)
 
-2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。台本は全ホストで同じcheckoutの `v2/` から実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
+2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。全ホストに同じcheckoutを置き、以下のコマンドはimageのbuild contextがあるそのルートから、1.x系の道具はその `v1/` から実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
 
 ## 1. 機体とfabric
 
@@ -17,7 +17,7 @@ ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台�
 
 ## 3. image
 
-一台でcheckoutのルートからbuildします。
+GB10のホスト（linux/arm64）の一台で、checkoutのルートからbuildします。
 
 ```sh
 docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .

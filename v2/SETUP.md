@@ -2,7 +2,7 @@
 
 [日本語](SETUP.ja.md) · [2.x overview](README.md) · [Validation](docs/validation.md)
 
-The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Run the scripts from `v2/` of the same checkout on every host. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
+The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Every host has the same checkout; the commands below run from its root, where the image's build context is, and the 1.x tools from its `v1/`. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
 
 ## 1. Hosts and fabric
 
@@ -17,7 +17,7 @@ Cap the GPU clock at 2,200 MHz on every host before long runs and record tempera
 
 ## 3. Image
 
-Build from the checkout root on one host:
+Build on one of the GB10 hosts (linux/arm64), from the checkout root:
 
 ```sh
 docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
