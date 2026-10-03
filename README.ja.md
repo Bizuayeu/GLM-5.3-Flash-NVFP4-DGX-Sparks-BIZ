@@ -7,7 +7,8 @@
 | 系列 | エンジン | ディレクトリ | 変更履歴 |
 |---|---|---|---|
 | 1.x | vLLM | [v1/](v1/README.ja.md) | [v1/CHANGELOG.ja.md](v1/CHANGELOG.ja.md) |
+| 2.x | TensorFold | [v2/](v2/README.ja.md)（2.0.0に向けて準備中） | [v2/CHANGELOG.ja.md](v2/CHANGELOG.ja.md) |
 
-系列ごとにREADME・セットアップ手順書・版・変更履歴を持ちます。リリースのtag `v1.*` は1.x系の変更履歴の節を公開します。コマンドは各系列のディレクトリで実行します。`state/` と `records/` は追跡対象外で、checkoutのルートに置きます。
+系列ごとにREADME・版・変更履歴を持ちます。リリースのtag `v1.*`・`v2.*` は、その系列の変更履歴の節を公開します。コマンドは各系列のディレクトリで実行します。`state/` と `records/` は追跡対象外で、checkoutのルートに置きます。
 
 ライセンス：[LICENSE](LICENSE)（Apache-2.0）、[NOTICE](NOTICE)、[第三者の表示](THIRD_PARTY_NOTICES.md)。貢献の手引き：[CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)。

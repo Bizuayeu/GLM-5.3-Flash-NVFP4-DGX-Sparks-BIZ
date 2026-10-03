@@ -7,7 +7,8 @@
 | Line | Engine | Directory | Changelog |
 |---|---|---|---|
 | 1.x | vLLM | [v1/](v1/README.md) | [v1/CHANGELOG.md](v1/CHANGELOG.md) |
+| 2.x | TensorFold | [v2/](v2/README.md), in preparation for 2.0.0 | [v2/CHANGELOG.md](v2/CHANGELOG.md) |
 
-Each line has its own README, setup runbook, version and changelog; a release tag `v1.*` publishes the 1.x changelog section. Run a line's commands from its directory. `state/` and `records/` are untracked and stay at the checkout root.
+Each line has its own README, version and changelog; a release tag `v1.*` or `v2.*` publishes the section of that line's changelog. Run a line's commands from its directory. `state/` and `records/` are untracked and stay at the checkout root.
 
 Licensing: [LICENSE](LICENSE) (Apache-2.0), [NOTICE](NOTICE) and [third-party notices](THIRD_PARTY_NOTICES.md). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
