@@ -14,6 +14,8 @@ and moves every fingerprint; nothing else in the TP=2 launches changed.
 GLM53_SHM_SPIN_SECONDS and its two read-only mounts and moves every fingerprint (pp2 and ep inherit
 it from the defaults). The ``*_no_spin`` entries drop the key again and equal the 1.25.0 golden's
 ``defaults`` and ``axl`` byte for byte: a profile without the key launches as before.
+1.28.0 (2026-10-04): the package moved into v1/ and state/ stayed at the checkout root; ``normalized``
+maps both to the placeholders the golden was written with, and the golden is unchanged.
 """
 
 import copy
@@ -70,8 +72,6 @@ def normalized(value):
     if isinstance(value, list):
         return [normalized(item) for item in value]
     if isinstance(value, str):
-        # 1.28.0 moved the package into v1/ and left state/ at the checkout root;
-        # both keep the placeholders the golden was written with.
         value = value.replace(str(server.STATE), "<ROOT>/state")
         value = value.replace(str(server.ROOT), "<ROOT>")
         return value.replace(str(CACHE.resolve()), "<CACHE>").replace("\\", "/")

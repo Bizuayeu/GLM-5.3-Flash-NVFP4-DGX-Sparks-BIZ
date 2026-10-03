@@ -8,6 +8,8 @@ command, image checks and fingerprint on every rank; a profile without the new k
 GLM53_SHM_SPIN_SECONDS and its two read-only mounts on every rank and moves both fingerprints. The
 ``*_no_spin`` entries drop the key again and equal the 1.24.0 golden's ``ring`` and ``ring_axl``
 byte for byte.
+1.28.0 (2026-10-04): the package moved into v1/ and state/ stayed at the checkout root; ``normalized``
+maps both to the placeholders the golden was written with, and the golden is unchanged.
 """
 
 import copy
@@ -53,8 +55,6 @@ def normalized(value):
     if isinstance(value, list):
         return [normalized(item) for item in value]
     if isinstance(value, str):
-        # 1.28.0 moved the package into v1/ and left state/ at the checkout root;
-        # both keep the placeholders the golden was written with.
         value = value.replace(str(server.STATE), "<ROOT>/state")
         value = value.replace(str(server.ROOT), "<ROOT>")
         return value.replace(str(CACHE.resolve()), "<CACHE>").replace("\\", "/")

@@ -11,7 +11,7 @@
 - **1.x系を `v1/` に移しました**：パッケージ、テスト、ツール、文書、例、overlay、imageの作り方、requirements、固定値、`pyproject.toml`、この変更履歴、README、セットアップ手順書です。`v2/` は2.x系（TensorFold）の置き場で、まだリリースはありません。`LICENSE`・`NOTICE`・`LICENSES/`・第三者の表示・貢献の手引き・CIはリポジトリのルートに残り、[ルートのREADME](../README.ja.md)は二つの系列の索引になりました。
 - **コマンドは `v1/` で実行します。** `python -m glm53_setup` と `python tools/…` はcheckoutの `v1/` から実行し、[仮想環境](README.ja.md#checkoutから準備する)は `v1/.venv` に作ります。`state/` と `records/` はcheckoutのルートに残ります：ランチャーは従来の場所でそれらを見つけ、deploy checkoutのsymlinkもそのままで、文書のコマンドは `../state/…`・`../records/…` と書きます。checkoutへ `cd` してパッケージを呼ぶ台本は、その `v1/` へ `cd` する必要があります。
 - `cluster switch` と `cluster resume` の `--checkout` は `glm53_setup` を含むディレクトリです。1.28.0からは `<checkout>/v1`、それより前の版はcheckoutそのものです（[切替と復旧](docs/launch-safety.ja.md#切替と復旧)）。
-- 参照imageはライセンス類のあるcheckoutのルートからbuildします。`/opt/glm53` の下にコピーする中身は変わりません。Dockerfileの `COPY` 行が `v1/` を指すため、buildし直すと中身が同じでimage IDが変わります。既存の参照imageはbuildし直す必要がありません。
+- 参照imageはライセンス類のあるcheckoutのルートからbuildします。`/opt/glm53` の下にコピーする中身は変わりません。Dockerfileの `COPY` 行が `v1/` を指すため、buildし直すと中身が同じでimage IDが変わります。起動検査が見る `ENV` の目印は変わりません。
 - リリース：`v1.*` のタグは `v1/CHANGELOG.md` の節を公開し `v1/pyproject.toml` と照合します。`v2.*` のタグは `v2/` を読みます。`tools/release_notes.py` はタグのメジャー版から系列を選びます。
 - `tools/check_publication.py` はリポジトリ全体を監査し、1.x系の検査（必須ファイル、READMEの主要な測定値と引用、文書一覧、構成の頁、固定値）を `v1/` に当てます。CIは1.x系の検査を `v1/` で回します。
 
