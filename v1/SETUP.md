@@ -61,7 +61,7 @@ If a diagnostic is missing, record that fact and install only the required vendo
 
 ## 2. Prepare the same checkout on both hosts
 
-Use the same reviewed Git commit on both hosts. Run from its root:
+Use the same reviewed Git commit on both hosts. Run from its `v1/` directory:
 
 ```sh
 git rev-parse HEAD
@@ -83,7 +83,7 @@ A source archive omits `state/` and `records/` by design. When deploying one to 
 
 First review [checkpoint, MTP-view and LPA-projector storage](docs/operations.md#artifact-storage-and-paths). Use each Linux host's default HF cache and keep base weights distinct from auxiliary artifacts. That section provides read-only commands to compare acquisition and launch locations.
 
-The source is [NVIDIA's GLM-5.3-Flash-NVFP4 repository](https://huggingface.co/nvidia/GLM-5.3-Flash-NVFP4). The downloader reads the exact revision from the lock; never substitute `main`, another quantization, or a similarly named model. Review the pinned snapshot's model license and [third-party notices](THIRD_PARTY_NOTICES.md). Project licensing does not replace model/dependency terms.
+The source is [NVIDIA's GLM-5.3-Flash-NVFP4 repository](https://huggingface.co/nvidia/GLM-5.3-Flash-NVFP4). The downloader reads the exact revision from the lock; never substitute `main`, another quantization, or a similarly named model. Review the pinned snapshot's model license and [third-party notices](../THIRD_PARTY_NOTICES.md). Project licensing does not replace model/dependency terms.
 
 On the chosen download host, follow [README asset preparation](README.md#prepare-assets). Record the manifest, snapshot, download status and successful checksum result. A “complete” download state checks presence and sizes; checksum verification is a separate required step.
 

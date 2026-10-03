@@ -29,8 +29,8 @@ The other three runs used the same image; the published option was the pair's se
 On the Linux model host, with the served profile running:
 
 ~~~sh
-python -m glm53_setup hle --questions <pinned question file> --config state/server.toml \
-  --output records/<new-run> --label <profile> \
+python -m glm53_setup hle --questions <pinned question file> --config ../state/server.toml \
+  --output ../records/<new-run> --label <profile> \
   --max-tokens 16384 --temperature 1.0 --top-p 0.95 --timeout 1200 --max-new 1
 ~~~
 

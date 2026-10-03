@@ -99,7 +99,7 @@ class MountedRuntimeTests(unittest.TestCase):
 class ImagePackageDirTests(unittest.TestCase):
     def test_the_mount_target_is_where_the_image_copies_the_package(self):
         dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
-        copied = re.search(r"(?m)^COPY glm53_setup (\S+)$", dockerfile)
+        copied = re.search(r"(?m)^COPY v1/glm53_setup (\S+)$", dockerfile)
         self.assertEqual(copied[1], server.IMAGE_PACKAGE_DIR)
 
 

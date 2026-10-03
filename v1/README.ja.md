@@ -37,7 +37,7 @@ NVFP4は取得する重みの形式です。検証済みの参照構成はMarlin
 
 ### ライセンスの早見表
 
-対象ごとに条件が違い、義務と選定理由は[ライセンス整理](docs/licensing.ja.md)、出所は[第三者通知](THIRD_PARTY_NOTICES.md)が正典です。
+対象ごとに条件が違い、義務と選定理由は[ライセンス整理](docs/licensing.ja.md)、出所は[第三者通知](../THIRD_PARTY_NOTICES.md)が正典です。
 
 | 対象 | ライセンス | 出所 |
 |---|---|---|
@@ -60,7 +60,7 @@ NVFP4は取得する重みの形式です。検証済みの参照構成はMarlin
 
 ## checkoutから準備する
 
-対象Linuxホストで、このリポジトリのルートから実行します。
+対象Linuxホストで、checkoutの `v1/` から実行します。`state/` と `records/` は `v1/` と並んでcheckoutのルートに置くので、コマンドからは `../state/`・`../records/` で指します。
 
 ~~~sh
 python3 -m venv .venv
@@ -76,7 +76,7 @@ python -m glm53_setup --version
 
 ~~~sh
 python -m glm53_setup download --background
-python -m glm53_setup verify-download --hf .venv/bin/hf --output records/checksum --wait
+python -m glm53_setup verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 python -m glm53_setup prepare-image --background
 python -m glm53_setup build-reference
 ~~~
@@ -178,7 +178,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 
 ### DGX Spark向けの他のGLM-5.3-Flashレシピ
 
-同じモデルを同じ級の機体で動かす公開レシピが複数あり、エンジン・量子化・割り切りがそれぞれ違います。選ぶ前に比べる価値があります。各レシピのリンク、2026-09-18〜10-03に確認したライセンス、本リポジトリが取り込んだものは、この表が正典です。他の文書は名前とPR番号だけで引用します。コードを取り込んだものの表示は[第三者表示](THIRD_PARTY_NOTICES.md)にあります。
+同じモデルを同じ級の機体で動かす公開レシピが複数あり、エンジン・量子化・割り切りがそれぞれ違います。選ぶ前に比べる価値があります。各レシピのリンク、2026-09-18〜10-03に確認したライセンス、本リポジトリが取り込んだものは、この表が正典です。他の文書は名前とPR番号だけで引用します。コードを取り込んだものの表示は[第三者表示](../THIRD_PARTY_NOTICES.md)にあります。
 
 | レシピ | ライセンス | 本リポジトリが取り込んだもの |
 |---|---|---|
@@ -227,4 +227,4 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 
 `state/`・`records/`・認証情報・実サイトの設定・重みをGitとDocker build contextへ含めません。公開するのはレビュー済みの要約です。
 
-CPU検査と公開境界の確認は [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)、変更履歴は [CHANGELOG.ja.md](CHANGELOG.ja.md)、ライセンスは [LICENSE](LICENSE)・[NOTICE](NOTICE) を参照してください。
+CPU検査と公開境界の確認は [CONTRIBUTING.ja.md](../CONTRIBUTING.ja.md)、変更履歴は [CHANGELOG.ja.md](CHANGELOG.ja.md)、ライセンスは [LICENSE](../LICENSE)・[NOTICE](../NOTICE) を参照してください。

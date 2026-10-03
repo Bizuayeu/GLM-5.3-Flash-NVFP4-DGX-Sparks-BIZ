@@ -11,6 +11,7 @@ from tools.check_publication import (
     headline_problems,
     map_problems,
     plan_link_problems,
+    problems,
     recipe_problems,
 )
 
@@ -53,6 +54,31 @@ class PublicationTests(unittest.TestCase):
                 "private/generated path: model.safetensors",
                 audit(root, {"model.safetensors"}),
             )
+
+
+class LayoutTests(unittest.TestCase):
+    """The audit covers the repository; the 1.x checks read the project in v1/."""
+
+    def test_plans_under_any_docs_directory_are_private(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("docs/plans/X_PLAN.md", "v1/docs/X_PLAN.md"):
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text("plan", encoding="utf-8")
+                self.assertIn(f"private/generated path: {name}", audit(root, {name}))
+
+    def test_required_files_are_split_between_the_root_and_the_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "LICENSE").write_text("licence", encoding="utf-8")
+            (root / "v1").mkdir()
+            (root / "v1/SETUP.md").write_text("# Setup\n", encoding="utf-8")
+            found = problems(root, {"LICENSE", "v1/SETUP.md"})
+            self.assertIn("missing required file: NOTICE", found)
+            self.assertIn("missing required file: v1/pyproject.toml", found)
+            self.assertNotIn("missing required file: LICENSE", found)
+            self.assertNotIn("missing required file: v1/SETUP.md", found)
+            self.assertNotIn("missing required file: SETUP.md", found)
 
 
 class HeadlineTests(unittest.TestCase):

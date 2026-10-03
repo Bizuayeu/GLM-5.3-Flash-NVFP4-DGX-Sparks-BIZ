@@ -51,7 +51,7 @@ The server launcher reads the default host Hugging Face cache and mounts it read
 
 The downloader follows Hugging Face cache environment settings, but the current launcher assumes the default cache root. For this release, leave `HF_HOME`/`HF_HUB_CACHE` unset when acquiring these assets and use the documented default. A successful custom-cache download does not establish that the launcher can find or mount it.
 
-Inspect the expected and recorded locations without starting a download, from the checkout on each Linux host:
+Inspect the expected and recorded locations without starting a download, from `v1/` of the checkout on each Linux host:
 
 ```sh
 python -c 'from pathlib import Path; from glm53_setup.config import MODEL, REVISION; print(Path.home() / ".cache/huggingface/hub" / ("models--" + MODEL.replace("/", "--")) / "snapshots" / REVISION)'

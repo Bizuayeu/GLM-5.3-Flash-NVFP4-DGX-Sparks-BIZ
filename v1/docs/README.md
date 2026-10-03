@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Every document has one role; other documents link to it instead of repeating its content. Every user-facing page comes as an English/Japanese pair (`name.md` / `name.ja.md`); only the agent instructions, the license/notice texts and the overlay manifest (a provenance record whose hashes have one owner) are English-only by design. The changelog is a pair too: the English file is canonical and the GitHub Release is made from it. Update both when user-visible instructions change ([Contributing](../CONTRIBUTING.md)).
+Every document has one role; other documents link to it instead of repeating its content. Every user-facing page comes as an English/Japanese pair (`name.md` / `name.ja.md`); only the agent instructions, the license/notice texts and the overlay manifest (a provenance record whose hashes have one owner) are English-only by design. The changelog is a pair too: the English file is canonical and the GitHub Release is made from it. Update both when user-visible instructions change ([Contributing](../../CONTRIBUTING.md)).
 
 ## Entry points
 
@@ -10,10 +10,10 @@ Every document has one role; other documents link to it instead of repeating its
 |---|---|---|---|
 | README | Summary, what is deployed, supported hardware, how to start, the headline comparison of the two served profiles, status by scope, business-use objectives (BIZ), other public recipes, disclaimer, Next Action | [EN](../README.md) | [JA](../README.ja.md) |
 | Setup runbook | Ordered deployment gates from host inspection to acceptance | [EN](../SETUP.md) | [JA](../SETUP.ja.md) |
-| Contributing | CPU checks, publication audit, contribution rules | [EN](../CONTRIBUTING.md) | [JA](../CONTRIBUTING.ja.md) |
+| Contributing | CPU checks, publication audit, contribution rules | [EN](../../CONTRIBUTING.md) | [JA](../../CONTRIBUTING.ja.md) |
 | Changelog | Change history and validation status by release | [EN](../CHANGELOG.md) | [JA](../CHANGELOG.ja.md) |
-| Repository instructions | Rules for AI agents and operators editing this checkout | [EN](../AGENTS.md) | — |
-| Licensing and notices | Apache-2.0 text, attribution, third-party provenance | [LICENSE](../LICENSE), [NOTICE](../NOTICE), [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md), [LICENSES/](../LICENSES/) | — |
+| Repository instructions | Rules for AI agents and operators editing this checkout | [EN](../../AGENTS.md) | — |
+| Licensing and notices | Apache-2.0 text, attribution, third-party provenance | [LICENSE](../../LICENSE), [NOTICE](../../NOTICE), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md), [LICENSES/](../../LICENSES/) | — |
 
 ## Deploy and operate
 
@@ -75,7 +75,7 @@ Every document has one role; other documents link to it instead of repeating its
 | What `server preflight` checks before a start, and what it does not certify | [Operations](operations.md#full-model-launch-checks) |
 | Image capability markers: which setting requires each, and from which version images carry it | [Server configuration](server-configuration.md#current-image-contract) |
 | Host kernel requirement, the `7.0.0-1019-nvidia` RoCE failure and the `kho=off` workaround | [Operations](operations.md#host-kernel-and-multi-node-roce) |
-| License permissions and obligations by artifact | [Licensing guide](licensing.md), [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
+| License permissions and obligations by artifact | [Licensing guide](licensing.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
 | Harness acceptance cases and their run status | [Harnesses](harnesses.md) |
 | ZCode permission-mode facts, model limit and compaction budget rules, and the existing-file guard hook | [Harnesses](harnesses.md#zcode-permission-modes-model-limits-and-the-existing-file-guard), script in [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | Validation scope and open items | [Validation](validation.md#evaluations-and-open-items) |

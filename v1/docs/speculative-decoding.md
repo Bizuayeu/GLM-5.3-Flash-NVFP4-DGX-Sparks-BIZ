@@ -14,7 +14,7 @@ The tested candidate adds `*.layers.45.*` to the modern and legacy quantization 
 
 ## Prepare a view on each Linux host
 
-First complete official checksum verification of the original snapshot. From this checkout, create a fresh view under the same Hugging Face cache root so relative links survive a common container mount:
+First complete official checksum verification of the original snapshot. From `v1/` of this checkout, create a fresh view under the same Hugging Face cache root so relative links survive a common container mount:
 
 ```sh
 HF_ROOT="$HOME/.cache/huggingface"

@@ -59,9 +59,9 @@ The calibration runs on a dedicated TP2 server with LPA and APC enabled and `lpa
 
 ```sh
 python -m glm53_setup apc-lpa-benchmark \
-  --config state/apc-calibration.toml \
-  --corpus records/corpus/documents.jsonl --corpus-sha256 '<verified-sha256>' \
-  --output records/apc-calibration --cached-prefix-tokens 4352 \
+  --config ../state/apc-calibration.toml \
+  --corpus ../records/corpus/documents.jsonl --corpus-sha256 '<verified-sha256>' \
+  --output ../records/apc-calibration --cached-prefix-tokens 4352 \
   --eligible-tokens 128 512 1024 2048 4096 8192 --repeats 5
 ```
 

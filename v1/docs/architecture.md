@@ -66,15 +66,15 @@ Order is part of the contract in two places. `VALIDATORS` runs the profile rules
 | `requirements/` | Fixed host-tool dependencies |
 | `tests/` | CPU contracts |
 | `tools/` | `check_publication.py` (publication audit), `release_notes.py` (the Changelog section a tag publishes), `kernel_hashes.py` (the indexer's kernels hashed inside every serving worker), `assess_benchmark.py`, `check_prefix_cache.py`, `decode_check.py`, `decode_divergence.py` and `weight_digest.py` (the decode check and the weight digest after a switch, [launch contracts](launch-safety.md#after-a-switch-the-decode-check)), `nccl_probe.py` (two or three ranks), `prepare_mtp_view.py` |
-| `.github/workflows/` | CI (CPU tests, Ruff, publication audit on Linux and Windows) and the tag-driven GitHub Release |
-| `LICENSES/` | Preserved upstream license texts |
-| `state/`, `records/` | Local mutable state and experiment evidence, excluded from distribution |
+| `../.github/workflows/` | At the checkout root: CI (CPU tests, Ruff, publication audit on Linux and Windows, run in `v1/`) and the tag-driven GitHub Release |
+| `../LICENSES/` | At the checkout root: preserved upstream license texts |
+| `../state/`, `../records/` | At the checkout root: local mutable state and experiment evidence, excluded from distribution |
 
 The CLI imports GPU dependencies only when the selected command actually needs them. Help, configuration and CPU tests work without Torch or vLLM installed on the host. GPU programs execute inside the pinned image.
 
 The commented `examples/server.example.toml` doubles as the complete server profile schema. Full TOML validation happens at `server_config.load` and the independently callable `server.command` boundary. `server_config.serve_args` consumes an already validated profile and does not reread the schema; it is an internal assembly step, not an input-validation entry point. Small fabric-specific guards remain independent.
 
-Model ID and revision have one configuration source: [runtime.lock.json](../config/runtime.lock.json). Mutable files stay rooted at the checkout, independently of the caller's working directory. Run the toolkit from a maintained checkout; it is not offered as a general Python library.
+Model ID and revision have one configuration source: [runtime.lock.json](../config/runtime.lock.json). Mutable files stay rooted at the checkout (`state/` and `records/` beside `v1/`), independently of the caller's working directory. Run the toolkit from a maintained checkout; it is not offered as a general Python library.
 
 Every build-time patch of the reference image checks the full SHA-256 of the pinned vLLM file it modifies before changing it, and the overlays for the published option are checked the same way at launch. The image keeps all selected attention candidates. The runtime math and the validation harness are separate modules so moving CLI code does not change the mathematical implementation.
 

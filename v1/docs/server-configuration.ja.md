@@ -179,7 +179,7 @@ P22のGPU状態隔離・校正・最終併用・held-out参照評価を、範囲
 
 コンテキスト長や同時数を変更する前に、[KV容量とRAMの条件](#kv容量とramの条件)も確認してください。
 
-リポジトリ直下で生成される起動条件を確認します。これはWindowsでも実行できます。
+checkoutの `v1/` で生成される起動条件を確認します。これはWindowsでも実行できます。
 
 ```sh
 python -m glm53_setup server plan --rank 0

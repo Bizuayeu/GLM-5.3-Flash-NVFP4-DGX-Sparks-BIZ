@@ -70,6 +70,9 @@ def normalized(value):
     if isinstance(value, list):
         return [normalized(item) for item in value]
     if isinstance(value, str):
+        # 1.28.0 moved the package into v1/ and left state/ at the checkout root;
+        # both keep the placeholders the golden was written with.
+        value = value.replace(str(server.STATE), "<ROOT>/state")
         value = value.replace(str(server.ROOT), "<ROOT>")
         return value.replace(str(CACHE.resolve()), "<CACHE>").replace("\\", "/")
     return value
@@ -87,7 +90,7 @@ def snapshot():
                     "environment": config.environment(profile, rank),
                     "serve_args": config.serve_args(profile, rank, "/model"),
                     "command": server.command(
-                        profile, ROOT / "state/server.toml", rank, "test", cache=CACHE
+                        profile, server.STATE / "server.toml", rank, "test", cache=CACHE
                     ),
                 }
                 for rank in (0, 1)

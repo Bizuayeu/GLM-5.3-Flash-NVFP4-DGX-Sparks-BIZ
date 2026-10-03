@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-文書ごとに役割を一つ決め、他の文書は内容を複製せずリンクで参照します。利用者向けの文書はすべて英日の対（`name.md`／`name.ja.md`）です。エージェント向け指示・ライセンスと通知の本文・overlayの台帳（hashの所有者を一つにする出所記録）だけは意図して英語のみとします。Changelogも英日の対です。正典は英語版で、GitHub Releaseは英語版から作られます。利用者に見える手順を変える際は両方を更新します（[Contributing](../CONTRIBUTING.ja.md)）。
+文書ごとに役割を一つ決め、他の文書は内容を複製せずリンクで参照します。利用者向けの文書はすべて英日の対（`name.md`／`name.ja.md`）です。エージェント向け指示・ライセンスと通知の本文・overlayの台帳（hashの所有者を一つにする出所記録）だけは意図して英語のみとします。Changelogも英日の対です。正典は英語版で、GitHub Releaseは英語版から作られます。利用者に見える手順を変える際は両方を更新します（[Contributing](../../CONTRIBUTING.ja.md)）。
 
 ## 入口
 
@@ -10,10 +10,10 @@
 |---|---|---|---|
 | README | 要約、導入するもの、対応機体、始め方、配信する二つのprofileの主要な比較、範囲ごとの状態、業務利用の目的（BIZ）、他の公開レシピ、免責事項、Next Action | [EN](../README.md) | [JA](../README.ja.md) |
 | セットアップ手順書 | 機体確認から受け入れまでの順序付きゲート | [EN](../SETUP.md) | [JA](../SETUP.ja.md) |
-| Contributing | CPU検査、公開監査、貢献の規則 | [EN](../CONTRIBUTING.md) | [JA](../CONTRIBUTING.ja.md) |
+| Contributing | CPU検査、公開監査、貢献の規則 | [EN](../../CONTRIBUTING.md) | [JA](../../CONTRIBUTING.ja.md) |
 | Changelog | 変更履歴と版ごとの検証状態 | [EN](../CHANGELOG.md) | [JA](../CHANGELOG.ja.md) |
-| リポジトリ指示 | このcheckoutを編集するAIエージェント・運用者向けの規則 | [EN](../AGENTS.md) | — |
-| ライセンス・通知 | Apache-2.0本文、帰属、第三者の出所 | [LICENSE](../LICENSE)、[NOTICE](../NOTICE)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)、[LICENSES/](../LICENSES/) | — |
+| リポジトリ指示 | このcheckoutを編集するAIエージェント・運用者向けの規則 | [EN](../../AGENTS.md) | — |
+| ライセンス・通知 | Apache-2.0本文、帰属、第三者の出所 | [LICENSE](../../LICENSE)、[NOTICE](../../NOTICE)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md)、[LICENSES/](../../LICENSES/) | — |
 
 ## 導入・運用
 
@@ -75,7 +75,7 @@
 | `server preflight` が起動前に検査すること、保証しないこと | [運用手順](operations.ja.md#フルモデルの起動検査) |
 | imageの機能marker：どの設定が各markerを要求するか、どの版からimageが持つか | [起動設定](server-configuration.ja.md#現行イメージの契約) |
 | ホストカーネルの要件、`7.0.0-1019-nvidia` のRoCE失敗と `kho=off` の回避策 | [運用手順](operations.ja.md#ホストカーネルと複数ノードroce) |
-| 対象別のライセンス許諾と義務 | [ライセンス整理](licensing.ja.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
+| 対象別のライセンス許諾と義務 | [ライセンス整理](licensing.ja.md)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
 | ハーネス受け入れ試験と実施状態 | [ハーネス](harnesses.ja.md) |
 | ZCodeの権限モード、モデル上限と圧縮予算の規則、既存ファイルガードのhook | [ハーネス](harnesses.ja.md#zcodeの権限モードモデル上限既存ファイルガード)、スクリプトは [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | 検証範囲と未解決の事項 | [検証範囲](validation.ja.md#評価と未解決の事項) |

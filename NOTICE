@@ -38,5 +38,5 @@ The HLE (Humanity's Last Exam) answer format for exact-answer questions is taken
 from centerforaisafety/hle, hle_eval/run_model_predictions.py at
 386ed4be1d18bf3d73f1e1899c05bfff15e2f559, Copyright (c) 2025 centerforaisafety,
 licensed under the MIT License. Its notice is preserved in LICENSES/hle-MIT.txt.
-The evaluated questions (cais/hle, MIT) are pinned in config/hle.lock.json and
+The evaluated questions (cais/hle, MIT) are pinned in v1/config/hle.lock.json and
 are not distributed.

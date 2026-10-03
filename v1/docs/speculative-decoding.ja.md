@@ -14,7 +14,7 @@
 
 ## 各Linuxホストでの準備
 
-元snapshotの公式checksum検証を先に完了します。同じHF cache全体をcontainer mountできる位置へ、新しいviewを作ります。リポジトリのルートから実行してください。
+元snapshotの公式checksum検証を先に完了します。同じHF cache全体をcontainer mountできる位置へ、新しいviewを作ります。checkoutの `v1/` から実行してください。
 
 ```sh
 HF_ROOT="$HOME/.cache/huggingface"

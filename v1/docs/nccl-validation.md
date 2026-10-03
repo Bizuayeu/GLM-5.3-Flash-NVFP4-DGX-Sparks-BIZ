@@ -18,7 +18,7 @@ GID='REPLACE_WITH_OBSERVED_INDEX'
 HEAD_IP='10.53.0.1'
 RUN_ID='REPLACE_WITH_UNIQUE_RUN_ID'
 IMAGE=$(python -c 'from glm53_setup.config import load_lock; print(load_lock()["image"])')
-mkdir -p "records/$RUN_ID"
+mkdir -p "../records/$RUN_ID"
 ```
 
 Confirm port 29653 is unused on rank 0. Start rank 1 and then rank 0 promptly (rendezvous timeout is 90 seconds). Keep an external five-minute experiment deadline; if exceeded, stop these specific test containers on both hosts and preserve their logs.
@@ -35,10 +35,10 @@ docker run --name "glm53-nccl-$RUN_ID-rank$RANK" \
   -e "GLOO_SOCKET_IFNAME=$FABRIC_IF" \
   -e NCCL_DEBUG=INFO -e NCCL_DEBUG_SUBSYS=INIT,NET,GRAPH \
   -v "$PWD/tools/nccl_probe.py:/probe.py:ro" \
-  -v "$PWD/records/$RUN_ID:/out" \
+  -v "$PWD/../records/$RUN_ID:/out" \
   --entrypoint python3 "$IMAGE" /probe.py \
   --rank "$RANK" --head "$HEAD_IP" --port 29653 \
-  --output "/out/rank$RANK.json" >"records/$RUN_ID/nccl.log" 2>&1
+  --output "/out/rank$RANK.json" >"../records/$RUN_ID/nccl.log" 2>&1
 ```
 
 The doubled equals signs in the Docker arguments are intentional: the environment value begins with `=` for an exact device-name match. See [NCCL's environment reference](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html). Keep the distributed ports within the trusted fabric.

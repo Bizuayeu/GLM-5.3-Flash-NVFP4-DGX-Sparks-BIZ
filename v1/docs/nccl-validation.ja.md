@@ -18,7 +18,7 @@
    HEAD_IP='10.53.0.1'
    RUN_ID='REPLACE_WITH_UNIQUE_RUN_ID'
    IMAGE=$(python -c 'from glm53_setup.config import load_lock; print(load_lock()["image"])')
-   mkdir -p "records/$RUN_ID"
+   mkdir -p "../records/$RUN_ID"
    ```
 
 4. rank 1、続けてrank 0を速やかに起動する。待ち合わせは90秒、試験全体には外部から5分の期限を設ける。超えたら今回の2コンテナだけを両機で停止し、ログを保存する。
@@ -35,10 +35,10 @@
      -e "GLOO_SOCKET_IFNAME=$FABRIC_IF" \
      -e NCCL_DEBUG=INFO -e NCCL_DEBUG_SUBSYS=INIT,NET,GRAPH \
      -v "$PWD/tools/nccl_probe.py:/probe.py:ro" \
-     -v "$PWD/records/$RUN_ID:/out" \
+     -v "$PWD/../records/$RUN_ID:/out" \
      --entrypoint python3 "$IMAGE" /probe.py \
      --rank "$RANK" --head "$HEAD_IP" --port 29653 \
-     --output "/out/rank$RANK.json" >"records/$RUN_ID/nccl.log" 2>&1
+     --output "/out/rank$RANK.json" >"../records/$RUN_ID/nccl.log" 2>&1
    ```
 
 5. 両rankのJSON、transportログ、イメージID、終了状態、同時負荷をまとめて判定する。

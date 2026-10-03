@@ -29,8 +29,8 @@
 Linuxのモデルホストで、配信中のprofileに対して：
 
 ~~~sh
-python -m glm53_setup hle --questions <固定した設問ファイル> --config state/server.toml \
-  --output records/<新規run> --label <profile> \
+python -m glm53_setup hle --questions <固定した設問ファイル> --config ../state/server.toml \
+  --output ../records/<新規run> --label <profile> \
   --max-tokens 16384 --temperature 1.0 --top-p 0.95 --timeout 1200 --max-new 1
 ~~~
 

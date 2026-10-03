@@ -33,20 +33,20 @@ prefix cachingが有効な場合、P22は通常計算由来のprefixを先に復
 
 検証済みcut32 projectorを、**Apache-2.0**の独立した[GitHub Release添付物](https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/tag/lpa-cut32-v1)として配布します。取得URL、正確な容量・hash、形式、教師モデル、学習来歴の正典は[config/lpa-projector.lock.json](../config/lpa-projector.lock.json)です。NVIDIAの本体checkpointは別途取得します。このprojectorを使うための再学習は不要です。
 
-**両方のLinuxホスト**のcheckoutで実行します。
+**両方のLinuxホスト**のcheckoutの `v1/` で実行します。
 
 ```sh
-mkdir -p state/lpa
-curl --fail --location --output state/lpa/glm53-lpa-cut32-v1.tar.gz https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/glm53-lpa-cut32-v1.tar.gz
-curl --fail --location --output state/lpa/SHA256SUMS https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/SHA256SUMS
-(cd state/lpa && sha256sum --check SHA256SUMS)
+mkdir -p ../state/lpa
+curl --fail --location --output ../state/lpa/glm53-lpa-cut32-v1.tar.gz https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/glm53-lpa-cut32-v1.tar.gz
+curl --fail --location --output ../state/lpa/SHA256SUMS https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/SHA256SUMS
+(cd ../state/lpa && sha256sum --check SHA256SUMS)
 ```
 
 アーカイブのchecksumが合格した場合だけ、次へ進みます。
 
 ```sh
-tar -xzf state/lpa/glm53-lpa-cut32-v1.tar.gz -C state/lpa
-python -c 'import hashlib,json,pathlib; p=pathlib.Path; m=json.loads(p("config/lpa-projector.lock.json").read_text()); f=p("state/lpa")/m["artifact"]/m["file"]; assert f.stat().st_size == m["bytes"]; assert hashlib.sha256(f.read_bytes()).hexdigest() == m["sha256"]; print("Projector verified:", f)'
+tar -xzf ../state/lpa/glm53-lpa-cut32-v1.tar.gz -C ../state/lpa
+python -c 'import hashlib,json,pathlib; p=pathlib.Path; m=json.loads(p("config/lpa-projector.lock.json").read_text()); f=p("../state/lpa")/m["artifact"]/m["file"]; assert f.stat().st_size == m["bytes"]; assert hashlib.sha256(f.read_bytes()).hexdigest() == m["sha256"]; print("Projector verified:", f)'
 ```
 
 取得だけではLPAの有効化もサーバー再起動も行いません。有効化は、次の導入者による明示的な操作です。
@@ -72,7 +72,7 @@ projector_sha256 = "<config/lpa-projector.lock.json の sha256>"
 - **projector**：preflightは`[lpa].projector`が指すファイルのSHA-256を再計算し、`projector_sha256`と一致しなければ拒否します。`cut = 32`・`tail`・`break_even_tokens`はテンプレートの値のままにします。これがこのprojectorの実測設定です。
 - **FA2**：ランチャーはLPAと`runtime.fa2_attention`の併用を拒否するため、LPAは参照attention経路で動き、FA2によるprefill高速化はありません（[起動設定](server-configuration.ja.md#attentionとcacheとcheckpoint)）。
 - **テキスト専用**：検証済みの保護余裕は[テキスト専用の代替](server-configuration.ja.md#配布用の既定設定)を参照します。
-- **検査してから切替**：各ホストで`python -m glm53_setup server preflight --config state/server.toml --rank N`を実行し、`projector_sha256`・`lpa_worker`・`image_id`の合格を確認します。上記のどの編集もprofile fingerprintを変えるため、稼働中の対では通常の[両rank切替](launch-safety.ja.md#全レール検査と両rankの切替)が必要です。稼働中サーバーと一致しないprofileは`server ask`が拒否します。
+- **検査してから切替**：各ホストで`python -m glm53_setup server preflight --config ../state/server.toml --rank N`を実行し、`projector_sha256`・`lpa_worker`・`image_id`の合格を確認します。上記のどの編集もprofile fingerprintを変えるため、稼働中の対では通常の[両rank切替](launch-safety.ja.md#全レール検査と両rankの切替)が必要です。稼働中サーバーと一致しないprofileは`server ask`が拒否します。
 - **要求ごとの例外**：LPA有効中でも、要求に`"vllm_xargs": {"glm53_lpa_mode": "off"}`を付ければ通常計算して共有prefix cacheを育てられます。[起動設定](server-configuration.ja.md#prefix-cacheと併用するlpa)を参照。
 
 無効へ戻すには`enabled = false`にして切り替えます。projector関連のキーは残して構いません。
@@ -88,9 +88,9 @@ projector_sha256 = "<config/lpa-projector.lock.json の sha256>"
 GPUコマンドは教師と同じ固定reference image内で実行する。helpとコーパス採取にはTorchは不要。
 
 ```sh
-python -m glm53_setup lpa-corpus --output records/corpus-ja --documents 512
-python -m glm53_setup lpa-corpus --subset en-wiki --output records/corpus-en --documents 128
-python -m glm53_setup lpa-corpus --subset code --shard 300 --output records/corpus-code --documents 128
+python -m glm53_setup lpa-corpus --output ../records/corpus-ja --documents 512
+python -m glm53_setup lpa-corpus --subset en-wiki --output ../records/corpus-en --documents 128
+python -m glm53_setup lpa-corpus --subset code --shard 300 --output ../records/corpus-code --documents 128
 python -m glm53_setup lpa-fixture --fixture /fixture --output /out/oracle --cut 0 --skip-mla-queries --lengths 3 4 5 127 128 129 511 512 513 8705
 python -m glm53_setup lpa-train --captures /out/teacher --output /out/projector --cut 32 --rank 256 --ridge 0.001
 ```

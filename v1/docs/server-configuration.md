@@ -168,7 +168,7 @@ P22 has scoped GPU isolation, crossover, combined and final held-out evidence. W
 
 Before changing context or concurrency, review [KV capacity and RAM requirements](#kv-capacity-and-ram-requirements).
 
-Inspect generated commands from the checkout root (also works on Windows):
+Inspect generated commands from `v1/` of the checkout (also works on Windows):
 
 ```sh
 python -m glm53_setup server plan --rank 0

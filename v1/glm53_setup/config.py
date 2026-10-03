@@ -6,8 +6,11 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE = ROOT / "state"
-RECORDS = ROOT / "records"
+# The checkout root above v1/: its untracked state/ and records/ are what a deploy
+# checkout links to the host's persistent directories, whichever line it serves.
+CHECKOUT = ROOT.parent
+STATE = CHECKOUT / "state"
+RECORDS = CHECKOUT / "records"
 # The operator's profile, which every host command reads unless given --config.
 DEFAULT_PROFILE = STATE / "server.toml"
 LOCK_PATH = ROOT / "config/runtime.lock.json"

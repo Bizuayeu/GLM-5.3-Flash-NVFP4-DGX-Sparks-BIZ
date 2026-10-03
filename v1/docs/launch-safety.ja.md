@@ -17,8 +17,8 @@
 環境変数の上書きは起動元で一度だけ解決します。
 
 ```sh
-python -m glm53_setup server freeze --config state/server.toml --output state/launch.json
-python -m glm53_setup server plan --config state/server.toml --launch state/launch.json --rank 0
+python -m glm53_setup server freeze --config ../state/server.toml --output ../state/launch.json
+python -m glm53_setup server plan --config ../state/server.toml --launch ../state/launch.json --rank 0
 ```
 
 環境変数は空文字でも「存在」すればTOMLより優先します。同じ凍結JSONを全rankへ配布し、start／preflightの `--launch` へ渡します。rank側の環境変数は再解決しません。ローカルallocator環境変数がある直接起動では、凍結済みmanifestを必須とします。manifestは解決済みprofileとlockに結び付くfingerprintを含み、APIキーは含みません。`freeze` は既存manifestを上書きしません。
@@ -34,13 +34,13 @@ python -m glm53_setup server plan --config state/server.toml --launch state/laun
 ### 切替と復旧
 
 ```sh
-python -m glm53_setup cluster switch --config state/server.toml \
-  --hosts spark-head spark-peer --checkout /srv/glm53/source \
+python -m glm53_setup cluster switch --config ../state/server.toml \
+  --hosts spark-head spark-peer --checkout /srv/glm53/source/v1 \
   --remote-config /srv/glm53/state/server.toml \
-  --output records/switch-run
+  --output ../records/switch-run
 ```
 
-全hostに同じ監査済みcheckout・image・資材を用意します。停止前のsource識別検査は不一致を拒否するため、切替の前にすべてのcheckoutを更新します。稼働中の起動は起動時のprofileパスを `state/startup-rank<N>.json` に記録しており、切替失敗後の復旧はその記録パスから旧profileを再起動します。profileファイルを改名する場合は移動ではなく複製し、新しい対の準備完了を確認してから旧ファイルを削除してください。`--remote-config` はprojector相対パスのLinux側基準、共通の凍結manifestは設定値を指定します。新しい起動が complete になると、全rankは `--config` の本文をそのパスへ書き込みます。rank上でファイルを読むコマンド（`server agreement`・`server mojibake`・ベンチ）が、稼働中のprofileを見るようにするためです。各rankは、自分が起動されたprofileと一致する本文だけを受け付け、内容の違う旧ファイルは `<名前>.bak-<UTC時刻>-<旧fingerprintの先頭8桁、または unparsed>` として隣に残し、renameひとつで置き換えます。切替が失敗した時と旧対へ復旧した時は何も書かず、書き込みの失敗はjournalの `config` に記録するだけで対を巻き戻しません。`--no-send-config` を付けるとリモートのファイルに触れません。`cluster resume` は、`--config` を渡され、かつ新しい対がreadyだった時だけ書き込みます。必要に応じて `--ssh-config` を指定します。停止前に全rankの資材・fabricと共通source／image／model／profile／allocatorを検査し、停止直前にも再照合します。重みの照合はindex hash・shardサイズ・ローカルfile識別であり、元の重み完全性検査の代わりではありません。ロード用の空きメモリ検査は停止後に行います。[他のGPUコンテナの検査](operations.ja.md#フルモデルの起動検査)は両方の時点で行います。停止前はラベルを持つ稼働中の旧い対を除外し、停止後は他のGPUコンテナが動いていれば起動しません。
+`--checkout` は各rankが `python -m glm53_setup` を実行するディレクトリです。1.28.0からはcheckoutの `v1/`、それより前はcheckoutそのものです。全hostに同じ監査済みcheckout・image・資材を用意します。停止前のsource識別検査は不一致を拒否するため、切替の前にすべてのcheckoutを更新します。稼働中の起動は起動時のprofileパスを `state/startup-rank<N>.json` に記録しており、切替失敗後の復旧はその記録パスから旧profileを再起動します。profileファイルを改名する場合は移動ではなく複製し、新しい対の準備完了を確認してから旧ファイルを削除してください。`--remote-config` はprojector相対パスのLinux側基準、共通の凍結manifestは設定値を指定します。新しい起動が complete になると、全rankは `--config` の本文をそのパスへ書き込みます。rank上でファイルを読むコマンド（`server agreement`・`server mojibake`・ベンチ）が、稼働中のprofileを見るようにするためです。各rankは、自分が起動されたprofileと一致する本文だけを受け付け、内容の違う旧ファイルは `<名前>.bak-<UTC時刻>-<旧fingerprintの先頭8桁、または unparsed>` として隣に残し、renameひとつで置き換えます。切替が失敗した時と旧対へ復旧した時は何も書かず、書き込みの失敗はjournalの `config` に記録するだけで対を巻き戻しません。`--no-send-config` を付けるとリモートのファイルに触れません。`cluster resume` は、`--config` を渡され、かつ新しい対がreadyだった時だけ書き込みます。必要に応じて `--ssh-config` を指定します。停止前に全rankの資材・fabricと共通source／image／model／profile／allocatorを検査し、停止直前にも再照合します。重みの照合はindex hash・shardサイズ・ローカルfile識別であり、元の重み完全性検査の代わりではありません。ロード用の空きメモリ検査は停止後に行います。[他のGPUコンテナの検査](operations.ja.md#フルモデルの起動検査)は両方の時点で行います。停止前はラベルを持つ稼働中の旧い対を除外し、停止後は他のGPUコンテナが動いていれば起動しません。
 
 停止前の不合格では稼働中コンテナを維持します。停止後の不合格では今回予約した起動分だけを停止し、記録済みの旧profileで復旧を試みます。停止確認が取れない場合は競合する復旧起動を避けます。結果に失敗・cleanup・復旧を分けて残します。停止を伴う切替であり、原子的な無停止切替ではありません。稼働rankに設定パスの記録がない場合は復旧条件が揃わないため停止前に拒否します。他用途のコンテナは停止しません。ランチャー外のGPUコンテナがあれば停止前の検査が不合格になり、何も停止しません。2026-09-17には、旧い対が稼働したままこの検査つきで基準の対を切り替え（停止前の検査は両rankで合格）、3台目のホストでは実行中の部品試験コンテナが他のGPUコンテナとして報告されました。
 
@@ -64,17 +64,17 @@ Nノードの起動は、rankの大きい方から順に起こし、headを最�
 
 ```sh
 for kind in prose count code; do
-  PROMPT_KIND=$kind SAMPLES=3 TOKENS_OUT=records/<run>/tokens-$kind.json \
-    python3 tools/decode_check.py > records/<run>/decode-$kind.jsonl
+  PROMPT_KIND=$kind SAMPLES=3 TOKENS_OUT=../records/<run>/tokens-$kind.json \
+    python3 tools/decode_check.py > ../records/<run>/decode-$kind.jsonl
 done
-docker logs <rank0のcontainer> 2>&1 | gzip > records/<run>/logs-rank0.txt.gz   # ほかのrankも同様に、そのhostで
+docker logs <rank0のcontainer> 2>&1 | gzip > ../records/<run>/logs-rank0.txt.gz   # ほかのrankも同様に、そのhostで
 ```
 
 decode検査は他の要求が走っていない時に取ります。同時2系列のprofileでは、他の要求とstepを共有する要求は別のcompletionになり、回ごとにも変わります（[1.10.2での測定](benchmarks.ja.md#1102での測定)）。起動の中では3標本が一致すること（`distinct_completions` が1）。起動を跨いでは `completion_sha256` を同じprofileの前の起動と比べます。違ったら記録を残す：`tools/decode_divergence.py` が二つの `tokens-*.json` の最初に分岐したtokenを出し（本文の後ろでの一回の同点割れか、早くからの系統的なずれか）、二つのlogが起動ごとの唯一の証拠です。速さと採択長がそのprofileのいつもの幅の中なら、違いは同点であって故障ではありません。TP=3では、ホストごとのruntime cacheが同じ起動どうしだけを比べます（[3ノード](#3ノード)）。
 
 **新しい image を載せた後。** 別の Spark 2台のレシピは、image を作り直した直後の最初の起動だけ decode が 10〜20% 遅く（採択は変わらず）、素の再起動一回で戻ると報告しています（MiaAI-Lab issue #284。JIT cache は原因から外れ、build・load 後のホストのメモリ状態は外れていない）。この対の記録には見えていません。6つの image で、同じ profile・同じ文種の最初の起動は後の起動の中央値の 0.965〜1.019 倍で、採択と completion も同じでした（後の起動どうしの差は 0.9〜1.7%）。そのため、手順に再起動を一回足すことはしません。載せた後の最初の起動がそのprofileのいつもの幅より遅く、採択が変わらないときは、image を疑う前に対を一回再起動して decode 検査を取り直してください。image ごとの最初の起動は一回ずつなので、ときどきしか起きない現象までは否定できません。
 
-profileが `validation.memory_probe = true` を持つなら、切替の後、decode検査の前に重みのdigestも取ります：`python3 tools/weight_digest.py --output records/<run>/weights.json --reference records/<前の起動>/weights.json` が全rankのloadされた全parameterとbufferをfingerprintし、前の起動と違うtensorを名指しします（終了状態1）。別の数値状態の起動でdigestが同一なら同じbitから違う計算をした、違うならloadが違い、記録がどこかを言います。続けて `python3 tools/kernel_hashes.py --output records/<run>/kernels.json --reference records/<前の起動>/kernels.json` が、indexerの計算を固定入力で各配信workerの中で走らせ、rankどうしと前の起動とを比べます（差があれば終了状態1、keyを表示）。別の状態の起動が違って計算する箇所がtraceなしで名指しされます。
+profileが `validation.memory_probe = true` を持つなら、切替の後、decode検査の前に重みのdigestも取ります：`python3 tools/weight_digest.py --output ../records/<run>/weights.json --reference ../records/<前の起動>/weights.json` が全rankのloadされた全parameterとbufferをfingerprintし、前の起動と違うtensorを名指しします（終了状態1）。別の数値状態の起動でdigestが同一なら同じbitから違う計算をした、違うならloadが違い、記録がどこかを言います。続けて `python3 tools/kernel_hashes.py --output ../records/<run>/kernels.json --reference ../records/<前の起動>/kernels.json` が、indexerの計算を固定入力で各配信workerの中で走らせ、rankどうしと前の起動とを比べます（差があれば終了状態1、keyを表示）。別の状態の起動が違って計算する箇所がtraceなしで名指しされます。
 
 ## APCの履歴検証
 

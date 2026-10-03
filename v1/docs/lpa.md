@@ -33,20 +33,20 @@ With prefix caching on, P22 restores the exact prefix first and approximates onl
 
 The tested cut32 projector is available as a separate [GitHub Release asset](https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/tag/lpa-cut32-v1), under **Apache-2.0**. [config/lpa-projector.lock.json](../config/lpa-projector.lock.json) owns the download URL, exact size/hash, format, teacher identity and training provenance. The NVIDIA checkpoint remains a separate download. No retraining is needed to use this projector.
 
-On **each Linux host**, from the checkout:
+On **each Linux host**, from `v1/` of the checkout:
 
 ```sh
-mkdir -p state/lpa
-curl --fail --location --output state/lpa/glm53-lpa-cut32-v1.tar.gz https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/glm53-lpa-cut32-v1.tar.gz
-curl --fail --location --output state/lpa/SHA256SUMS https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/SHA256SUMS
-(cd state/lpa && sha256sum --check SHA256SUMS)
+mkdir -p ../state/lpa
+curl --fail --location --output ../state/lpa/glm53-lpa-cut32-v1.tar.gz https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/glm53-lpa-cut32-v1.tar.gz
+curl --fail --location --output ../state/lpa/SHA256SUMS https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/releases/download/lpa-cut32-v1/SHA256SUMS
+(cd ../state/lpa && sha256sum --check SHA256SUMS)
 ```
 
 Continue only if the archive checksum passes:
 
 ```sh
-tar -xzf state/lpa/glm53-lpa-cut32-v1.tar.gz -C state/lpa
-python -c 'import hashlib,json,pathlib; p=pathlib.Path; m=json.loads(p("config/lpa-projector.lock.json").read_text()); f=p("state/lpa")/m["artifact"]/m["file"]; assert f.stat().st_size == m["bytes"]; assert hashlib.sha256(f.read_bytes()).hexdigest() == m["sha256"]; print("Projector verified:", f)'
+tar -xzf ../state/lpa/glm53-lpa-cut32-v1.tar.gz -C ../state/lpa
+python -c 'import hashlib,json,pathlib; p=pathlib.Path; m=json.loads(p("config/lpa-projector.lock.json").read_text()); f=p("../state/lpa")/m["artifact"]/m["file"]; assert f.stat().st_size == m["bytes"]; assert hashlib.sha256(f.read_bytes()).hexdigest() == m["sha256"]; print("Projector verified:", f)'
 ```
 
 Downloading the asset does not enable LPA or restart a server. Enabling it is the explicit operator step below.
@@ -72,7 +72,7 @@ projector_sha256 = "<sha256 from config/lpa-projector.lock.json>"
 - **Projector**: preflight recomputes the SHA-256 of the file named by `[lpa].projector` and rejects a mismatch with `projector_sha256`. Keep `cut = 32`, `tail` and `break_even_tokens` at the template values, which are the measured settings for this projector.
 - **FA2**: the launcher refuses `runtime.fa2_attention` with LPA, so LPA runs on the reference attention path, without the FA2 prefill speedup ([server configuration](server-configuration.md#attention-cache-and-checkpoint)).
 - **Text-only**: see the [text-only alternative](server-configuration.md#distributed-defaults) for its validated reserve.
-- **Check, then switch**: run `python -m glm53_setup server preflight --config state/server.toml --rank N` on each host and confirm `projector_sha256`, `lpa_worker` and `image_id` pass. Any of these edits changes the profile fingerprint, so a running pair needs the normal [two-rank switch](launch-safety.md#all-rail-checks-and-two-rank-switch); `server ask` refuses a profile that no longer matches the running server.
+- **Check, then switch**: run `python -m glm53_setup server preflight --config ../state/server.toml --rank N` on each host and confirm `projector_sha256`, `lpa_worker` and `image_id` pass. Any of these edits changes the profile fingerprint, so a running pair needs the normal [two-rank switch](launch-safety.md#all-rail-checks-and-two-rank-switch); `server ask` refuses a profile that no longer matches the running server.
 - **Per request**: while LPA is enabled, a request can still compute normally with `"vllm_xargs": {"glm53_lpa_mode": "off"}` to prime the shared prefix cache; see [server configuration](server-configuration.md#lpa-with-prefix-caching).
 
 To turn LPA off again, set `enabled = false` and switch; the projector keys may stay in the file.
@@ -88,9 +88,9 @@ Training uses the pinned LLM-jp Corpus v3 Japanese/English Wikipedia and filtere
 Use the same fixed reference image as the teacher for GPU commands; CLI help and corpus sampling do not require Torch.
 
 ```sh
-python -m glm53_setup lpa-corpus --output records/corpus-ja --documents 512
-python -m glm53_setup lpa-corpus --subset en-wiki --output records/corpus-en --documents 128
-python -m glm53_setup lpa-corpus --subset code --shard 300 --output records/corpus-code --documents 128
+python -m glm53_setup lpa-corpus --output ../records/corpus-ja --documents 512
+python -m glm53_setup lpa-corpus --subset en-wiki --output ../records/corpus-en --documents 128
+python -m glm53_setup lpa-corpus --subset code --shard 300 --output ../records/corpus-code --documents 128
 python -m glm53_setup lpa-fixture --fixture /fixture --output /out/oracle --cut 0 --skip-mla-queries --lengths 3 4 5 127 128 129 511 512 513 8705
 python -m glm53_setup lpa-train --captures /out/teacher --output /out/projector --cut 32 --rank 256 --ridge 0.001
 ```

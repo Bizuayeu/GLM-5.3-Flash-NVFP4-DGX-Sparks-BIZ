@@ -11,21 +11,28 @@ import unicodedata
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-ROOT = Path(__file__).resolve().parents[1]
+# The repository root: the 1.x line lives in v1/, the 2.x line in v2/.
+ROOT = Path(__file__).resolve().parents[2]
 REQUIRED = {
+    "README.md",
+    "README.ja.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md",
+    ".gitignore",
+    ".dockerignore",
+}
+# The project checks below name files relative to this directory.
+PROJECT = "v1"
+PROJECT_REQUIRED = {
     "README.md",
     "README.ja.md",
     "SETUP.md",
     "SETUP.ja.md",
     "CHANGELOG.md",
     "CHANGELOG.ja.md",
-    "LICENSE",
-    "NOTICE",
-    "THIRD_PARTY_NOTICES.md",
     "config/runtime.lock.json",
     "pyproject.toml",
-    ".gitignore",
-    ".dockerignore",
 }
 PRIVATE_DIRS = {"state", "records", "upstream", ".ssh", ".venv", ".claude-local-test"}
 PRIVATE_SUFFIXES = {
@@ -276,7 +283,7 @@ def audit(root, files):
             or path.name == "site.json"
             or path.name.endswith(".local.json")
             or (path.name.startswith(".env") and path.name != ".env.example")
-            or (name.startswith("docs/") and "PLAN" in path.name)
+            or ("docs" in parts and "PLAN" in path.name)
         ):
             problems.append(f"private/generated path: {name}")
         if not path.is_file():
@@ -315,27 +322,13 @@ def audit(root, files):
     return problems
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=ROOT)
-    parser.add_argument(
-        "--export-tree",
-        action="store_true",
-        help="Inspect an exported tree without Git",
-    )
-    parser.add_argument(
-        "--plans",
-        action="store_true",
-        help="Also check the relative links of the untracked docs/plans/",
-    )
-    args = parser.parse_args()
-    root = args.root.resolve()
-    files = public_files(root, args.export_tree)
-    problems = audit(root, files)
+def project_problems(root, files):
+    """The 1.x checks, on ``files`` named relative to the project directory ``root``."""
+    problems = [
+        f"missing required file: {PROJECT}/{name}"
+        for name in sorted(PROJECT_REQUIRED - files)
+    ]
     documents = {name for name in files if name.endswith(".md")}
-    problems += anchor_problems(
-        {name: (root / name).read_text(encoding="utf-8") for name in documents}
-    )
     for map_name in MAPS:
         if map_name in files:
             problems += map_problems(
@@ -351,8 +344,6 @@ def main():
             problems += architecture_problems(
                 (root / name).read_text(encoding="utf-8"), modules
             )
-    if args.plans:
-        problems += plan_link_problems(root)
     if "config/runtime.lock.json" in files:
         lock = json.loads(
             (root / "config/runtime.lock.json").read_text(encoding="utf-8")
@@ -390,10 +381,47 @@ def main():
                 problems += citation_problems(
                     name, (root / name).read_text(encoding="utf-8"), project["version"]
                 )
-    for problem in problems:
+    return problems
+
+
+def problems(root, files, plans=False):
+    """Every issue of the repository at ``root`` whose public files are ``files``."""
+    found = audit(root, files)
+    documents = {name for name in files if name.endswith(".md")}
+    found += anchor_problems(
+        {name: (root / name).read_text(encoding="utf-8") for name in documents}
+    )
+    if plans:
+        found += plan_link_problems(root)
+    prefix = PROJECT + "/"
+    found += project_problems(
+        root / PROJECT,
+        {name.removeprefix(prefix) for name in files if name.startswith(prefix)},
+    )
+    return found
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument(
+        "--export-tree",
+        action="store_true",
+        help="Inspect an exported tree without Git",
+    )
+    parser.add_argument(
+        "--plans",
+        action="store_true",
+        help="Also check the relative links of the untracked docs/plans/",
+    )
+    args = parser.parse_args()
+    root = args.root.resolve()
+    files = public_files(root, args.export_tree)
+    found = problems(root, files, args.plans)
+    for problem in found:
         print(problem)
-    print(f"Publication audit: {len(files)} files, {len(problems)} issues")
-    raise SystemExit(bool(problems))
+    print(f"Publication audit: {len(files)} files, {len(found)} issues")
+    raise SystemExit(bool(found))
 
 
 if __name__ == "__main__":

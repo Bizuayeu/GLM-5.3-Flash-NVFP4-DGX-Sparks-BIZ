@@ -40,11 +40,11 @@ vLLMは[既定での再現性を保証していません](https://github.com/vll
 
 ## GPU 1台のfixtureを再現する
 
-Linux版のGB10ホストと、検証済みのcheckpointを使います。checkoutのルートから実行してください。例は既定のHugging Face cacheを前提とするため、環境が異なる場合はホスト側のmountを調整します。
+Linux版のGB10ホストと、検証済みのcheckpointを使います。checkoutの `v1/` から実行してください。例は既定のHugging Face cacheを前提とするため、環境が異なる場合はホスト側のmountを調整します。
 
 ~~~sh
 python -m glm53_setup build-reference
-mkdir -p state records/fixture-check state/fixture-cache
+mkdir -p ../state ../records/fixture-check ../state/fixture-cache
 IMAGE=$(python -c 'import json; print(json.load(open("config/runtime.lock.json"))["reference_candidate"]["tag"])')
 HF_CACHE=$HOME/.cache/huggingface
 REVISION=$(python -c 'from glm53_setup.config import REVISION; print(REVISION)')
@@ -53,14 +53,14 @@ REVISION=$(python -c 'from glm53_setup.config import REVISION; print(REVISION)')
 元のcacheを変更せずに読み取り、別の4層checkpointを作ります。fixtureにはおよそ7.46 GiB分のtensorが入ります。
 
 ~~~sh
-docker run --name glm53-fixture-build --network none --memory 24g --memory-swap 24g -v "$HF_CACHE:/hf:ro" -v "$PWD/state:/data" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-build --source "/hf/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/$REVISION" --output /data/four-layer
+docker run --name glm53-fixture-build --network none --memory 24g --memory-swap 24g -v "$HF_CACHE:/hf:ro" -v "$PWD/../state:/data" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-build --source "/hf/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/$REVISION" --output /data/four-layer
 ~~~
 
 新しい実験では、出力ディレクトリとcontainer名を新規に用意します。既存のfixture出力を上書きすることはありません。
 
 ~~~sh
-docker run --name glm53-fixture-check --gpus all --network none --memory 32g --memory-swap 32g --shm-size 2g -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo -e NVIDIA_TF32_OVERRIDE=0 -v "$PWD/state/four-layer:/fixture:ro" -v "$PWD/records/fixture-check:/out" -v "$PWD/state/fixture-cache:/root/.cache" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-run --fixture /fixture --output /out --backend marlin --context 16384 --chunk 512
-python -m glm53_setup fixture-assess records/fixture-check
+docker run --name glm53-fixture-check --gpus all --network none --memory 32g --memory-swap 32g --shm-size 2g -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo -e NVIDIA_TF32_OVERRIDE=0 -v "$PWD/../state/four-layer:/fixture:ro" -v "$PWD/../records/fixture-check:/out" -v "$PWD/../state/fixture-cache:/root/.cache" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-run --fixture /fixture --output /out --backend marlin --context 16384 --chunk 512
+python -m glm53_setup fixture-assess ../records/fixture-check
 ~~~
 
 24／32 GiBの予算は試験用の上限であり、フルモデルの必要量ではありません。実験には外部で期限を設け、超過した場合は該当する試験containerを停止します。過去の試験では15分を使いました。containerと結果は保持します。

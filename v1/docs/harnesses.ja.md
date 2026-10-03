@@ -52,10 +52,10 @@ npm版CLI 3.11.2の設定ファイルは`~/.zcode/cli/config.json`です。3.14.
 - **それ以外はそのまま中継します**（認証情報も）。Anthropic形式の要求（`/v1/messages`、Claude Codeが使う）は中継しますが検査しません。64 MiBを超える本文は断り、上流のtimeoutは2,400秒です（`--timeout`）。
 - **ログ**：検査した要求ごとにJSON 1行で、結果と、違反したtoolと引数の名前だけ。引数の値・prompt・応答は書きません。
 
-head hostのcheckoutから起動し、8893の代わりにこのポートをトンネルします。
+head hostのcheckoutの `v1/` から起動し、8893の代わりにこのポートをトンネルします。
 
 ```bash
-python -m glm53_setup tool-gate --port 8894 --upstream http://127.0.0.1:8893 --log records/<run>/gate.jsonl
+python -m glm53_setup tool-gate --port 8894 --upstream http://127.0.0.1:8893 --log ../records/<run>/gate.jsonl
 ```
 
 ```powershell

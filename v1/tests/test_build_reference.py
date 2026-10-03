@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from glm53_setup import build_reference
-from glm53_setup.config import ROOT
+from glm53_setup.config import CHECKOUT, ROOT
 
 LOCK = {
     "platform": "linux/arm64",
@@ -29,7 +29,21 @@ class BuildCommandTests(unittest.TestCase):
         self.assertEqual(
             command[command.index("-f") + 1], str(ROOT / "docker/Dockerfile.reference")
         )
-        self.assertEqual(command[-1], str(ROOT))
+        self.assertEqual(command[-1], str(CHECKOUT))
+
+    def test_every_copy_source_is_in_the_build_context(self):
+        # The context is the checkout root: the licences live beside v1/.
+        dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+        sources = [
+            source
+            for line in dockerfile.splitlines()
+            if line.startswith("COPY ")
+            for source in line.split()[1:-1]
+        ]
+        self.assertIn("LICENSE", sources)
+        for source in sources:
+            with self.subTest(source=source):
+                self.assertTrue((CHECKOUT / source).exists())
 
     def test_plan_prints_the_command_and_builds_nothing(self):
         out = io.StringIO()

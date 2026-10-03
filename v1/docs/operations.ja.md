@@ -51,7 +51,7 @@ readlink -f /srv/glm53/source/state /srv/glm53/source/records
 
 ダウンローダーはHugging Faceのcache環境設定に従いますが、現行のランチャーは既定のcache rootを前提とします。本リリースでは、これらの資材を取得する際に `HF_HOME`／`HF_HUB_CACHE` を設定せず、文書化した既定の場所を使ってください。任意のcacheへのダウンロードが成功しても、ランチャーがそれを見つけてmountできることの証明にはなりません。
 
-ダウンロードを始めずに、想定される場所と記録された場所を確認します。各Linuxホストのcheckoutで実行してください。
+ダウンロードを始めずに、想定される場所と記録された場所を確認します。各Linuxホストのcheckoutの `v1/` で実行してください。
 
 ```sh
 python -c 'from pathlib import Path; from glm53_setup.config import MODEL, REVISION; print(Path.home() / ".cache/huggingface/hub" / ("models--" + MODEL.replace("/", "--")) / "snapshots" / REVISION)'

@@ -52,10 +52,10 @@ The model API on 8893 returns tool calls as the model writes them. `python -m gl
 - **Everything else is relayed unchanged**, credentials included. Anthropic-format requests (`/v1/messages`, used by Claude Code) are relayed but not checked. Bodies over 64 MiB are refused; the upstream timeout is 2,400 s (`--timeout`).
 - **Log**: one JSON line per checked request with the outcome and the tool and argument names of a violation; never argument values, prompts or replies.
 
-Start it on the head host from a checkout, and tunnel its port instead of 8893:
+Start it on the head host from `v1/` of a checkout, and tunnel its port instead of 8893:
 
 ```bash
-python -m glm53_setup tool-gate --port 8894 --upstream http://127.0.0.1:8893 --log records/<run>/gate.jsonl
+python -m glm53_setup tool-gate --port 8894 --upstream http://127.0.0.1:8893 --log ../records/<run>/gate.jsonl
 ```
 
 ```powershell

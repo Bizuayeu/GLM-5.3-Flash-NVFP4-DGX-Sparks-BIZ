@@ -535,7 +535,9 @@ def parser():
     )
     cli.add_argument("--hosts", nargs="+", help="SSH hosts, rank 0 (head) first")
     cli.add_argument(
-        "--checkout", help="Same audited absolute Linux checkout on every rank"
+        "--checkout",
+        help="Same audited absolute Linux checkout on every rank, the directory "
+        "that holds glm53_setup (v1/ from 1.28.0)",
     )
     cli.add_argument("--ssh-config", type=Path)
     cli.add_argument("--output", type=Path)

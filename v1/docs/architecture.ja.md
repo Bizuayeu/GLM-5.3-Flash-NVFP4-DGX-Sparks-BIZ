@@ -66,15 +66,15 @@
 | `requirements/` | ホスト側ツールの固定した依存 |
 | `tests/` | CPU契約 |
 | `tools/` | `check_publication.py`（公開監査）、`release_notes.py`（tagが公開するChangelogの節）、`kernel_hashes.py`（indexerのkernelを各配信workerの中でhash）、`assess_benchmark.py`、`check_prefix_cache.py`、`decode_check.py`・`decode_divergence.py`・`weight_digest.py`（切替の後のdecode検査と重みのdigest、[起動契約](launch-safety.ja.md#切替の後のdecode検査)）、`nccl_probe.py`（2 rankまたは3 rank）、`prepare_mtp_view.py` |
-| `.github/workflows/` | CI（LinuxとWindowsでのCPUテスト・Ruff・公開監査）と、tagで起動するGitHub Release |
-| `LICENSES/` | 上流ライセンス原文の保持 |
-| `state/`、`records/` | ローカルの可変状態と実験の証跡。配布対象外 |
+| `../.github/workflows/` | checkoutのルート：CI（LinuxとWindowsでのCPUテスト・Ruff・公開監査、`v1/` で実行）と、tagで起動するGitHub Release |
+| `../LICENSES/` | checkoutのルート：上流ライセンス原文の保持 |
+| `../state/`、`../records/` | checkoutのルート：ローカルの可変状態と実験の証跡。配布対象外 |
 
 CLIは、選択したコマンドが実際に必要とする場合にだけGPU依存をimportします。help、設定、CPUテストは、ホストにTorchやvLLMが入っていなくても動きます。GPUプログラムは固定imageの中で実行します。
 
 コメント付きの `examples/server.example.toml` は、起動設定の完全なスキーマも兼ねます。TOMLの全体検査は `server_config.load` と、単独で呼び出せる `server.command` の境界で行います。`server_config.serve_args` は検査済みのprofileを受け取り、スキーマを読み直しません。内部の組み立て工程であり、入力検査の入口ではありません。fabric固有の小さなガードは独立したままです。
 
-モデルIDとrevisionの設定元は[runtime.lock.json](../config/runtime.lock.json)の一つだけです。可変ファイルは、呼び出し元の作業ディレクトリに関係なくcheckoutを基点にします。本ツールキットは保守されたcheckoutから実行してください。汎用のPythonライブラリとしては提供していません。
+モデルIDとrevisionの設定元は[runtime.lock.json](../config/runtime.lock.json)の一つだけです。可変ファイルは、呼び出し元の作業ディレクトリに関係なくcheckoutを基点にします（`state/` と `records/` は `v1/` と並ぶ）。本ツールキットは保守されたcheckoutから実行してください。汎用のPythonライブラリとしては提供していません。
 
 reference imageのbuild時patchは、変更する固定vLLMファイルの完全なSHA-256を確認してから当てます。公開した任意設定のoverlayも起動時に同じ方法で照合します。選択したAttention候補はすべて保持します。runtimeの数値計算と検証ハーネスは別のモジュールにしてあるため、CLIコードを移動しても数学的な実装は変わりません。
 

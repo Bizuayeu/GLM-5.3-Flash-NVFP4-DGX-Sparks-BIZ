@@ -37,7 +37,7 @@ NVFP4 names the downloaded weight format. The tested reference profile executes 
 
 ### Licensing at a glance
 
-Each artifact keeps its own terms; obligations and the rationale are in the [licensing guide](docs/licensing.md), provenance in the [third-party notices](THIRD_PARTY_NOTICES.md).
+Each artifact keeps its own terms; obligations and the rationale are in the [licensing guide](docs/licensing.md), provenance in the [third-party notices](../THIRD_PARTY_NOTICES.md).
 
 | Artifact | License | Where it comes from |
 |---|---|---|
@@ -60,7 +60,7 @@ Distributing this repository as source, pinned references and build steps requir
 
 ## Start from a checkout
 
-Run these commands from this repository's root on the target Linux host:
+Run these commands from the `v1/` directory of a checkout on the target Linux host. `state/` and `records/` stay at the checkout root, beside `v1/`, so commands reach them as `../state/` and `../records/`:
 
 ~~~sh
 python3 -m venv .venv
@@ -76,7 +76,7 @@ This repository is a checkout-based operator toolkit, not a published PyPI packa
 
 ~~~sh
 python -m glm53_setup download --background
-python -m glm53_setup verify-download --hf .venv/bin/hf --output records/checksum --wait
+python -m glm53_setup verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 python -m glm53_setup prepare-image --background
 python -m glm53_setup build-reference
 ~~~
@@ -178,7 +178,7 @@ Completed measurements and remaining gates are identified above and in the linke
 
 ### Other GLM-5.3-Flash recipes for DGX Spark systems
 
-Several public recipes serve the same model on the same class of hardware with different engines, quantization and trade-offs. They are worth comparing before choosing one. This table owns their links, their licenses as read between 2026-09-18 and 2026-10-03 and what this repository took from each; other documents cite them by name and pull request only. Code that was adapted carries its notice in [third-party notices](THIRD_PARTY_NOTICES.md).
+Several public recipes serve the same model on the same class of hardware with different engines, quantization and trade-offs. They are worth comparing before choosing one. This table owns their links, their licenses as read between 2026-09-18 and 2026-10-03 and what this repository took from each; other documents cite them by name and pull request only. Code that was adapted carries its notice in [third-party notices](../THIRD_PARTY_NOTICES.md).
 
 | Recipe | License | What this repository took from it |
 |---|---|---|
@@ -227,4 +227,4 @@ Each item is a trigger and what this repository then does.
 
 `state/`, `records/`, credentials, site-specific configuration and weights are excluded from Git and the Docker build context. Publish reviewed summaries, not raw local logs.
 
-[Contributing](CONTRIBUTING.md) describes CPU checks and the publication audit. [CHANGELOG.md](CHANGELOG.md) tracks changes; [LICENSE](LICENSE) and [NOTICE](NOTICE) define project licensing and attribution.
+[Contributing](../CONTRIBUTING.md) describes CPU checks and the publication audit. [CHANGELOG.md](CHANGELOG.md) tracks changes; [LICENSE](../LICENSE) and [NOTICE](../NOTICE) define project licensing and attribution.
