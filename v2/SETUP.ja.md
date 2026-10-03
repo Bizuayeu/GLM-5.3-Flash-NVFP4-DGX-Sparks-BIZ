@@ -1,0 +1,87 @@
+# 配備の手順書（2.x）
+
+[English](SETUP.md) · [2.x系の概要](README.ja.md) · [検証](docs/validation.ja.md)
+
+2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。台本は全ホストで同じcheckoutの `v2/` から実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
+
+## 1. 機体とfabric
+
+ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台、[1.x系の手順1](../v1/SETUP.ja.md#1-必要情報を集め2台とも現状確認する)のとおりに準備・確認します（棚卸し、kernelと `kho=off`、他の負荷）。ケーブルとfabricの検証は[1.x系の手順5](../v1/SETUP.ja.md#5-ケーブル接続とfabric検証)のとおりで、対は直結、3台はリングです（[3台をリングにつなぐ](../v1/docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各ホストについて、リンクのRDMAデバイス名（`ibdev2netdev`）、リンクのIPv4アドレスでRoCE v2になるGIDのindex、rankが待ち合わせるinterfaceかアドレスを記録します。
+
+長い処理の前に全ホストのGPUクロックを2,200 MHzに制限し、温度を記録します（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。GB10機は長いprefillを続けたときに電源ごと落ちたことがあり、2.x系の数値はすべてこの上限の下で測りました。
+
+## 2. checkoutとcheckpoint
+
+1. 全ホストで同じ確認済みのcommitをcheckoutします（リリース後は `v2.*` のtag）。
+2. 固定のcheckpointを一度だけ取得して検証し、他のホストへcacheを写してそれぞれ検証します。[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じで、取得の道具は `v1/` から実行します（`python -m glm53_setup download`、続けて `verify-download`）。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
+
+## 3. image
+
+一台でcheckoutのルートからbuildします。
+
+```sh
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
+docker image inspect --format '{{.Id}}' glm53-tf:2.0.0
+```
+
+Dockerfileはエンジンを一つのcommit（`TENSORFOLD_REF`）に固定し、完全なSHAでなければbuildを拒みます。imageを他のホストへ写すか（リンク越しに `docker save glm53-tf:2.0.0 | ssh <host> docker load`）そこでbuildし、全ホストのimage IDを比べます。一致していなければなりません。測定したbase imageは `nvcr.io/nvidia/pytorch:26.07-py3`、image IDは `sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c` です。
+
+## 4. 各ホストのcontainerとrankのファイル
+
+```sh
+v2/scripts/create_container.sh glm53-tf:2.0.0        # container glm53-tf、~/glm53-tf を /work に
+cp v2/examples/tp3-rank0.env ~/glm53-tf/rank.env      # このホストのrank：tp2-rank0/1 か tp3-rank0/1/2
+```
+
+`~/glm53-tf/rank.env` をこのホストの値に直します：`MASTER`（リンク上のrank 0のアドレス、全rankで同じ）、`NCCL_IB_HCA`（リンクのRDMAデバイス、2本のrail）、`NCCL_IB_GID_INDEX`、`NCCL_SOCKET_IFNAME`。例は参照機のファイルで、各行を何として測ったかが書いてあります。このファイルは `bash` が読み込むもので、`docker --env-file` には渡しません。
+
+## 5. エンジンのextensionをbuildする
+
+各ホストで、imageごとに一度：
+
+```sh
+docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
+```
+
+GLMのNVFP4の経路が読み込むCUDAのextensionを、重みを読む前に `~/glm53-tf/ext` へcompileします。これをしないと最初の起動が読み込みの最中にcompileし、参照機の対ではrank 0の空きが6〜7 GiBまで下がりました（見張りの閾値は5 GiB）。
+
+## 6. 起動
+
+全ホストへSSHできる機械で、[`examples/cluster.tp2.env`](examples/cluster.tp2.env) か [`cluster.tp3.env`](examples/cluster.tp3.env) をコピーし、`HOSTS`（rank順のSSH名）と `CHECKOUT`（ホスト上のこのリポジトリ）を直してから：
+
+```sh
+v2/scripts/cluster.sh my-cluster.env start first
+```
+
+最も大きいrankから順にrank 0を最後に、各containerで `serve.sh TP RANK /work/rank.env` を起動し、全ホストでメモリの見張り（`hostwatch.sh`：`MemAvailable` が5 GiB未満でエンジンを止める）を起動して、rank 0の `[tensorfold] serving` の行を待ちます。logは `~/glm53-tf/logs/` です。台本を使わない場合は、各ホストで同じ順に `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` を実行します。
+
+rank 0の起動の行を読みます：
+
+- `allocated prompt/reply window`：TP=2で300000、TP=3は収まる最大（参照機のリングで1048576）
+- `other conversations' prompts are kept in …` の行が無い：既定の3 GiBの保持promptが窓の横に収まった
+- 各rankのNCCLの行が全接続 `NET/IB` で、socketに落ちたものが無い
+- `serving` の行：モデル名（rankのファイルで `MODEL_NAME` を設定しなければ `glm-tf`）、`HOST`・`PORT` を設定しなければ `127.0.0.1:8095`、`context`
+
+rank 0がOpenAI互換のAPIをloopbackで出します。参照機では、読み込みを含む起動にTP=3で約100〜120秒、TP=2で約130秒かかりました。
+
+## 7. tool引数ゲート（任意）
+
+1.x系のゲートは、tool呼び出しの引数を各toolの必須項目と照らし、満たさなければモデルにもう一度だけ尋ねる中継です（[tool引数ゲート](../v1/docs/harnesses.ja.md#tool引数ゲート)）。エンジンに依存しません。rank 0で、`v1/` からその仮想環境で：
+
+```sh
+python -m glm53_setup tool-gate --port 8896 --upstream http://127.0.0.1:8095 --log ../records/<run>/gate.jsonl
+```
+
+toolを使うクライアントはport 8896へつなぎます。
+
+## 8. 受け入れ
+
+日常の利用の前に[検証](docs/validation.ja.md)の項目を回し、基準値と比べます。最初にdecode検査、次にNLL、それから長い入力とtool-eval-benchです。長い要求の間はホストを冷まします。
+
+## 9. 停止
+
+```sh
+v2/scripts/cluster.sh my-cluster.env stop
+```
+
+rank 0を先に、続いて他のrankを止め、エンジンが無くなるのを待って各ホストの `MemAvailable` を表示します。containerは残ります。`docker stop glm53-tf` でそのGPUの割り当てが外れます。1.x系の `server preflight` は1.x系の起動の前にこれを検査します。

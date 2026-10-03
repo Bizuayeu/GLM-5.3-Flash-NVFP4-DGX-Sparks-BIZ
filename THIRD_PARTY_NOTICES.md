@@ -17,11 +17,12 @@ For commercial use, modification and distribution obligations by artifact, see [
 | NoPE zero-padding recipe | [MIT, kingjones30 / Jones Lab](LICENSES/kingjones-MIT.txt) | Follows the recipe preserved in [amasu's pinned patch](https://github.com/amasu/glm53-flash-cluster/blob/0ab7ca7cb1067d4fcece9d525e5d90a9bbe33773/docker/labbuild/patch_mla.py) |
 | NoPE patch structure | [Apache-2.0, amasu](LICENSES/amasu-Apache-2.0.txt), same pinned patch above | Adapted zero-padding patch structure with changed guards/reference fallback; upstream license and attribution retained |
 | Prefix-cache scan | [MIT, knapcio](LICENSES/knapcio-MIT.txt), [`bench/prefix_scan.py` at the pinned commit](https://github.com/knapcio/GLM-5.3-Flash-4x-DGX-Spark-TP4/blob/770d1153062aa916b06591411c61d5c593ea0f03/bench/prefix_scan.py) | Record format, lookup/quote tasks and their parsing adapted in `v1/glm53_setup/prefix_gate.py` (`server prefix-gate`); notice in the file. Only that repository-owned MIT file is used; the material its NOTICE leaves without a licence grant is not |
+| TensorFold (2.x engine) | [Apache-2.0](https://github.com/ashhart/TensorFold/blob/main/LICENSE), [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | The 2.x image clones the BIZ release branch of the fork [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at the commit `TENSORFOLD_REF` in `v2/docker/Dockerfile` and installs it under `/opt/tensorfold`, with the engine's own LICENSE, NOTICE and third-party notices (which name the contributions adapted into it); not vendored in this repository |
 | CUDA, FlashInfer, Torch, NCCL and other dependencies | Respective upstream licenses and image notices | Existing notices remain in the image; not all dependencies are Apache/MIT |
 
 The NoPE adaptation zero-pads the unsupported positional portion and uses a candidate-preserving eager reference calculation. The recipe's candidate-removal portions are **not included**. Source hashes are checked before applying the patch; the image retains a manifest of modified-file hashes.
 
-Project notices are included under `/opt/glm53/`, with upstream texts in `/opt/glm53/LICENSES/`.
+Project notices are included under `/opt/glm53/`, with upstream texts in `/opt/glm53/LICENSES/`. The 2.x image carries the same files under `/opt/glm53-tf/`.
 
 ## Intentionally absent
 

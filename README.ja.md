@@ -7,7 +7,7 @@
 | 系列 | エンジン | ディレクトリ | 変更履歴 |
 |---|---|---|---|
 | 1.x | vLLM | [v1/](v1/README.ja.md) | [v1/CHANGELOG.ja.md](v1/CHANGELOG.ja.md) |
-| 2.x | TensorFold | [v2/](v2/README.ja.md)（2.0.0に向けて準備中） | [v2/CHANGELOG.ja.md](v2/CHANGELOG.ja.md) |
+| 2.x | TensorFold | [v2/](v2/README.ja.md)：TP=2とTP=3、FP8 KV、テキストとtool呼び出し。2.0.0に向けて準備中（[手順書](v2/SETUP.ja.md)） | [v2/CHANGELOG.ja.md](v2/CHANGELOG.ja.md) |
 
 系列ごとにREADME・版・変更履歴を持ちます。リリースのtag `v1.*`・`v2.*` は、その系列の変更履歴の節を公開します。コマンドは各系列のディレクトリで実行します。`state/` と `records/` は追跡対象外で、checkoutのルートに置きます。
 

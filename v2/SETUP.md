@@ -1,0 +1,87 @@
+# Deployment runbook (2.x)
+
+[日本語](SETUP.ja.md) · [2.x overview](README.md) · [Validation](docs/validation.md)
+
+The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Run the scripts from `v2/` of the same checkout on every host. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
+
+## 1. Hosts and fabric
+
+Two or three DGX Spark or compatible GB10 systems with ConnectX-7 links, prepared and inspected as in [1.x step 1](../v1/SETUP.md#1-collect-inputs-and-inspect-both-hosts) (inventory, kernel and `kho=off`, other workloads). Cable and qualify the fabric as in [1.x step 5](../v1/SETUP.md#5-connect-and-qualify-the-fabric--cable-required): a direct link for the pair, a ring for three hosts ([three hosts in a ring](../v1/docs/qsfp-network.md#8-three-hosts-in-a-ring)). Record for each host the RDMA device names on its links (`ibdev2netdev`), the GID index that is RoCE v2 on the link's IPv4 address, and the interface or address the ranks meet on.
+
+Cap the GPU clock at 2,200 MHz on every host before long runs and record temperatures ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)): GB10 hosts have powered off under long prefills one after another, and every 2.x figure was measured under the cap.
+
+## 2. Checkout and checkpoint
+
+1. Check out the same reviewed commit on every host (a `v2.*` tag once released).
+2. Download the pinned checkpoint once, verify it, copy the cache to the other hosts and verify each copy, as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The downloader runs from `v1/` (`python -m glm53_setup download`, then `verify-download`). The engine reads it from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
+
+## 3. Image
+
+Build from the checkout root on one host:
+
+```sh
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
+docker image inspect --format '{{.Id}}' glm53-tf:2.0.0
+```
+
+The Dockerfile pins the engine by one commit (`TENSORFOLD_REF`) and refuses to build without a full SHA. Copy the image to the other hosts (`docker save glm53-tf:2.0.0 | ssh <host> docker load`, over the link) or build it there, then compare the image IDs of every host; they must be equal. The base image measured was `nvcr.io/nvidia/pytorch:26.07-py3` with image ID `sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c`.
+
+## 4. Container and rank file on each host
+
+```sh
+v2/scripts/create_container.sh glm53-tf:2.0.0        # container glm53-tf, ~/glm53-tf at /work
+cp v2/examples/tp3-rank0.env ~/glm53-tf/rank.env      # this host's rank: tp2-rank0/1 or tp3-rank0/1/2
+```
+
+Edit `~/glm53-tf/rank.env` with this host's values: `MASTER` (rank 0's address on the link, the same on every rank), `NCCL_IB_HCA` (the RDMA devices on the links, both rails), `NCCL_IB_GID_INDEX`, and `NCCL_SOCKET_IFNAME`. The examples are the reference hosts' files and say what each line was measured as. The file is sourced by `bash`, not passed to `docker --env-file`.
+
+## 5. Build the engine's extensions
+
+On each host, once per image:
+
+```sh
+docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
+```
+
+It compiles the CUDA extensions the GLM NVFP4 path loads into `~/glm53-tf/ext` before any weight is read. Without it the first start compiles them while loading, and on the reference pair that took rank 0's free memory down to 6-7 GiB, near the guard's 5 GiB.
+
+## 6. Start
+
+From a machine with SSH to every host, after copying [`examples/cluster.tp2.env`](examples/cluster.tp2.env) or [`cluster.tp3.env`](examples/cluster.tp3.env) and setting `HOSTS` (SSH names in rank order) and `CHECKOUT` (this repository on the hosts):
+
+```sh
+v2/scripts/cluster.sh my-cluster.env start first
+```
+
+It starts the highest rank first and rank 0 last, each `serve.sh TP RANK /work/rank.env` in its container, starts the memory guard on every host (`hostwatch.sh`: stops the engine below 5 GiB `MemAvailable`) and waits for rank 0's `[tensorfold] serving` line; logs are in `~/glm53-tf/logs/`. Without the script, run the same `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` on each host in that order.
+
+Read rank 0's startup lines:
+
+- `allocated prompt/reply window`: 300000 at TP=2; at TP=3 the largest that fits (1048576 on the reference ring)
+- no line `other conversations' prompts are kept in …`: the default 3 GiB of kept prompts fit beside the window
+- each rank's NCCL lines name `NET/IB` for every connection, none over sockets
+- the `serving` line: the model name (`glm-tf` unless `MODEL_NAME` is set in the rank file), `127.0.0.1:8095` unless `HOST` and `PORT` are, `context`
+
+Rank 0 serves the OpenAI-compatible API on loopback. A loading start takes about 100-120 s at TP=3 and about 130 s at TP=2 on the reference hosts.
+
+## 7. Tool-argument gate (optional)
+
+The 1.x gate is a relay that checks each tool call's arguments against the tool's required fields and asks the model once more when one fails ([tool-argument gate](../v1/docs/harnesses.md#tool-argument-gate)). It does not depend on the engine. On rank 0, from `v1/` with its virtual environment:
+
+```sh
+python -m glm53_setup tool-gate --port 8896 --upstream http://127.0.0.1:8095 --log ../records/<run>/gate.jsonl
+```
+
+Clients that use tools then talk to port 8896.
+
+## 8. Accept
+
+Run the checks of [validation](docs/validation.md) and compare them with its reference values before routine use: the decode check first, then NLL, then the long inputs and tool-eval-bench. Let the hosts cool between long requests.
+
+## 9. Stop
+
+```sh
+v2/scripts/cluster.sh my-cluster.env stop
+```
+
+It stops rank 0 first, then the others, waits until no engine runs and prints each host's `MemAvailable`. The containers stay; `docker stop glm53-tf` frees their GPU claim, which 1.x's `server preflight` checks before a 1.x launch.
