@@ -2,6 +2,17 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.28.0 — 2026-10-04
+
+### Layout
+
+- **The 1.x line moved into `v1/`**: the package, tests, tools, documents, examples, overlays, image recipe, requirements, pins, `pyproject.toml`, this changelog, the README and the setup runbook. `v2/` holds the 2.x line (TensorFold), which has no release yet. `LICENSE`, `NOTICE`, `LICENSES/`, the third-party notices, the contributing rules and CI stay at the repository root, and the [root README](../README.md) is now an index of the two lines.
+- **Run commands from `v1/`.** `python -m glm53_setup` and `python tools/…` run from `v1/` of the checkout, and the [virtual environment](README.md#start-from-a-checkout) lives in `v1/.venv`. `state/` and `records/` stay at the checkout root: the launcher finds them where it did, deploy checkouts keep their symlinks, and command lines in the documents name them as `../state/…` and `../records/…`. Scripts that `cd` into a checkout and call the package must `cd` into its `v1/`.
+- `cluster switch` and `cluster resume` take the directory that holds `glm53_setup` as `--checkout`: `<checkout>/v1` from 1.28.0, the checkout itself for earlier versions ([switch and recovery](docs/launch-safety.md#switch-and-recovery)).
+- The reference image builds from the checkout root, where the licences are; what it copies under `/opt/glm53` is unchanged. The Dockerfile's `COPY` lines name `v1/`, so a rebuild gives a new image ID with the same contents, and an existing reference image needs no rebuild.
+- Releases: a `v1.*` tag publishes the section of `v1/CHANGELOG.md` and checks `v1/pyproject.toml`; a `v2.*` tag reads `v2/`. `tools/release_notes.py` picks the line from the tag's major version.
+- `tools/check_publication.py` audits the whole repository and applies the 1.x checks (required files, README headline and citation, document map, architecture page, pins) to `v1/`. CI runs the 1.x checks in `v1/`.
+
 ## 1.27.3 — 2026-10-03
 
 ### Documentation
