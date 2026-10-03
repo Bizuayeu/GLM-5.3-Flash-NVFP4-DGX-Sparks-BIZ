@@ -58,14 +58,14 @@
 | `glm53_setup/validation/hle.py`、`hle_scoring.py` | HLEの実行（固定した設問ファイル、一問ずつ、再開可能）と、CPUで動く答えの抽出。完全一致の規則はhost外の採点のために置く |
 | `glm53_setup/validation/kpool_ring_repro.py` | 参照imageでのkpool tail ringのGPU再現：pool完成のdraftが棄却されたときの結果をprefill側の書き込みと比べる。1 pool分のringとMTP 3のring（[検証](validation.ja.md#kpool-tail-ringの再現)） |
 | `glm53_setup/validation/fused_nope.py`、`fused_nope_dot.py`、`indexer_candidates.py`、`indexer_reindex.py`、`indexer_shared_pool.py` | 再現のために残す退役した試作。呼ぶのはそれぞれのベンチとテストだけ：融合NoPE attention（[部品検証](component-validation.ja.md)）とindexer候補の再利用（[Indexer再利用](indexer-reuse.ja.md)） |
-| `config/` | モデル・imageの固定値と`lpa-projector.lock.json`（Release URL、checksum、教師・学習来歴）。認証情報や実測したサイト設定は持たない |
+| `config/` | モデル・imageの固定値、`lpa-projector.lock.json`（Release URL、checksum、教師・学習来歴）、`nll_set.json`（両系列が採点するNLLセット）。認証情報や実測したサイト設定は持たない |
 | `examples/` | 二つの起動設定 `server.example.toml`（配布既定）と `server.axl.example.toml`（公開した任意設定）。値は例示。`server.tp3.example.toml`（3ノードのリングで配布既定、TP=3、リンクの値は例示）。MTP投機設定のテンプレート |
 | `examples/zcode-hooks/` | ZCodeの既存ファイルガードhookと導入手順（[ハーネス](harnesses.ja.md)） |
 | `overlays/` | 公開した任意設定のcheckpointが要するvLLM source overlay 2件と、その台帳（[overlays/README.md](../overlays/README.md)） |
 | `docker/` | imageの構築。base digestはビルドコマンドがロックから渡す |
 | `requirements/` | ホスト側ツールの固定した依存 |
 | `tests/` | CPU契約 |
-| `tools/` | `check_publication.py`（公開監査）、`release_notes.py`（tagが公開するChangelogの節）、`kernel_hashes.py`（indexerのkernelを各配信workerの中でhash）、`assess_benchmark.py`、`check_prefix_cache.py`、`decode_check.py`・`decode_divergence.py`・`weight_digest.py`（切替の後のdecode検査と重みのdigest、[起動契約](launch-safety.ja.md#切替の後のdecode検査)）、`nccl_probe.py`（2 rankまたは3 rank）、`prepare_mtp_view.py` |
+| `tools/` | `check_publication.py`（公開監査）、`release_notes.py`（tagが公開するChangelogの節）、`kernel_hashes.py`（indexerのkernelを各配信workerの中でhash）、`assess_benchmark.py`、`check_prefix_cache.py`、`decode_check.py`・`decode_divergence.py`・`weight_digest.py`（切替の後のdecode検査と重みのdigest、[起動契約](launch-safety.ja.md#切替の後のdecode検査)）、`nccl_probe.py`（2 rankまたは3 rank）、`prepare_mtp_view.py`、`score_nll_set.py`（NLL採点セット `config/nll_set.json` をvLLMまたはTensorFoldで採点） |
 | `../.github/workflows/` | checkoutのルート：CI（LinuxとWindowsでのCPUテスト・Ruff・公開監査、`v1/` で実行）と、tagで起動するGitHub Release |
 | `../LICENSES/` | checkoutのルート：上流ライセンス原文の保持 |
 | `../state/`、`../records/` | checkoutのルート：ローカルの可変状態と実験の証跡。配布対象外 |

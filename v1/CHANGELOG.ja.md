@@ -18,6 +18,7 @@
 ### Tools
 
 - `tools/decode_check.py` が TensorFold 相手でも使えるようになりました。MTP の受理長と token id は応答の `tensorfold` ブロックから取ります（受理長は 1＋accepted／rounds で、vLLM 相手と同じ定義です。TensorFold は choice に id を返しません）。各サンプルの前に `TF_GLM_CACHE_ENTRIES` 本の短い別の要求を送って保持 prompt を追い出すので、どのサンプルも prompt を最初から prefill します（各行の `cached` が 0）。vLLM 相手の要求と出力は変わりません。
+- **NLL 採点セット**：`config/nll_set.json` に 16 本（日本語・英語・コード・数学の各 4 本、1 本 1,800 token 以下、領域ごとに 5,851〜6,830 token）を置きました。このリポジトリの文書 4 本の日本語版と英語版、モジュール 4 本、このセットのために書いた数学の文章 4 本で、各本文と tokenizer に SHA-256 が付きます。`tools/score_nll_set.py` が vLLM と TensorFold に同じ token id で teacher-forced に当て（`/v1/completions` の `prompt_logprobs`、`glm53_setup.agreement` で各 2 回）、位置数で重み付けした領域ごとの NLL を出します。tokenizer か本文が記録の hash と違えば採点しません。2026-10-02 に TP=2 で同じ token id から採点した値は、1.26.0 の配布既定が 2.5412／2.9079／1.3145／0.6285、FP8 KV の TensorFold はそれらの −0.56%〜+0.61% でした。
 
 ## 1.27.3 — 2026-10-03
 

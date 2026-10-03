@@ -16,6 +16,7 @@
 ### Tools
 
 - `tools/decode_check.py` works against TensorFold too: the MTP acceptance length comes from each reply's `tensorfold` block (1 + accepted / rounds, the same definition as against vLLM), the token ids from the same block (TensorFold returns none in the choices), and before each sample `TF_GLM_CACHE_ENTRIES` short distinct requests push TensorFold's kept prompts out, so every sample prefills the whole prompt (`cached` 0 in each row). Against vLLM its requests and output are unchanged.
+- **NLL set**: `config/nll_set.json` holds 16 texts, four per domain (Japanese, English, code, math), each at most 1,800 tokens and 5,851–6,830 tokens per domain: the Japanese and English versions of four of this repository's documents, four of its modules, and four mathematical texts written for the set; each text and the tokenizer carry a SHA-256. `tools/score_nll_set.py` scores it teacher-forced on vLLM or TensorFold with the same token ids (`/v1/completions` with `prompt_logprobs`, each text twice through `glm53_setup.agreement`) and prints each domain's NLL weighted by positions; it refuses a tokenizer or text that differs from the recorded hashes. Scored on 2026-10-02 at TP=2 with the same token ids: 1.26.0's distributed defaults 2.5412 / 2.9079 / 1.3145 / 0.6285, TensorFold with FP8 KV between −0.56% and +0.61% of them.
 
 ## 1.27.3 — 2026-10-03
 
