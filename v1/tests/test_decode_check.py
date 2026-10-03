@@ -1,10 +1,15 @@
 import contextlib
+import hashlib
 import io
 import json
+import os
+import tempfile
 import unittest
+import warnings
+from pathlib import Path
 from unittest.mock import patch
 
-from tools import decode_check
+from tools import decode_check, decode_divergence
 
 # The stream's last chunk on TensorFold (records/20261003-tp3/t5, U3 on b1-2rail).
 TF_BLOCK = {"rounds": 26, "accepted": 38, "drafted": 59, "tokens_per_round": 2.423}
@@ -21,16 +26,22 @@ TF_METRICS = (
 )
 
 
-def stream(block=None):
-    """A streamed chat reply: two content chunks, then the end chunk and usage."""
+def stream(block=None, ids=(16, 17)):
+    """A streamed chat reply: one content chunk per id, then the end chunk and usage.
+
+    vLLM puts each chunk's ids in its choice. TensorFold puts none there and, with
+    `return_token_ids`, all of them in the end chunk's block (its cuda/server.py).
+    """
     chunks = [
-        {"choices": [{"delta": {"content": "1\n"}, "token_ids": [16]}]},
-        {"choices": [{"delta": {"content": "2\n"}, "token_ids": [17]}]},
-        {"choices": [{"delta": {}, "finish_reason": "length"}]},
-        {"choices": [], "usage": {"prompt_tokens": 2066, "completion_tokens": 2}},
+        {"choices": [{"delta": {"content": f"{t}\n"}, "token_ids": [t]}]} for t in ids
     ]
+    end = {"choices": [{"delta": {}, "finish_reason": "length"}]}
     if block is not None:
-        chunks[2]["tensorfold"] = block
+        for c in chunks:
+            del c["choices"][0]["token_ids"]
+        end["tensorfold"] = dict(block, token_ids=list(ids))
+    usage = {"prompt_tokens": 2066, "completion_tokens": len(ids)}
+    chunks += [end, {"choices": [], "usage": usage}]
     return [f"data: {json.dumps(c)}\n\n".encode() for c in chunks] + [b"data: [DONE]\n"]
 
 
@@ -45,21 +56,34 @@ class Reply(list):
         return b"".join(self)
 
 
-def run(replies, metrics):
-    """Run main() against canned replies; return its printed JSON lines."""
+def run(replies, metrics, sent=None, tokens_out=None):
+    """Run main() against canned replies; return its printed JSON lines.
+
+    A streamed request gets the next reply, any other a short non-streamed one;
+    `sent` collects every request body in order.
+    """
     replies, metrics = iter(replies), iter(metrics)
+    sent = [] if sent is None else sent
 
     def urlopen(req, timeout=None):
         if isinstance(req, str):
             return Reply([next(metrics).encode()])
-        return Reply(next(replies))
+        body = json.loads(req.data)
+        sent.append(body)
+        if body.get("stream"):
+            return Reply(next(replies))
+        return Reply(
+            [json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()]
+        )
 
     out = io.StringIO()
     clock = iter(range(1000))
+    env = {"TOKENS_OUT": tokens_out} if tokens_out else {}
     with (
         patch.object(decode_check.urllib.request, "urlopen", urlopen),
         patch.object(decode_check.time, "monotonic", lambda: next(clock)),
         patch.object(decode_check, "SAMPLES", 3),
+        patch.dict(os.environ, env),
         contextlib.redirect_stdout(out),
     ):
         decode_check.main()
@@ -118,6 +142,52 @@ class AcceptanceLengthTests(unittest.TestCase):
         summary = run([stream()] * 3, [flat, flat])[-1]["summary"]
         self.assertIsNone(summary["acceptance_length"])
         self.assertNotIn("acceptance_null", summary)
+
+
+class TensorFoldTokenIdsTests(unittest.TestCase):
+    def test_the_ids_come_from_the_block_when_the_choices_carry_none(self):
+        ids = [16, 17, 18]
+        row = run([stream(TF_BLOCK, ids)] * 3, [TF_METRICS] * 2)[0]
+        self.assertEqual(row["n_token_ids"], 3)
+        digest = hashlib.sha256(json.dumps(ids).encode()).hexdigest()[:16]
+        self.assertEqual(row["token_ids_sha256"], digest)
+
+    def test_decode_divergence_finds_the_first_differing_token_in_tokens_out(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = [str(Path(tmp) / "a.json"), str(Path(tmp) / "b.json")]
+            for path, ids in zip(paths, ([16, 17, 18], [16, 99, 18])):
+                run([stream(TF_BLOCK, ids)] * 3, [TF_METRICS] * 2, tokens_out=path)
+            saved = json.loads(Path(paths[0]).read_text(encoding="utf-8"))
+            self.assertEqual(saved["samples"][0]["token_ids"], [16, 17, 18])
+            out = io.StringIO()
+            with (
+                patch.object(decode_divergence.sys, "argv", ["dd", *paths]),
+                contextlib.redirect_stdout(out),
+                warnings.catch_warnings(),
+            ):
+                warnings.simplefilter("ignore", ResourceWarning)
+                decode_divergence.main()
+        first = out.getvalue().splitlines()[0]
+        self.assertIn("first differing token 1/3 (ids [17, 18] vs [99, 18])", first)
+
+
+class TensorFoldPrefixCacheTests(unittest.TestCase):
+    def test_each_sample_follows_enough_distinct_requests_to_drop_kept_prompts(self):
+        sent, n = [], 3
+        with patch.object(decode_check, "TF_GLM_CACHE_ENTRIES", n):
+            lines = run([stream(TF_BLOCK)] * 3, [TF_METRICS] * 2, sent)
+        summary = lines[-1]["summary"]
+        streamed = [i for i, body in enumerate(sent) if body.get("stream")]
+        self.assertEqual(streamed, [n, 2 * n + 1, 3 * n + 2])
+        fillers = [b["messages"][0]["content"] for b in sent if not b.get("stream")]
+        self.assertEqual(len(set(fillers)), 3 * n)
+        self.assertEqual(summary["evicted_before_each"], n)
+
+    def test_vllm_sends_only_the_samples(self):
+        sent = []
+        flat = VLLM_METRICS.format(drafts=0, draft_tokens=0, accepted=0, generated=0)
+        run([stream()] * 3, [flat, flat], sent)
+        self.assertEqual([b.get("stream") for b in sent], [True] * 3)
 
 
 if __name__ == "__main__":
