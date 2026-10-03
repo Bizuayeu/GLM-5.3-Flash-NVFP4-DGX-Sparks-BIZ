@@ -8,10 +8,10 @@ ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:26.07-py3
 FROM ${BASE_IMAGE}
 
 ARG TENSORFOLD_REPO=https://github.com/Bizuayeu/TensorFold.git
-# The one place the engine version is set: a full commit SHA of the fork's release branch.
-# cc-defer: placeholder until F3 publishes release/2.0.0 on the fork; put its head commit here (the build refuses
-# anything but a 40-hex SHA, so the placeholder cannot build).
-ARG TENSORFOLD_REF=unpublished-release-2.0.0
+# The one place the engine version is set: a full commit SHA of the fork's release branch (release/2.0.0).
+# cc-defer: provisional, the head of release/2.0.0 before it is pushed to the fork (2026-10-04); until the push the
+# clone cannot find it. Confirm (or replace) with the commit F5 accepts once the branch is published.
+ARG TENSORFOLD_REF=304109c47b6dba4c863c07316993e398b39adb42
 RUN echo "$TENSORFOLD_REF" | grep -Eqx '[0-9a-f]{40}' \
  || { echo "TENSORFOLD_REF must be a full commit SHA, not '$TENSORFOLD_REF'" >&2; exit 1; }
 
