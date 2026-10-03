@@ -9,8 +9,14 @@
 !v1/examples/
 !v1/examples/server.example.toml
 !v1/pyproject.toml
+!v2/docker/
+!v2/docker/Dockerfile
+!v2/scripts/
+!v2/scripts/serve.sh
+!v2/scripts/build_ext.sh
 !LICENSE
 !NOTICE
+!THIRD_PARTY_NOTICES.md
 !LICENSES/
 !LICENSES/**
 **/__pycache__
