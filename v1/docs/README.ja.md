@@ -92,6 +92,6 @@
 - `tools/check_publication.py` は本書と構成の頁を実体に合わせて保つ：READMEの略称の引用は `pyproject.toml` の版を持ち、`docs/*.md` はすべて本書のリンク先であり（日本語の頁は日本語の本書）、`glm53_setup/` と `tools/` の全モジュールは[構成](architecture.ja.md)にファイル名か `benchmark_*.py` のような型で名前がある。
 - 文種は常に 数え上げ／散文／コード の順、教師強制の文は 日本語／英語／コード／数学 の順に並べる。複数を並べる表と文のすべてに適用する。
 - 版数は `pyproject.toml` が所有し、版ごとの内容は[Changelog](../CHANGELOG.md)に書く。`python tools/check_publication.py` は素のsemantic versionを必須とし、`records/`・計画書・リポジトリ外へのリンクを拒否する。
-- `vX.Y.Z` のタグをpushするとGitHub Releaseが公開される。`.github/workflows/release.yml` がChangelogのその版の節（`python tools/release_notes.py X.Y.Z`）を本文にし、`pyproject.toml` と食い違うタグや節の無い版は拒否する。
+- `v1.Y.Z` のタグをpushするとGitHub Releaseが公開される。`.github/workflows/release.yml` がこの系列のChangelogのその版の節（`python v1/tools/release_notes.py 1.Y.Z`。`v2.*` のタグは `v2/` を読む）を本文にし、`pyproject.toml` と食い違うタグや節の無い版は拒否する。
 - GitHubのリポジトリdescriptionとtopicsは、READMEの要約を略称つき・実測値と版数なしで言い直したもの。`tools/check_publication.py` の目が届かないので、要約を変えたら `gh repo edit` で揃える。
 - 本リポジトリ外の関連研究（Euryaleの投機draft研究など）は配布物に含まれないため、READMEでリンクなしに説明する。他の文書では言及に留める。

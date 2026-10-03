@@ -6,7 +6,7 @@ For deployment, read SETUP.md and its linked operations/validation documents fir
 
 Use `python -m glm53_setup` from v1/ of the checkout; state/ and records/ stay at the checkout root. Run `python -m unittest discover -s tests -t . -v`, Ruff checks, and `python tools/check_publication.py` after relevant changes. Keep every English/Japanese document pair consistent; docs/README.md lists the pairs and the pages that are English-only by design. Original code uses Apache-2.0; preserve all adapted-code notices.
 
-Releases follow tags: bump the version, add the CHANGELOG section in both languages, then push the `vX.Y.Z` annotated tag. `.github/workflows/release.yml` publishes that section as the GitHub Release; do not create or edit the Release by hand.
+Releases follow tags, per line: bump the line's version, add its CHANGELOG section in both languages, then push the `vX.Y.Z` annotated tag. `.github/workflows/release.yml` reads `v1/` for a `v1.*` tag and `v2/` for a `v2.*` tag and publishes that section as the GitHub Release; do not create or edit the Release by hand.
 
 Credentials (.env), generated state, local records, upstream checkouts and model weights are not tracked. Do not print keys or include raw private logs in commits. Keep hardware checks distinct from real-model inference results.
 
