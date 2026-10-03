@@ -39,7 +39,7 @@ start)
     sleep 3
   done
   for r in "${!H[@]}"; do
-    $SSH "${H[$r]}" "(setsid nohup bash $CHECKOUT/v2/scripts/hostwatch.sh $WORK/logs/hostwatch-$label.log \
+    $SSH "${H[$r]}" "(setsid nohup bash $CHECKOUT/v2/scripts/hostwatch.sh $WORK/logs/hostwatch-$label.log $CONTAINER \
       >/dev/null 2>&1 </dev/null &)"
   done
   t0=$(date +%s)
