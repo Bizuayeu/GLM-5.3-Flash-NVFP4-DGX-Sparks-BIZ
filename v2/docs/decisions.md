@@ -17,8 +17,8 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | Decision | Date | Measured effect | Reopens when |
 |---|---|---|---|
 | FP8 latent KV (`TF_GLM_KV=fp8`) with a power-of-two scale per row | 2026-10-02 | The KV of a token takes 12,912 bytes a rank across the 12 layers with a latent cache (11 DSA layers and the MTP layer), against 19,200 with BF16 KV (−33%); the TP=2 window with BF16 KV was 344,820 tokens against about 490K with FP8 on that build. Drafted replies still equal serial ones; lossy against BF16 KV ([limits](../README.md#limits)). The checkpoint declares FP8 KV but stores no KV scale (vLLM uses 1.0), hence the per-row scale. The indexer ring of the same patch (keys and gates in a ring) was not ported: it changes the BF16 default's layout | More window per rank is needed; the ring is the next step |
-| Routed experts and the dense MLP as W4A16; `--precision checkpoint` refused | 2026-10-02 | Upstream's grouped NVFP4 expert kernel takes BF16 rows only, with no input-scale path; in the pinned checkpoint the activation scales would change only dense layers 0-2 | Upstream gains an expert kernel with an input-scale path |
-| The MTP layer's routed experts quantized to NVFP4 for drafting only | 2026-10-02 | BF16 in the checkpoint (13.5 GiB): 6.75 GiB a rank at TP=2 down to 1.90 GiB. The full model verifies every drafted token, so replies are unchanged | Upstream gains a BF16 grouped expert kernel |
+| Routed experts and the dense MLP as W4A16; `--precision checkpoint` refused | 2026-10-02 | Upstream's grouped NVFP4 expert kernel takes BF16 rows only, with no input-scale path; in the pinned checkpoint the activation scales would change only dense layers 0-2 | — |
+| The MTP layer's routed experts quantized to NVFP4 for drafting only | 2026-10-02 | BF16 in the checkpoint (13.5 GiB): 6.75 GiB a rank at TP=2 down to 1.90 GiB. The full model verifies every drafted token, so replies are unchanged | — |
 | The KDA conv taps kept fp32, as stored | 2026-10-02 | An earlier build rounded them to BF16 for the kernels; the kernels now read fp32, as 1.x's vLLM keeps them. MLX and EXL3 checkpoints, whose taps are BF16, give the same tokens and caches as before (12 of 12) | — |
 | TP=3 shares cut at unit boundaries, the remainder to the lower ranks | 2026-10-03 | Heads 22/21/21, MoE width 704/704/640, vocabulary 51,648/51,648/51,584: no zero rows, the weights untouched. At two ranks the cut equals the halves byte for byte on every tensor. Weight estimates 63.04/62.87/57.70 GiB on ranks 0/1/2 | — |
 | The published AXL weights not supported | 2026-10-04 | Capacity does not need them: on the pinned weights TP=2 holds more window than 1.x. At TP=3 they would act only on the part of a prefill that does not grow with length, at most 12 ms a chunk, about 1% of that part (2026-10-03) | More than one sequence at a time is taken up: 1.x measured AXL at two sequences |
@@ -28,7 +28,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | Decision | Date | Measured effect | Reopens when |
 |---|---|---|---|
 | TP=2 window 300,000 tokens, not the 567,255 of `--context 0` | 2026-10-04 | Leaves the default 3 GiB for other conversations' kept prompts ([why 300,000](../README.md#serving-defaults)) | A deployment passes another `--context` |
-| TP=3 window: the largest that fits (`--context 0`) | 2026-10-04 | 1,048,576 tokens, the model's limit, on the reference ring | — |
+| TP=3 window: the largest that fits (`--context 0`) | used from 2026-10-03, the shipped default from 2026-10-04 | 1,048,576 tokens, the model's limit, on the reference ring | — |
 | Replies of up to 32,768 tokens when a request names no limit | 2026-10-03 | — | — |
 | Prefill chunk of 4,096 rows | rejected 2026-10-02 | 1,076.1 tok/s against 1,169.9 with 2,048 rows on the same build, and a window of about 405K instead of about 490K; the bits were the same | — |
 | One sequence at a time | 2026-10-02 | The engine's CUDA path decodes one GLM request at a time | Upstream merges #243 |
@@ -38,14 +38,14 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 
 | Decision | Date | Measured effect | Reopens when |
 |---|---|---|---|
-| The checkpoint's MTP head drafts (`--drafter none`), not DFlash2 | 2026-10-04 | DFlash2 is not used because of its weights' terms, and TP=3 refuses it (it splits only over two ranks) | — |
+| The checkpoint's MTP head drafts (`--drafter none`), not DFlash2 | 2026-10-04 | Named explicitly: the engine's `--drafter auto` would take DFlash2 at TP=2 when its weights are in the cache and refuse it at TP=3 (it splits only over two ranks). DFlash2's weights' terms are also why 1.x does not use it | — |
 
 ## Fabric
 
 | Decision | Date | Measured effect | Reopens when |
 |---|---|---|---|
 | Two rails per link | 2026-10-02 (TP=2), 2026-10-03 (TP=3) | TP=2 prefill +4% on the same build (two rails give [validation's](validation.md#prefill-and-decode-speed) TP=2 reference); TP=3 1,225.1 → 1,384.7 tok/s (+13%); decode unchanged and the decode-check hashes the same at both | — |
-| TP=3: four NCCL channels, NCCL's own IB transport (`NCCL_NET_PLUGIN=none`), subnet-aware routing | 2026-10-03 | With two rails and four channels a large exchange was faster (an 8 MiB piece 1,530 → 900 µs); decode-sized exchanges (23-51 µs) moved within noise. `NCCL_CROSS_NIC` and the image's default network plugin changed nothing | — |
+| TP=3: four NCCL channels, NCCL's own IB transport (`NCCL_NET_PLUGIN=none`), subnet-aware routing | 2026-10-03 | The second rail took an 8 MiB piece from 1,530 to about 900 µs, with 2, 4, 8 or 64 channels alike; four channels shortened a 32 MiB chunk (9,236 → 5,072 µs on one rail, 3,622 → 3,346 on two). Decode-sized exchanges (23-51 µs) moved within noise. `NCCL_CROSS_NIC` and the image's default network plugin changed nothing | — |
 
 ## Prefill
 
@@ -58,7 +58,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | BF16 split-K partials reserved for short windows only | 2026-10-02 | The window at `--context 0` grew from about 490K to 567,255 tokens; prefill unchanged | — |
 | The prefill exchange `split` as the default (`TF_GLM_PREFILL_REDUCE`) | 2026-10-03 | TP=3, in one window of launches: against the earlier `gather` (1,394-1,398 tok/s), `scatter` +6.8% and `split` +19.6%; every decode-check hash and the NLL set unchanged. Taken where the ranks can send to each other; elsewhere `gather`. At TP=2 it first ran in the release, with the hashes unchanged; its share of TP=2's gain was not measured alone | — |
 | The indexer's prompt work: 16 rows a program, only the pool columns selection reads, a long row read three times instead of five | 2026-10-03 | On one GPU with a real DSA layer, a chunk's token selection at 1M tokens 209.5 → 165.5 ms (−21%), same bits; with the exchange work above, the 200K and 500K runs fit a shorter 1M prefill ([long inputs](validation.md#long-inputs)). Tried and slower: the histogram fused into scoring, three 11-bit passes, a persistent grid, blocks of 2,048 | — |
-| Prefill ideas that change bits | rejected 2026-10-02 and 03 | Scoring 32 heads of a row block as one GEMM with the head sum moved after it (estimated at about 240 s off a 1M prefill if it scored twice as fast), scoring on FP8 tensor cores, a chunked KDA (its recurrence is 2.06 s of a 38,960-token prompt, a gain of a few percent at most), MiaAI-Lab's single-pass sparse attention. Each changes, or may change, the bits behind the reference hashes and NLL | A release that accepts new reference values |
+| Prefill ideas that change bits | rejected 2026-10-02 and 03 | Scoring 32 heads of a row block as one GEMM with the head sum moved after it (estimated at about 240 s off a 1M prefill if it scored twice as fast), scoring on FP8 tensor cores, a chunked KDA (its recurrence is 2.06 s of a 38,960-token prompt, a gain of a few percent at most), MiaAI-Lab's single-pass sparse attention. Each changes, or may change, the bits behind the reference hashes and NLL | — |
 
 ## Heat
 

@@ -17,8 +17,8 @@
 | 決定 | 日付 | 測った効果 | 開き直す条件 |
 |---|---|---|---|
 | FP8のlatent KV（`TF_GLM_KV=fp8`）、行ごとに2のべき乗のscale | 2026-10-02 | 1 tokenのKVはlatent cacheを持つ12層（DSAの11層とMTPの層）でrankあたり12,912 byte、BF16のKVでは19,200（−33%）。TP=2の窓はBF16のKVで344,820 token、その版のFP8で約490K。draftした応答はserialと同じまま。BF16のKVに対しては非可逆（[制限](../README.ja.md#制限)）。checkpointはFP8のKVを宣言するがKVのscaleを持たない（vLLMは1.0を使う）ので、行ごとのscaleにした。同じpatchのindexerのring（keyとgateをringに持つ）は移植していない。BF16の既定の配置を変えるため | rankあたりの窓をもっと要する。次の一手がring |
-| routed expertとdense MLPはW4A16、`--precision checkpoint` は拒む | 2026-10-02 | 上流のgrouped NVFP4 expert kernelはBF16の行しか受けず、input scaleの経路が無い。固定のcheckpointで活性のscaleを使って変わるのはdenseの0〜2層だけ | 上流にinput scaleの経路を持つexpert kernelができる |
-| MTP層のrouted expertをdraft専用にNVFP4へ量子化する | 2026-10-02 | checkpointではBF16（13.5 GiB）。TP=2でrankあたり6.75 GiBが1.90 GiBになる。draftしたtokenは全部フルモデルが検証するので、応答は変わらない | 上流にBF16のgrouped expert kernelができる |
+| routed expertとdense MLPはW4A16、`--precision checkpoint` は拒む | 2026-10-02 | 上流のgrouped NVFP4 expert kernelはBF16の行しか受けず、input scaleの経路が無い。固定のcheckpointで活性のscaleを使って変わるのはdenseの0〜2層だけ | — |
+| MTP層のrouted expertをdraft専用にNVFP4へ量子化する | 2026-10-02 | checkpointではBF16（13.5 GiB）。TP=2でrankあたり6.75 GiBが1.90 GiBになる。draftしたtokenは全部フルモデルが検証するので、応答は変わらない | — |
 | KDAのconvの係数を保存されたとおりfp32に保つ | 2026-10-02 | 以前の版はkernelのためにBF16へ丸めていた。kernelはfp32を直接読むようになり、1.x系のvLLMと同じくfp32のまま。係数がBF16のMLXとEXL3のcheckpointは、tokenもcacheも以前と同じ（12通り中12） | — |
 | TP=3の分担は単位の境界で切り、余りを若いrankへ | 2026-10-03 | 頭22/21/21、MoEの幅704/704/640、語彙51,648/51,648/51,584。ゼロの行を作らず、重みに手を加えない。2 rankではすべてのテンソルで半分割とbyte単位で一致。重みの見積もりはrank 0/1/2で63.04/62.87/57.70 GiB | — |
 | 公開したAXLの重みには対応しない | 2026-10-04 | 容量のためには要らない：固定の重みでTP=2は1.x系より大きな窓を持つ。TP=3で効くのはprefillのうち長さで伸びない部分だけで、最大でchunkあたり12 ms、その部分の約1%（2026-10-03） | 一度に複数の系列を扱うようになる。1.x系はAXLを2系列で測った |
@@ -28,7 +28,7 @@
 | 決定 | 日付 | 測った効果 | 開き直す条件 |
 |---|---|---|---|
 | TP=2の窓は300,000 token、`--context 0` の567,255にしない | 2026-10-04 | 他の会話の保持promptに既定の3 GiBを残す（[300,000の理由](../README.ja.md#配信の既定)） | 配備が別の `--context` を渡す |
-| TP=3の窓は収まる最大（`--context 0`） | 2026-10-04 | 参照機のリングで1,048,576 token、モデルの上限 | — |
+| TP=3の窓は収まる最大（`--context 0`） | 2026-10-03から使い、2026-10-04に配布の既定 | 参照機のリングで1,048,576 token、モデルの上限 | — |
 | 要求が上限を指定しないときの応答は最大32,768 token | 2026-10-03 | — | — |
 | 4,096行のprefillのchunk | 2026-10-02に不採用 | 同じ版の2,048行の1,169.9 tok/sに対し1,076.1、窓は約490Kから約405Kへ縮む。ビットは同じだった | — |
 | 一度に1系列 | 2026-10-02 | エンジンのCUDAの経路はGLMの要求を一度に一つずつdecodeする | 上流が#243をmergeする |
@@ -38,14 +38,14 @@
 
 | 決定 | 日付 | 測った効果 | 開き直す条件 |
 |---|---|---|---|
-| checkpointのMTP headでdraftする（`--drafter none`）、DFlash2は使わない | 2026-10-04 | DFlash2はその重みの条件のため使わない。TP=3はDFlash2を拒む（2 rankにしか分けられない） | — |
+| checkpointのMTP headでdraftする（`--drafter none`）、DFlash2は使わない | 2026-10-04 | 明示する：エンジンの `--drafter auto` は、DFlash2の重みがcacheにあるとTP=2ではそれを使い、TP=3では拒む（2 rankにしか分けられない）。1.x系がDFlash2を使わない理由は、その重みの条件 | — |
 
 ## fabric
 
 | 決定 | 日付 | 測った効果 | 開き直す条件 |
 |---|---|---|---|
 | リンクごとに2本のrail | 2026-10-02（TP=2）、2026-10-03（TP=3） | TP=2のprefillは同じ版で+4%（2本のrailの値が[検証](validation.ja.md#prefillとdecodeの速さ)のTP=2の基準）、TP=3 1,225.1 → 1,384.7 tok/s（+13%）。decodeは変わらず、decode検査のhashはどちらも同じ | — |
-| TP=3：NCCLのchannel 4本、NCCL自身のIBの経路（`NCCL_NET_PLUGIN=none`）、subnet-aware routing | 2026-10-03 | 2本のrailと4本のchannelで大きな交換が速くなった（8 MiBの片が1,530 → 900 µs）。decodeの大きさの交換（23〜51 µs）は誤差の範囲で動いた。`NCCL_CROSS_NIC` とimageの既定のnetwork pluginは何も変えなかった | — |
+| TP=3：NCCLのchannel 4本、NCCL自身のIBの経路（`NCCL_NET_PLUGIN=none`）、subnet-aware routing | 2026-10-03 | 2本目のrailで8 MiBの片が1,530から約900 µsになった（channelが2・4・8・64本のどれでも同じ）。4本のchannelは32 MiBの塊を縮めた（1 railで9,236 → 5,072 µs、2 railで3,622 → 3,346）。decodeの大きさの交換（23〜51 µs）は誤差の範囲で動いた。`NCCL_CROSS_NIC` とimageの既定のnetwork pluginは何も変えなかった | — |
 
 ## prefill
 
@@ -58,7 +58,7 @@
 | BF16のsplit-Kの部分和は短い窓のためだけに確保する | 2026-10-02 | `--context 0` の窓が約490Kから567,255 tokenに増えた。prefillは変わらない | — |
 | prefillの交換の既定を `split` に（`TF_GLM_PREFILL_REDUCE`） | 2026-10-03 | TP=3、一続きの起動の中で：それまでの `gather`（1,394〜1,398 tok/s）に対し `scatter` +6.8%、`split` +19.6%。decode検査のhashもNLL採点セットも変わらない。rankどうしが送り合えるところで採り、それ以外は `gather`。TP=2ではリリースで初めて走り、hashは変わらなかった。TP=2の伸びのうちの寄与は単独では測っていない | — |
 | indexerのpromptの仕事：programあたり16行、選択が読むpoolの列だけを採点、長い行の読みを5回から3回に | 2026-10-03 | 実のDSAの層で1 GPU、1M tokenでのchunkのtokenの選択が209.5 → 165.5 ms（−21%）、同じビット。上の交換の仕事と合わせ、200Kと500Kの実測に当てた1Mのprefillの見積もりは短くなった（[長い入力](validation.ja.md#長い入力)）。試して遅かったもの：histogramを採点に融合、11 bitで3 pass、persistent grid、2,048のblock | — |
-| ビットが変わるprefillの案 | 2026-10-02と03に不採用 | 行のblockの32頭を一つのGEMMで採点し頭の和を後に回す（採点が2倍速くなれば1Mのprefillで約240秒の短縮と見積もり）、FP8のtensor coreでの採点、chunked KDA（その漸化式は38,960 tokenのpromptで2.06秒で、得は多くて数%）、MiaAI-Labの1 passのsparse attention。どれも基準のhashとNLLの元のビットを変える、または変え得る | 新しい基準値を受け入れるリリース |
+| ビットが変わるprefillの案 | 2026-10-02と03に不採用 | 行のblockの32頭を一つのGEMMで採点し頭の和を後に回す（採点が2倍速くなれば1Mのprefillで約240秒の短縮と見積もり）、FP8のtensor coreでの採点、chunked KDA（その漸化式は38,960 tokenのpromptで2.06秒で、得は多くて数%）、MiaAI-Labの1 passのsparse attention。どれも基準のhashとNLLの元のビットを変える、または変え得る | — |
 
 ## 熱
 

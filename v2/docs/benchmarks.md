@@ -48,7 +48,7 @@ Every long prompt is a ledger of numbered lines, `Ledger <i>: the river barge de
 - **One passphrase at 199,652 tokens.** 8,806 lines with the passphrase in the middle, the line count 1.x recorded, so the text is 1.x's. Not streamed, up to 512 tokens; correct when the reply contains the passphrase. The time to the first token is the `ttft` of rank 0's `[tensorfold] done` line. At the release, on `304109c` at both TP sizes.
 - **Three passphrases** (one twentieth from the start, the middle, one twentieth from the end) **at 499,622 and 1,036,859 tokens.** The number of lines is fitted to the target with the engine's `/tokenize`. Streamed, up to 256 tokens; the client times the first streamed token; correct when the reply lists all three. The release's 1,036,859-token figure is TP=3 on `2d4fa9b` with the heat wait on, whose total the reply's `tensorfold` block gives as `heat_wait_s`.
 
-The development-build references of validation at 199,652 and 499,622 tokens were taken with the engine's profiling on (`TF_GLM_PROFILE=1`), which added about 11% to the part of a prefill that does not grow with length.
+The development-build references of validation at 199,652 and 499,622 tokens were taken with the engine's profiling on (`TF_GLM_PROFILE=1`), which added about 11% to a 38,960-token prefill. Scaling the part of a prefill that does not grow with length by that much accounts for the 200K reference (146.4 s modelled, 145.6 measured) and leaves about 16 s unexplained at 500K (438.5 s modelled, 454.1 measured).
 
 ## Teacher-forced NLL
 
