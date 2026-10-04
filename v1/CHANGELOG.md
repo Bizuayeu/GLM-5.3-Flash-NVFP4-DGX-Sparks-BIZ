@@ -2,6 +2,17 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.4 — 2026-10-05
+
+### Changed
+
+- Two duplicated pieces of the launcher go through the shared helpers beside them; what runs is unchanged. `patch_apc_lpa` and `patch_nope_reference` check the pinned vLLM files' hashes through `pinned_patch.prepare_files`, which checks every file before patching any; applied to the pinned vLLM (`385dce36`), the six patched files are byte-identical to before. `images.py` and `build_reference.py` run `docker image inspect` through `host.run`.
+- The import-hook pair (`inductor_pin.PinAfterImport`, `shm_spin.SetAfterImport`) stays two copies on purpose: both files are mounted into images that carry no shared helper, and the mounted-runtime tests forbid imports that older images lack. A comment in each file says so.
+
+### Reference image
+
+Built on 2026-10-04 from this change's tree before its rebase onto 1.29.3, whose `glm53_setup/`, Dockerfile and configuration are this release's (the `pyproject.toml` copied into it reads 1.29.0): `sha256:260826188250f62afbb3d6aab9e5852074eff4edc8d0b8ce0616c8dd0fd8bfa4` on the reference hosts. Its vLLM is the 1.29.0 image's file for file (2,592 `.py` files and the 12 patch records); `glm53_setup` differs only in the six files this release changed. On the reference pair both profiles passed preflight, logged a budget of 8,000 tokens and reproduced their decode-check completions.
+
 ## 1.29.3 — 2026-10-04
 
 ### Added

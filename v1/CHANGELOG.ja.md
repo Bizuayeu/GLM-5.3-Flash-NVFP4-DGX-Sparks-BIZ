@@ -4,6 +4,17 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.4 — 2026-10-05
+
+### Changed
+
+- launcherの重複2つを、隣にある共有のhelperへ寄せました。動く中身は変わりません。`patch_apc_lpa` と `patch_nope_reference` は、固定版vLLMのファイルのhashを `pinned_patch.prepare_files` で確かめます（どのファイルをpatchするより前に、全部のファイルを確かめます）。固定版のvLLM（`385dce36`）に当てたpatch後の6ファイルは、前とバイト単位で同じです。`images.py` と `build_reference.py` は `docker image inspect` を `host.run` で実行します。
+- import hookの対（`inductor_pin.PinAfterImport`・`shm_spin.SetAfterImport`）は、意図して2つのままにしました。どちらのファイルも共有のhelperを持たないimageにmountされ、mountされるruntimeの試験は古いimageに無いimportを禁じています。それぞれのファイルのコメントにそう書きました。
+
+### Reference image
+
+2026-10-04に、1.29.3へrebaseする前のこの変更の木からbuildしました。その `glm53_setup/`・Dockerfile・設定は本リリースと同じです（imageに写した `pyproject.toml` の版は1.29.0のまま）：参照機で `sha256:260826188250f62afbb3d6aab9e5852074eff4edc8d0b8ce0616c8dd0fd8bfa4`。vLLMは1.29.0のimageとファイル単位で同じです（`.py` 2,592本とpatchの記録12本）。`glm53_setup` で違うのは、この版で変えた6ファイルだけです。参照機の対では、両profileがpreflightを通り、budget 8,000 tokenをlogに出し、decode検査のcompletionを再現しました。
+
 ## 1.29.3 — 2026-10-04
 
 ### Added
