@@ -6,7 +6,7 @@ self-agreement shows how far the server moves by itself. Prints the NLL of each 
 its positions, and writes the full result. Exit status 2 when the tokenizer or a text is not the
 one the set was built with, 1 when a request failed.
 
-    python3 tools/score_nll_set.py --url http://127.0.0.1:8095 \\
+    python3 tools/score_nll_set.py --url http://127.0.0.1:8893 \\
         --tokenizer <checkpoint snapshot>/tokenizer.json --out ../records/<run>/nll.json
 """
 

@@ -2,21 +2,18 @@
 
 Run on rank 0 against the loopback API, once per task type (PROMPT_KIND=count|prose|code), SAMPLES times at
 temperature 0. Each sample prints one JSON line with the speed, the hash of the completion text and the hash of
-its token ids (`return_token_ids`; TensorFold returns them in the reply's `tensorfold` block); the summary
-carries the MTP acceptance length over the run, 1 + accepted / draft rounds: from vLLM's `/metrics` counters,
-or on TensorFold from each reply's `tensorfold` block (`rounds`, `accepted`; `acceptance_from` says so, and
-`acceptance_null` why a TensorFold run has none). TOKENS_OUT, a path, receives the completion text and token
-ids of every sample, so two launches can be compared at their first diverging token with decode_divergence.py.
-On vLLM the prompt stays below one prefix-cache block, so the prefix cache is not involved. TensorFold keeps
-whole prompts and has no request field or endpoint that drops them, so before each sample TF_GLM_CACHE_ENTRIES
-short distinct requests push the kept prompts out (`evicted_before_each`); each row's `cached` shows the
-result. Within a launch the samples agree, and across launches the hashes are compared with the previous launch
-of the same profile (docs/launch-safety.md, "After a switch").
+its token ids (`return_token_ids`); the summary carries the MTP acceptance length over the run, 1 + accepted /
+draft rounds, from vLLM's `/metrics` counters. TOKENS_OUT, a path, receives the completion text and token ids of
+every sample, so two launches can be compared at their first diverging token with decode_divergence.py. The
+prompt stays below one prefix-cache block, so the prefix cache is not involved; each row's `cached` shows it.
+Within a launch the samples agree, and across launches the hashes are compared with the previous launch of the
+same profile (docs/launch-safety.md, "After a switch"). 2.x has its own copy for TensorFold
+(`python -m glm53_tf decode-check` from v2/).
 
     PROMPT_KIND=prose SAMPLES=3 TOKENS_OUT=../records/<run>/tokens-prose.json python3 tools/decode_check.py
 
 Environment: BASE (default http://127.0.0.1:8893), MODEL (default glm-5.3-flash-nvidia), PROMPT_TOKENS (2048),
-MAX_TOKENS (512), SAMPLES (3), TF_GLM_CACHE_ENTRIES (8, TensorFold's default; set it to the server's value).
+MAX_TOKENS (512), SAMPLES (3).
 Same measurement as the decode rows of docs/benchmarks.md since 1.6.0.
 """
 
@@ -34,7 +31,6 @@ PROMPT_TOKENS = int(os.environ.get("PROMPT_TOKENS", "2048"))
 SAMPLES = int(os.environ.get("SAMPLES", "3"))
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "512"))
 KIND = os.environ.get("PROMPT_KIND", "count")
-TF_GLM_CACHE_ENTRIES = int(os.environ.get("TF_GLM_CACHE_ENTRIES", "8"))
 TASKS = {
     "count": "Count upward from one, one number per line.",
     "prose": "上の行は無視して、日本の古代の道路網と現代の物流網の関係について、"
@@ -65,22 +61,7 @@ def spec_counters():
         match = re.match(r"([a-z_:]+)(?:\{[^}]*\})? ([0-9.e+-]+)$", line)
         if match and match[1] in COUNTERS:
             out[COUNTERS[match[1]]] = out.get(COUNTERS[match[1]], 0.0) + float(match[2])
-    return out, any(line.startswith("tensorfold:") for line in text.splitlines())
-
-
-def evict():
-    """Push TensorFold's kept prompts out: its GLM engine resumes a later prompt from
-    the longest kept strict prefix and keeps the last TF_GLM_CACHE_ENTRIES prompts."""
-    for i in range(TF_GLM_CACHE_ENTRIES):
-        body = {
-            "model": MODEL,
-            "messages": [{"role": "user", "content": f"Say ok. {time.time_ns()} {i}"}],
-            "max_tokens": 1,
-            "temperature": 0,
-            "chat_template_kwargs": TEMPLATE,
-        }
-        with post("/v1/chat/completions", body) as r:
-            r.read()
+    return out
 
 
 def prompt_text():
@@ -106,7 +87,6 @@ def decode(prompt):
     }
     start = time.monotonic()
     first = None
-    spec = None
     usage = None
     text = hashlib.sha256()
     pieces = []
@@ -119,8 +99,6 @@ def decode(prompt):
             chunk = json.loads(line[6:])
             if chunk.get("usage"):
                 usage = chunk["usage"]
-            if chunk.get("tensorfold"):
-                spec = chunk["tensorfold"]
             choice = (chunk.get("choices") or [{}])[0]
             if choice.get("token_ids"):
                 ids.extend(choice["token_ids"])
@@ -136,8 +114,6 @@ def decode(prompt):
                 if first is None:
                     first = time.monotonic()
     end = time.monotonic()
-    if not ids and spec and spec.get("token_ids"):
-        ids = spec["token_ids"]
     tokens = usage["completion_tokens"]
     row = {
         "kind": "decode",
@@ -151,45 +127,29 @@ def decode(prompt):
         "token_ids_sha256": hashlib.sha256(json.dumps(ids).encode()).hexdigest()[:16],
         "n_token_ids": len(ids),
     }
-    return row, {"text": "".join(pieces), "token_ids": ids}, spec
+    return row, {"text": "".join(pieces), "token_ids": ids}
 
 
-def acceptance(before, after, blocks):
-    """The acceptance length and any keys it adds to the summary.
-
-    vLLM: the counter deltas over the run. TensorFold, whose `/metrics` has no draft rounds: the sum of the
-    replies' `tensorfold` blocks, exact per request. Without drafts both give null.
-    """
-    if not any(blocks):
-        drafts = after.get("num_drafts", 0) - before.get("num_drafts", 0)
-        accepted = after.get("num_accepted_tokens", 0) - before.get(
-            "num_accepted_tokens", 0
-        )
-        return (round(1 + accepted / drafts, 3) if drafts else None), {}
-    extra = {"acceptance_from": "tensorfold reply blocks"}
-    if not all(b and "rounds" in b and "accepted" in b for b in blocks):
-        return None, dict(extra, acceptance_null="a reply without rounds/accepted")
-    rounds = sum(b["rounds"] for b in blocks)
-    if not rounds or not sum(b.get("drafted", 0) for b in blocks):
-        return None, dict(extra, acceptance_null="no drafts")
-    return round(1 + sum(b["accepted"] for b in blocks) / rounds, 3), extra
+def acceptance(before, after):
+    """The acceptance length from vLLM's counter deltas over the run; null without drafts."""
+    drafts = after.get("num_drafts", 0) - before.get("num_drafts", 0)
+    accepted = after.get("num_accepted_tokens", 0) - before.get(
+        "num_accepted_tokens", 0
+    )
+    return round(1 + accepted / drafts, 3) if drafts else None
 
 
 def main():
     prompt = prompt_text()
-    before, tensorfold = spec_counters()
+    before = spec_counters()
     rows = []
     fulls = []
-    blocks = []
     for _ in range(SAMPLES):
-        if tensorfold:
-            evict()
-        row, full, spec = decode(prompt)
+        row, full = decode(prompt)
         rows.append(row)
         fulls.append(full)
-        blocks.append(spec)
         print(json.dumps(row), flush=True)
-    after, _ = spec_counters()
+    after = spec_counters()
     if os.environ.get("TOKENS_OUT"):
         with open(os.environ["TOKENS_OUT"], "w", encoding="utf-8") as f:
             json.dump(
@@ -198,9 +158,6 @@ def main():
                 ensure_ascii=False,
             )
     speeds = [r["tok_per_s"] for r in rows]
-    length, extra = acceptance(before, after, blocks)
-    if tensorfold:
-        extra["evicted_before_each"] = TF_GLM_CACHE_ENTRIES
     print(
         json.dumps(
             {
@@ -210,9 +167,8 @@ def main():
                     "median_tok_per_s": round(statistics.median(speeds), 2),
                     "min_tok_per_s": min(speeds),
                     "max_tok_per_s": max(speeds),
-                    "acceptance_length": length,
+                    "acceptance_length": acceptance(before, after),
                     "distinct_completions": len({r["completion_sha256"] for r in rows}),
-                    **extra,
                 },
                 "all": speeds,
                 "spec_before": before,
