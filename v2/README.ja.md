@@ -98,6 +98,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | | `MODEL_NAME`・`HOST`・`PORT` | `glm-tf`・`127.0.0.1`・`8095` | rank 0のmodel idと待ち受け |
 | | `CHECKPOINT` | `/hub` の下の固定snapshot | container内のcheckpointのdirectory |
 | | `TF_GLM_HEAT_HIGH`・`TF_GLM_HEAT_LOW` | `92`・`88`（°C） | prefillの熱の待ち。全rankで同じ値、空にすると待たない |
+| | `TF_GLM_CACHE_GIB` | `3`（エンジンの既定） | 窓の残りのうち、他の会話の保持promptに使うrankごとのメモリの上限。全rankで同じ値 |
 | | `TF_GLM_CACHE_ENTRIES` | `8`（エンジンの既定） | 他の会話の保持promptの本数。別の値にしたらdecode検査にも同じ値を渡します（[decode検査](docs/validation.ja.md#decode検査)） |
 | `serve.sh` の引数 | `TP RANK RANK_ENV` の後 | なし | 既定の後ろで `tensorfold serve` に渡るので、こちらが勝ちます（`--context 500000`） |
 | clusterのファイル（`cluster.sh`） | `TP`・`HOSTS`・`CHECKOUT` | なし（必須） | TPの大きさ、rank順のSSH名、各機上のこのリポジトリ |
@@ -117,7 +118,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 - **`/health`**（decodeの `rounds` など）と **`/metrics`**。decode検査はこれでエンジンを見分けます。
 - **停止**：クライアントの切断やstop文字列で、全rankのdecodeが1 round以内に終わります。
 
-エンジンは `/v1/completions`・`/v1/models`・`/v1/responses`・Anthropicの `/v1/messages`・`/tokenize` にも答えますが、2.0.0の受け入れでは確かめていません。
+NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completions`**（`prompt_logprobs` つきの教師強制）も使います。エンジンは `/v1/responses`・Anthropicの `/v1/messages`・`/tokenize` にも答えますが、2.0.0の受け入れでは確かめていません。
 
 ## 1.x系との違い
 

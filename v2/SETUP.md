@@ -68,13 +68,13 @@ From a machine with SSH to every host, after copying [`examples/cluster.tp2.env`
 v2/scripts/cluster.sh state/cluster.env start first
 ```
 
-It starts the highest rank first and rank 0 last, each `serve.sh TP RANK /work/rank.env` in its container, starts the memory guard on every host (`hostwatch.sh`: stops the engine below 5 GiB `MemAvailable`) and waits for rank 0's `[tensorfold] serving` line; logs are in `~/glm53-tf/logs/`. Without the script, run the same `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` on each host in that order.
+It starts the highest rank first and rank 0 last, each `serve.sh TP RANK /work/rank.env` in its container, starts the memory guard on every host (`hostwatch.sh`: stops the engine below 5 GiB `MemAvailable`) and waits for rank 0's `[tensorfold] serving` line. It ends with `READY` and rank 0's last `[tensorfold]` lines; with `FAILED` and every rank's log tail at the first `Traceback` or a rank whose engine is gone; or with `TIMEOUT` after 15 minutes. Each rank logs to `~/glm53-tf/logs/serve-r<RANK>-<LABEL>.log` and the guard to `hostwatch-<LABEL>.log`; arguments after the label go to every rank's `tensorfold serve`, and `cluster.sh state/cluster.env status` counts each rank's engine processes. Without the script, run the same `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` on each host in that order.
 
 Read rank 0's startup lines:
 
 - `allocated prompt/reply window`: 300000 at TP=2; at TP=3 the largest that fits (1048576 on the reference ring)
 - no line `other conversations' prompts are kept in …`: the default 3 GiB of kept prompts fit beside the window
-- each rank's NCCL lines (`via NET/IB`, logged once at start by the rank file's `NCCL_DEBUG` lines) name `NET/IB` for every connection, none over sockets
+- each rank's NCCL lines in its log (`via NET/IB`, logged once at start by the rank file's `NCCL_DEBUG` lines) name `NET/IB` for every connection, none over sockets
 - the `serving` line: the model name (`glm-tf` unless `MODEL_NAME` is set in the rank file), `127.0.0.1:8095` unless `HOST` and `PORT` are, `context`
 
 Rank 0 serves the OpenAI-compatible API on loopback. A loading start takes about 100-120 s at TP=3 and about 130 s at TP=2 on the reference hosts.
@@ -99,4 +99,4 @@ Run the checks of [validation](docs/validation.md) and compare them with its ref
 v2/scripts/cluster.sh state/cluster.env stop
 ```
 
-It stops rank 0 first, then the others, waits until no engine runs and prints each host's `MemAvailable`. The containers stay; `docker stop glm53-tf` frees their GPU claim, which 1.x's `server preflight` checks before a 1.x launch.
+It stops rank 0 first, then the others, waiting up to 60 s for each rank's engine to end, and prints each host's engine-process count and `MemAvailable`; a count above 0 means that rank is still running. The containers stay; `docker stop glm53-tf` frees their GPU claim, which 1.x's `server preflight` checks before a 1.x launch.

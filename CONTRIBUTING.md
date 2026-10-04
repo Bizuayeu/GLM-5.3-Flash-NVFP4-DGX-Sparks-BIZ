@@ -4,18 +4,21 @@
 
 This is an engineering project with a measured scope. Keep claims limited to the exact hardware, image, weights, precision and workload tested.
 
-Use Python 3.11 or newer. The 1.x line (vLLM) lives in `v1/` and the 2.x line (TensorFold) in `v2/`; each line holds everything that runs it, and the checkout root holds only the repository tools (the publication audit and the release notes). Run the checks of each place, as [CI](.github/workflows/ci.yml) does:
+Use Python 3.11 or newer. The 1.x line (vLLM) lives in `v1/` and the 2.x line (TensorFold) in `v2/`; each line holds what is specific to its engine, and the checkout root holds what the lines share: the host and fabric pages in `docs/`, the host tools in `host/` and the repository tools (the publication audit and the release notes). Install the pinned check tools once (`python -m pip install -r v1/requirements/dev.lock.txt`: Ruff and NumPy, which some 1.x tests need), then run the checks of each place, as [CI](.github/workflows/ci.yml) does:
 
 ```sh
 # in v1/
 python -m unittest discover -s tests -t . -v
 ruff check glm53_setup tests tools
 ruff format --check glm53_setup tests tools
-# in v2/: the unittest command above, and ruff on the files CI names
-# at the checkout root
+# in v2/
 python -m unittest discover -s tests -t . -v
-ruff check tools tests
-ruff format --check tools tests
+ruff check glm53_tf tests
+ruff format --check glm53_tf tests
+# at the checkout root; the host tools have no extension, so ruff is given them by name
+python -m unittest discover -s tests -t . -v
+ruff check tools tests host/nccl_probe.py host/gb10-telemetry host/cool-gate host/thermal-watch
+ruff format --check tools tests host/nccl_probe.py host/gb10-telemetry host/cool-gate host/thermal-watch
 python tools/check_publication.py
 ```
 
@@ -27,4 +30,4 @@ GPU checks are separate from CPU tests. Use the pinned image and record effectiv
 - Keep original notices for copied/adapted code. New project contributions are submitted under Apache-2.0; third-party portions keep their applicable notices.
 - Mark modified upstream files prominently and review the [licensing guide](docs/licensing.md) for the actual distribution scope.
 - Keep ZCode and Claude Code results separate in the [harness acceptance matrix](v1/docs/harnesses.md); never mark unexecuted cases passed.
-- Update the English and Japanese versions of every paired document together when user-visible content changes; the [document map](v1/docs/README.md) lists the pairs.
+- Update the English and Japanese versions of every paired document together when user-visible content changes; the [document map](docs/README.md) lists the pairs.

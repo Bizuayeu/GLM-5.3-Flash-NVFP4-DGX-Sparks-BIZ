@@ -67,7 +67,7 @@
 | `requirements/` | ホスト側ツールの固定した依存 |
 | `tests/` | CPU契約 |
 | `tools/` | `kernel_hashes.py`（indexerのkernelを各配信workerの中でhash）、`assess_benchmark.py`、`check_prefix_cache.py`、`decode_check.py`・`decode_divergence.py`・`weight_digest.py`（切替の後のdecode検査と重みのdigest、[起動契約](launch-safety.ja.md#切替の後のdecode検査)）、`prepare_mtp_view.py`、`score_nll_set.py`（NLL採点セット `config/nll_set.json` をvLLMまたはTensorFoldで採点） |
-| `../.github/workflows/` | checkoutのルート：CI（LinuxとWindowsでのCPUテスト・Ruff・公開監査、`v1/` で実行）と、tagで起動するGitHub Release |
+| `../.github/workflows/` | checkoutのルート：CI（LinuxとWindowsでのCPUテストとRuffを `v1/`・`v2/`・checkoutのルートで、公開監査をcheckoutのルートで実行）と、tagで起動するGitHub Release |
 | `../LICENSES/` | checkoutのルート：上流ライセンス原文の保持 |
 | `../state/`、`../records/` | checkoutのルート：ローカルの可変状態と実験の証跡。配布対象外 |
 

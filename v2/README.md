@@ -98,6 +98,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `MODEL_NAME`, `HOST`, `PORT` | `glm-tf`, `127.0.0.1`, `8095` | rank 0's model id and listener |
 | | `CHECKPOINT` | the pinned snapshot under `/hub` | the checkpoint directory inside the container |
 | | `TF_GLM_HEAT_HIGH`, `TF_GLM_HEAT_LOW` | `92`, `88` (°C) | the prefill heat wait; the same on every rank, empty for none |
+| | `TF_GLM_CACHE_GIB` | `3` (the engine's) | the most memory per rank for other conversations' kept prompts, out of what the window leaves; the same on every rank |
 | | `TF_GLM_CACHE_ENTRIES` | `8` (the engine's) | kept prompts of other conversations; the decode check must be told another value ([decode check](docs/validation.md#decode-check)) |
 | `serve.sh` arguments | after `TP RANK RANK_ENV` | none | passed to `tensorfold serve` after the defaults, so they win (`--context 500000`) |
 | Cluster file (`cluster.sh`) | `TP`, `HOSTS`, `CHECKOUT` | none, required | the TP size, SSH names in rank order, this repository on every host |
@@ -117,7 +118,7 @@ Rank 0 serves the engine's HTTP API. What the acceptance exercised:
 - **`/health`** (the decode `rounds`, among others) and **`/metrics`**, which the decode check reads to tell the engines apart.
 - **Stopping**: a client disconnect or a stop string ends the decode on every rank within a round.
 
-The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthropic's `/v1/messages` and `/tokenize`; 2.0.0's acceptance did not check them.
+The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/completions`** (teacher-forced, with `prompt_logprobs`). The engine also routes `/v1/responses`, Anthropic's `/v1/messages` and `/tokenize`; 2.0.0's acceptance did not check them.
 
 ## Differences from 1.x
 

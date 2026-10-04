@@ -4,18 +4,21 @@
 
 本プロジェクトは実測した範囲を明記するエンジニアリング作業です。主張は、実際に試験したハードウェア、イメージ、重み、精度、負荷の範囲に限定してください。
 
-Python 3.11以降を使います。1.x系（vLLM）は `v1/`、2.x系（TensorFold）は `v2/` にあり、各系列は自分を動かすものをすべて自分の中に持ち、checkoutのルートにはリポジトリの道具（公開監査とリリースノート）だけを置きます。それぞれの場所の検査を、[CI](.github/workflows/ci.yml)と同じく実行します。
+Python 3.11以降を使います。1.x系（vLLM）は `v1/`、2.x系（TensorFold）は `v2/` にあり、各系列は自分のエンジンに固有のものを持ち、checkoutのルートには系列が共有するもの（`docs/` のホストとfabricの文書、`host/` のホストのツール、リポジトリの道具である公開監査とリリースノート）を置きます。固定した検査の道具を一度入れ（`python -m pip install -r v1/requirements/dev.lock.txt`：RuffとNumPy。NumPyは1.x系の一部のテストが使います）、それぞれの場所の検査を、[CI](.github/workflows/ci.yml)と同じく実行します。
 
 ```sh
 # v1/ で
 python -m unittest discover -s tests -t . -v
 ruff check glm53_setup tests tools
 ruff format --check glm53_setup tests tools
-# v2/ で：上と同じunittestのコマンドと、CIが名前で挙げるファイルへのruff
-# checkoutのルートで
+# v2/ で
 python -m unittest discover -s tests -t . -v
-ruff check tools tests
-ruff format --check tools tests
+ruff check glm53_tf tests
+ruff format --check glm53_tf tests
+# checkoutのルートで。ホストのツールは拡張子が無いので、ruffには名前で渡す
+python -m unittest discover -s tests -t . -v
+ruff check tools tests host/nccl_probe.py host/gb10-telemetry host/cool-gate host/thermal-watch
+ruff format --check tools tests host/nccl_probe.py host/gb10-telemetry host/cool-gate host/thermal-watch
 python tools/check_publication.py
 ```
 
@@ -27,4 +30,4 @@ GPUの検査はCPUテストとは別です。固定版イメージを使い、�
 - 複製・改変したコードは元の通知を保持します。本プロジェクトへの新規の貢献はApache-2.0で提出し、第三者部分にはそれぞれの通知が引き続き適用されます。
 - 改変した上流ファイルは目立つ形で明示し、実際の配布範囲は[ライセンス整理](docs/licensing.ja.md)で確認します。
 - [ハーネス受け入れ表](v1/docs/harnesses.ja.md)ではZCodeとClaude Codeの結果を分けて記録し、未実行の項目を合格と記しません。
-- 利用者に見える内容が変わる場合は、対になっている文書の英語版と日本語版を一緒に更新します。対の一覧は[文書一覧](v1/docs/README.ja.md)にあります。
+- 利用者に見える内容が変わる場合は、対になっている文書の英語版と日本語版を一緒に更新します。対の一覧は[文書一覧](docs/README.ja.md)にあります。
