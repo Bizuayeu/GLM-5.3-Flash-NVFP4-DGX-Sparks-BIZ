@@ -9,9 +9,9 @@ FROM ${BASE_IMAGE}
 
 ARG TENSORFOLD_REPO=https://github.com/Bizuayeu/TensorFold.git
 # The one place the engine version is set: a full commit SHA of the fork's release branch (release/2.0.0).
-# cc-defer: provisional, the head of release/2.0.0 before it is pushed to the fork (2026-10-04); until the push the
-# clone cannot find it. Confirm (or replace) with the commit F5 accepts once the branch is published.
-ARG TENSORFOLD_REF=304109c47b6dba4c863c07316993e398b39adb42
+# cc-defer: the published head of release/2.0.0 with the prefill heat wait (2026-10-04); drop this note once F5 accepts
+# the image built from it (decode check hashes, prefill, 1M at TP=3).
+ARG TENSORFOLD_REF=2d4fa9b9d2dda77f9f16281b32e5a257ff27987c
 RUN echo "$TENSORFOLD_REF" | grep -Eqx '[0-9a-f]{40}' \
  || { echo "TENSORFOLD_REF must be a full commit SHA, not '$TENSORFOLD_REF'" >&2; exit 1; }
 
