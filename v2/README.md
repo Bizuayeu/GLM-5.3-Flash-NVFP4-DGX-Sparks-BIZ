@@ -29,7 +29,7 @@
 - **Hosts**: two or three DGX Spark or compatible GB10 systems (Linux ARM64, 128 GB unified memory each) with nothing else large on their GPUs. A 1.x server on the same hosts is stopped first.
 - **Fabric**: ConnectX-7 links with RoCE v2, a direct cable for the pair or a switchless ring for three hosts ([three hosts in a ring](../v1/docs/qsfp-network.md#8-three-hosts-in-a-ring)). Both rails of each port are used.
 - **Host kernel**: as in 1.x; the default of current DGX OS updates can break multi-node RoCE ([host kernel and multi-node RoCE](../v1/docs/operations.md#host-kernel-and-multi-node-roce)).
-- **GPU clock** capped on every host, as in 1.x ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)). Every 2.x figure was measured under the cap.
+- **GPU clock** capped on every host, as in 1.x ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)); [`host/`](host/README.md) installs the cap and a telemetry logger. Every 2.x figure was measured under the cap.
 - **Docker** with NVIDIA's GPU runtime and the RDMA devices (`create_container.sh` refuses a host without `/dev/infiniband`, where NCCL would fall back to sockets).
 - **Disk**: the whole checkpoint on every host, as in 1.x ([what you deploy](../v1/README.md#what-you-deploy-and-supported-hardware)), plus the image.
 - **A control machine** with SSH to every host, for `cluster.sh`. The download and the checks use 1.x's Python tools ([repository layout](#repository-layout)).
@@ -129,7 +129,7 @@ The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthrop
 | Image input | accepted | not accepted |
 | Published AXL weights | optional | not supported |
 | Tool calls | the model API, optionally behind the tool-argument gate | the same gate, run from `v1/` in front of the engine |
-| Heat during a long prefill | outside the engine: the cooling gate between requests and the thermal watch | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
+| Heat during a long prefill | outside the engine: the cooling gate between requests and the thermal watch ([`host/`](host/README.md#during-long-runs)) | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
 
 ## Measured on the Release
 
@@ -153,7 +153,7 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
   - The decode check ran on `b44c2f1` at TP=2 and on `2d4fa9b` at TP=3.
   - The TP=3 prefill and the 1M-token prompt ran on `2d4fa9b`.
   - The other rows ran on `304109c`.
-- **Heat.** During the 1M-token prompt the hottest host held at about 92 °C, waited about 80 times for a few seconds each, and peaked at 92.8 °C. Without the wait the same prompt reached 94 °C, where the thermal watch stops the engine, after six and a half minutes. Prefill also slows as a host heats: three 38,960-token prompts back to back fell from 1,670 to 1,540 tok/s, below the wait's threshold and with the clock unchanged. Cool the hosts between long requests.
+- **Heat.** During the 1M-token prompt the hottest host held at about 92 °C, waited about 80 times for a few seconds each, and peaked at 92.8 °C. Without the wait the same prompt reached 94 °C, where the [thermal watch](host/README.md#during-long-runs) stops the engine, after six and a half minutes. Prefill also slows as a host heats: three 38,960-token prompts back to back fell from 1,670 to 1,540 tok/s, below the wait's threshold and with the clock unchanged. Cool the hosts between long requests.
 - **tool-eval-bench** used the same 69 scenarios and invocation as 1.x's. Both TP sizes failed TC-61 only.
 
 ## Limits
@@ -180,8 +180,10 @@ v2/
                     serve.sh             one rank, with the serving defaults
                     cluster.sh           start, stop and status of every rank from a control machine
                     hostwatch.sh         the memory guard (stops the engine below 5 GiB MemAvailable)
+  host/             the hosts' thermal tools: GPU clock cap, telemetry logger, cool-gate, thermal-watch
   examples/         the reference hosts' rank files and cluster files, TP=2 and TP=3
   docs/             validation.md: the acceptance checks and reference values
+  tests/            CPU tests of host/
   pyproject.toml    the 2.x version
 ```
 
