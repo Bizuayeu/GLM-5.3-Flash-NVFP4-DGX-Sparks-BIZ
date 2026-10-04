@@ -2,7 +2,6 @@ import http.client
 import io
 import json
 import threading
-import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
@@ -245,15 +244,18 @@ class ProxyTests(unittest.TestCase):
 
     def test_an_oversized_body_is_refused_once_and_never_relayed(self):
         # DELETE used to relay the refused request and answer a second time.
+        # Count the gate's handler threads, so server_close() below waits for them all.
+        self.gate.daemon_threads = False
         for method in ("POST", "DELETE"):
             with self.subTest(method=method), patch.object(proxy, "MAX_BODY", 8):
                 # The refusal is read from the header alone; a body left unread when
                 # the gate closes turns the close into a reset on Windows.
                 status, _ = self.raw_request(method, "/v1/x", "9")
                 self.assertEqual(status, 413)
-        time.sleep(
-            0.3
-        )  # the old handler relayed after answering; give it the time to show
+        # The old handler relayed after answering: once every handler has ended,
+        # anything it relayed has reached the upstream.
+        self.gate.shutdown()
+        self.gate.server_close()
         self.assertEqual(self.upstream.received, [])
 
     def test_a_malformed_content_length_is_refused(self):
