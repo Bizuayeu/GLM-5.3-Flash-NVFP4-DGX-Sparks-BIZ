@@ -4,6 +4,17 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.2 — 2026-10-04
+
+### Documentation
+
+- [Next Action](README.md#next-action), from a review of upstream and the recipes on 2026-10-04:
+  - Upstream reviews pull request #320 for 0.6.6 as the GLM stop on both ranks, not #301, which the release branch carries; either one merged replaces #301. None of this line's issues #308, #309, #310, #339 and pull request #333 is on upstream's list for 0.6.6.
+  - Following upstream to v0.6.5 brings API keys to the engine. The security note in [Quick Start](README.md#quick-start) now says that the missing authentication is v0.6.4's.
+  - Upstream 0.6.6 is watched for three fixes this line meets: tool-call markup leaking into the reply text, a guard against a token repeated without end, and the open-file limit.
+  - Image input reads upstream pull request #194 (GLM-5.3-Flash image input on CUDA over two ranks) before wiring its own.
+  - The hosts' CPU-frequency check in 1.x's Next Action applies to this line's figures too.
+
 ## 2.0.1 — 2026-10-04
 
 ### Documentation

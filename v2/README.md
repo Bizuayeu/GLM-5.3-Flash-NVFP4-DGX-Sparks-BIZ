@@ -64,7 +64,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 
 The model thinks before it answers: the reasoning comes back in `reasoning_content` and the answer in `content`, and a request that names no `max_tokens` gets 32,768 tokens for both; a smaller limit can end inside the thinking with an empty `content`. Accept a new launch with the [validation](docs/validation.md) checks, the decode check first, before routine use.
 
-**Security.** The engine has no authentication. `serve.sh` binds rank 0 to `127.0.0.1`, and the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional) also listens on loopback only. Reach them through an SSH tunnel (`ssh -L 8095:127.0.0.1:8095 <rank 0>`) or a proxy that adds authentication; setting `HOST=0.0.0.0` in the rank file exposes the API unauthenticated.
+**Security.** The engine has no authentication in v0.6.4, the upstream version 2.0.x is built on (v0.6.5 adds API keys; [Next Action](#next-action)). `serve.sh` binds rank 0 to `127.0.0.1`, and the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional) also listens on loopback only. Reach them through an SSH tunnel (`ssh -L 8095:127.0.0.1:8095 <rank 0>`) or a proxy that adds authentication; setting `HOST=0.0.0.0` in the rank file exposes the API unauthenticated.
 
 ## Serving Defaults
 
@@ -218,10 +218,13 @@ Public recipes that serve GLM-5.3-Flash on TensorFold. This table owns their lin
 
 Each item is a trigger and what this line then does.
 
-- Upstream merges pull request #301, or takes the work of issues #308, #309, #310, #339 or pull request #333 → rebase the release branch onto that upstream release, drop what upstream now carries, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
-- A newer upstream release than v0.6.4 (v0.6.5 as of 2026-10-04) → read it against the release branch; follow it in a 2.x release when it is worth a new acceptance.
+- Upstream merges pull request [#320](https://github.com/ashhart/TensorFold/pull/320) (both ranks stop a GLM reply when its caller asks, in review for 0.6.6 as of 2026-10-04) or #301 → take upstream's stop in place of the release branch's #301, rebase onto that release, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
+- Upstream takes the work of issues #308, #309, #310, #339 or pull request #333 (none is on upstream's list for 0.6.6 as of 2026-10-04) → rebase the release branch onto that upstream release, drop what upstream now carries, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
+- Follow upstream to v0.6.5 → API keys on the engine (`--api-key`, `--api-key-file` or `TENSORFOLD_API_KEY`; `/health` stays open and `/metrics` needs a key unless `--metrics-open`): set one through the rank file and rewrite the security note in [Quick Start](#quick-start).
+- Upstream releases 0.6.6 (under test as of 2026-10-04: unoffered `<tool_call>` markup leaking into the reply text, #285 with #256; `--loop-guard` against a token repeated without end, #210 and #262 for #204; the open-file limit raised at start, #294) → read it against the release branch and follow it in a 2.x release.
 - Upstream pull request [#243](https://github.com/ashhart/TensorFold/pull/243) (`--parallel N` on two ranks) merges → take up more than one sequence at a time.
-- Image input: planned after 2.0.0, wired into this line's engine rather than waiting for upstream. Until a release accepts it, the engine refuses images.
+- Image input: planned after 2.0.0. Read upstream pull request [#194](https://github.com/ashhart/TensorFold/pull/194) (GLM-5.3-Flash image input on CUDA over two ranks) first and build on it if it fits; otherwise wire it into this line's engine. Until a release accepts it, the engine refuses images.
+- The CPU-frequency check of the hosts in [1.x's Next Action](../v1/README.md#next-action) → its result applies to this line's figures too.
 - The published AXL weights on 2.x: on hold after 2.0.0; 2.x serves the pinned weights only.
 - The next engine change → pin the base image by digest in the Dockerfile (`nvcr.io/nvidia/pytorch@sha256:2140e699…`, the one 2.0.0 was accepted on), since that image is accepted again anyway.
 
