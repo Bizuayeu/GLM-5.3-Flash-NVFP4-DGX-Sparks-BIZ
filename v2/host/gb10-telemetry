@@ -82,7 +82,7 @@ def main():
         if len(parts) != 5:
             continue
         now = time.time()
-        today = datetime.datetime.fromtimestamp(now, datetime.timezone.utc).date()
+        today = datetime.datetime.fromtimestamp(now, datetime.UTC).date()
         if today != day:
             if stream:
                 stream.close()

@@ -4,6 +4,12 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.4 — 2026-10-04
+
+### Fixed
+
+- `host/gb10-telemetry` and the host-tool tests write `datetime.UTC` for UTC, the spelling ruff asks for on Python 3.11 and later; 2.0.3's CI stopped on it. Nothing else changes.
+
 ## 2.0.3 — 2026-10-04
 
 ### Added

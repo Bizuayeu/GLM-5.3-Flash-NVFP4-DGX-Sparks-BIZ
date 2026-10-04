@@ -6,6 +6,12 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.0.4 — 2026-10-04
+
+### Fixed
+
+- `host/gb10-telemetry` とホストの道具のテストは、UTCを `datetime.UTC` と書きます。Python 3.11以降でruffが求める書き方で、2.0.3のCIはここで止まっていました。他は変わりません。
+
 ## 2.0.3 — 2026-10-04
 
 ### Added

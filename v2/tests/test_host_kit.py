@@ -36,7 +36,7 @@ def load(name, log_dir):
 
 
 def write_rows(log_dir, *rows):
-    day = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+    day = datetime.datetime.now(datetime.UTC).date().isoformat()
     with open(Path(log_dir) / f"{day}.jsonl", "a", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row) + "\n")
