@@ -2,6 +2,18 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.2 — 2026-10-04
+
+### Changed
+
+- Each line holds everything that runs it, and the checkout root holds only what no recipe needs to run. The publication audit and the release-notes tool serve the repository, so they moved from `v1/tools/` to `tools/` at the checkout root with their tests (`tests/`) and a `ruff.toml` carrying this line's lint settings; run them from the root (`python tools/check_publication.py`). Everything this line runs stays in `v1/`, so its commands, image and acceptance are unchanged. [CONTRIBUTING](../CONTRIBUTING.md) lists the checks of each place, as CI runs them.
+
+### Documentation
+
+- The head memory behind the refusal of more than 3 GiB of KV without the derived checkpoint is cited from the [measurements on 1.8.0](docs/benchmarks.md#measurements-on-180) (5.53 and 10.50 GiB) instead of an unconditioned 5.5 and 10.5.
+- The Japanese operations page says `NV_ERR_NO_MEMORY` appears with more than 4 GiB available, as the English page and the records do.
+- [Catalog](docs/optimization-catalog.md) P11 says what was measured: 1024 and 2048 raised the 39K prefill, the 200K passphrase request ran at 2048 only, and the peer's headroom fell at 2048.
+
 ## 1.29.1 — 2026-10-04
 
 ### Added

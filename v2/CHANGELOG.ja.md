@@ -6,6 +6,17 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.0.5 — 2026-10-04
+
+### Changed
+
+- この系列は自分の道具を使います。1.x系の道具を `v1/` から動かす代わりに、`v2/` から [`glm53_tf`](README.ja.md#リポジトリの構成) を `python -m glm53_tf download | verify-download | tool-gate | decode-check | decode-divergence | score-nll` で動かします。中身は1.x系の写しで、引数も同じです。decode検査とtool引数ゲートの既定はこの系列のエンジン（`http://127.0.0.1:8095`、モデル `glm-tf`。ゲートは8896で待ち受け）です。モデルの固定は `config/model.lock.json`、NLL採点セットは `config/nll_set.json`（1.x系のものとバイト単位で同じ）、Hugging Faceのclientのlockは `requirements/huggingface.lock.txt` です。`scripts/serve.sh` のrevisionとセットのhashがずれないことはテストで守ります。新しいコマンドは[セットアップ手順書](SETUP.ja.md)と[検証](docs/validation.ja.md)にあります。image・台本・配信の既定値は変わらないので、2.0.0のimageと受け入れはそのまま有効です。
+
+### Documentation
+
+- [`host/`](host/README.ja.md)に、参照機でsudoなしに確かめたこと（記録係、`cool-gate` の両方の結果、container内で起こしたprocessを止める `thermal-watch`）と、`thermal-watch` はcontainerのPID 1を止められないことを書きました。
+- リポジトリのREADMEは、各系列が自己完結していることと、ルートの `tools/` はリポジトリの公開監査とリリースノートだけだと書きます。
+
 ## 2.0.4 — 2026-10-04
 
 ### Fixed

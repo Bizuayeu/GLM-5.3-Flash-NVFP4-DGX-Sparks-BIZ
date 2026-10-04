@@ -4,6 +4,17 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.5 — 2026-10-04
+
+### Changed
+
+- This line runs its own tools: [`glm53_tf`](README.md#repository-layout), run from `v2/` as `python -m glm53_tf download | verify-download | tool-gate | decode-check | decode-divergence | score-nll`, in place of 1.x's tools from `v1/`. They are copies of 1.x's, with the same arguments; the decode check and the tool-argument gate default to this line's engine (`http://127.0.0.1:8095`, model `glm-tf`; the gate listens on 8896). The model pin is `config/model.lock.json`, the NLL set `config/nll_set.json` (a byte copy of 1.x's) and the Hugging Face client lock `requirements/huggingface.lock.txt`; tests keep `scripts/serve.sh`'s revision and the set's hash from drifting. The [setup runbook](SETUP.md) and [validation](docs/validation.md) give the new commands. The image, the scripts and the serving defaults are unchanged, so 2.0.0's image and acceptance stand.
+
+### Documentation
+
+- [`host/`](host/README.md) records what was checked on a reference host without sudo (the logger, `cool-gate` in both outcomes, `thermal-watch` stopping a process started in the container) and that `thermal-watch` cannot stop a container's PID 1.
+- The repository README says that each line is self-contained and that the root's `tools/` holds the repository's publication audit and release notes.
+
 ## 2.0.4 — 2026-10-04
 
 ### Fixed
