@@ -23,6 +23,7 @@ The 2.x line (TensorFold) keeps its own pages in `v2/`, each an English/Japanese
 | 2.x README | Summary, what it is, requirements, quick start, serving defaults, configuration, API, differences from 1.x, release measurements, limits, layout, other recipes on TensorFold, Next Action | [EN](../../v2/README.md) | [JA](../../v2/README.ja.md) |
 | 2.x setup runbook | Ordered steps from hosts to acceptance and stop | [EN](../../v2/SETUP.md) | [JA](../../v2/SETUP.ja.md) |
 | 2.x validation | The reference values a 2.x launch is accepted against | [EN](../../v2/docs/validation.md) | [JA](../../v2/docs/validation.ja.md) |
+| 2.x host tools | GPU clock cap, telemetry logger, cool-gate and thermal-watch for the hosts that serve 2.x | [EN](../../v2/host/README.md) | [JA](../../v2/host/README.ja.md) |
 | 2.x changelog | 2.x releases; the English file is canonical | [EN](../../v2/CHANGELOG.md) | [JA](../../v2/CHANGELOG.ja.md) |
 
 ## Deploy and operate

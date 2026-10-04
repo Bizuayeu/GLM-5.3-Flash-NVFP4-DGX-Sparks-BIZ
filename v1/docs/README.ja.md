@@ -23,6 +23,7 @@
 | 2.xのREADME | 要約、何であるか、必要な環境、はじめ方、配信の既定値、設定、API、1.x系との違い、リリースの測定値、制約、構成、TensorFoldの他のレシピ、Next Action | [EN](../../v2/README.md) | [JA](../../v2/README.ja.md) |
 | 2.xのセットアップ手順書 | ホストから受け入れ・停止までの順序 | [EN](../../v2/SETUP.md) | [JA](../../v2/SETUP.ja.md) |
 | 2.xの検証 | 2.xの起動を受け入れる基準値 | [EN](../../v2/docs/validation.md) | [JA](../../v2/docs/validation.ja.md) |
+| 2.xのホストの道具 | 2.xを配信するホストのGPUクロックの上限、温度の記録、cool-gate、thermal-watch | [EN](../../v2/host/README.md) | [JA](../../v2/host/README.ja.md) |
 | 2.xの変更履歴 | 2.xのリリース。英語版が正典 | [EN](../../v2/CHANGELOG.md) | [JA](../../v2/CHANGELOG.ja.md) |
 
 ## 導入・運用
