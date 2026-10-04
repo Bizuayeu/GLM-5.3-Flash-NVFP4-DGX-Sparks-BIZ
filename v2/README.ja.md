@@ -32,16 +32,17 @@
 - **GPUクロック**は1.x系と同じく全機で上限を設けます（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。上限と温度の記録は[`host/`](host/README.ja.md)が据え付けます。2.x系の数字は全部この上限の下で測りました。
 - **Docker**：NVIDIAのGPU runtimeとRDMA deviceが要ります（`/dev/infiniband` が無い機では、NCCLがsocketに落ちるので `create_container.sh` が止まります）。
 - **disk**：全機にcheckpointを丸ごと（1.x系と同じ。[導入するものと対応機体](../v1/README.ja.md#導入するものと対応機体)）と、image。
-- **操作する機械**：全機へSSHでき、`cluster.sh` を動かす機械一台。ダウンロードと検査には1.x系のPythonの道具を使います（[リポジトリの構成](#リポジトリの構成)）。
+- **操作する機械**：全機へSSHでき、`cluster.sh` を動かす機械一台。
+- **Python 3.11以上**：各機で、この系列の道具（[`glm53_tf/`](glm53_tf/)：ダウンロード、検証、tool引数ゲート、検査）を `v2/` から動かします（[手順書 §2](SETUP.ja.md#2-checkoutとcheckpoint)）。
 
 ## はじめ方
 
 各段とその後に確かめることは[セットアップ手順書](SETUP.ja.md)にあります。以下はTP=2のときの骨組みです。全機で同じ、確認済みの `v2.*` のtagを使います。
 
 ```sh
-# 一度だけ、ある1台の v1/ から。その後cacheを他の機へ写し、写しごとに検証する（SETUP §2）
-python -m glm53_setup download --background
-python -m glm53_setup verify-download --hf .venv/bin/hf --output ../records/checksum --wait
+# 一度だけ、ある1台の v2/ からその仮想環境で。その後cacheを他の機へ写し、写しごとに検証する（SETUP §2）
+python -m glm53_tf download --background
+python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
 docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
@@ -113,7 +114,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 - **思考**：検査が送る形の `chat_template_kwargs.reasoning_effort` と `clear_thinking`。streamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあります（[制限](#制限)）。
 - **`"draft": false`**：要求のbodyに入れると1 roundに1 tokenずつdecodeします。draftした応答が一致すべきserialの基準です。
 - **応答の `tensorfold` block**：`accepted` と `rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`heat_wait_s`。
-- **`/health`**（decodeの `rounds` など）と **`/metrics`**。1.x系の道具はこれでエンジンを見分けます。
+- **`/health`**（decodeの `rounds` など）と **`/metrics`**。decode検査はこれでエンジンを見分けます。
 - **停止**：クライアントの切断やstop文字列で、全rankのdecodeが1 round以内に終わります。
 
 エンジンは `/v1/completions`・`/v1/models`・`/v1/responses`・Anthropicの `/v1/messages`・`/tokenize` にも答えますが、2.0.0の受け入れでは確かめていません。
@@ -128,7 +129,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 | 同時に処理する系列 | 1、公開した任意設定の2系列profileで2 | 1 |
 | 画像入力 | 受ける | 受けない |
 | 公開したAXLの重み | 任意で使える | 対応しない |
-| tool呼び出し | モデルのAPI、任意でtool引数ゲート越し | 同じゲートを `v1/` から起動してエンジンの前に置く |
+| tool呼び出し | モデルのAPI、任意でtool引数ゲート越し | 同じゲートのこの系列の写しを `v2/` から起動してエンジンの前に置く |
 | 長いprefill中の熱 | エンジンの外：要求の合間の冷却gateと熱の見張り（[`host/`](host/README.ja.md#長い運転の間)） | エンジンがprompt chunkの合間に全rankそろって待つ（92 °Cで待ち、88 °Cで再開） |
 
 ## リリースでの測定値
@@ -144,7 +145,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 | 窓（token） | 300,000（`--context 0` なら567,255） | 1,048,576 | 262,144（TP=2） |
 | 199,652 tokenの合言葉 | 正答、最初のtokenまで163.7 s | 正答、最初のtokenまで133.2 s | TP=3 AXL 150.5 s |
 | 1,036,859 tokenの3か所の合言葉 | — | 3/3、最初のtokenまで1,264.8 s（うち熱の待ち170.1 s） | TP=3 AXL 1,058 s（1,038,423 token） |
-| NLL採点セット（`v1/config/nll_set.json`）でのteacher-forced NLL 日／英／コード／数学 | 2.5474／2.9257／1.3184／0.6250 | 2.5313／2.9001／1.3101／0.6237 | TP=2配布既定（1.26.0）2.5412／2.9079／1.3145／0.6285 |
+| NLL採点セット（`config/nll_set.json`）でのteacher-forced NLL 日／英／コード／数学 | 2.5474／2.9257／1.3184／0.6250 | 2.5313／2.9001／1.3101／0.6237 | TP=2配布既定（1.26.0）2.5412／2.9079／1.3145／0.6285 |
 | tool引数ゲート越しのtool-eval-bench | 93/100、Safety Gate通過 | 91/100、Safety Gate通過 | TP=2 AXL 90/100 |
 | 応答の途中のクライアント切断やstop文字列 | 1 round以内に止まり、次の要求がすぐ始まる | 同じ | — |
 
@@ -167,13 +168,17 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 
 ## リポジトリの構成
 
-2.x系のファイルは `v2/` にあります。imageはライセンスのあるcheckoutのルートからbuildします。
+2.x系のファイルは `v2/` にあります。imageはライセンスのあるcheckoutのルートからbuildし、Pythonの道具は `v2/` から `python -m glm53_tf <command>` で動かします。
 
 ```
 v2/
   README.md         このページ（各 .md の隣に .ja.md）
   SETUP.md          セットアップ手順書
   CHANGELOG.md      2.x系のリリース。v2.* のtagがその節を公開する
+  glm53_tf/         Pythonの道具：download・verify-download・tool-gate・
+                    decode-check・decode-divergence・score-nll
+  config/           model.lock.json（固定のcheckpoint）、nll_set.json（NLL採点セット、1.x系のもののbyte単位の写し）
+  requirements/     huggingface.lock.txt：ダウンロードとその検証に使うHugging Faceのclient
   docker/           Dockerfile：image。エンジンは TENSORFOLD_REF で固定
   scripts/          create_container.sh  各機の配信用container
                     build_ext.sh         エンジンのCUDA extension（imageごとに一度）
@@ -183,11 +188,9 @@ v2/
   host/             ホストの熱の道具：GPUクロックの上限、温度の記録、cool-gate、thermal-watch
   examples/         参照機のrankのファイルとclusterのファイル（TP=2とTP=3）
   docs/             validation.md：受け入れの検査と基準値
-  tests/            host/のCPUテスト
+  tests/            glm53_tf/とhost/のCPUテスト
   pyproject.toml    2.x系の版
 ```
-
-ダウンロード・検証・tool引数ゲート・検査の道具は1.x系のもので、`v1/` から動かします。
 
 ## TensorFoldの他のレシピ
 

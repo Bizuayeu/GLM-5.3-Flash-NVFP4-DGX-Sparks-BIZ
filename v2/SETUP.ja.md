@@ -2,7 +2,7 @@
 
 [English](SETUP.md) · [2.x系の概要](README.ja.md) · [検証](docs/validation.ja.md)
 
-2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。全ホストに同じcheckoutを置き、以下のコマンドはimageのbuild contextがあるそのルートから実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
+2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。全ホストに同じcheckoutを置き、以下のコマンドはimageのbuild contextがあるそのルートから実行します。この系列のPythonの道具は `v2/` から実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
 
 ## 1. 機体とfabric
 
@@ -12,8 +12,23 @@ ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台�
 
 ## 2. checkoutとcheckpoint
 
-1. 全ホストで同じ確認済みのcommitをcheckoutします（`v2.*` のリリースのtag）。
-2. 固定のcheckpointを一度だけ取得して検証し、他のホストへcacheを写してそれぞれ検証します。[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じで、取得の道具は `v1/` から実行します（[資産の準備](../v1/README.ja.md#資産の準備)）。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
+全ホストで同じ確認済みのcommitをcheckoutします（`v2.*` のリリースのtag）。各ホストで、`v2/` から道具の仮想環境を用意します：
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements/huggingface.lock.txt
+python -m glm53_tf --version
+```
+
+固定のcheckpointを一度だけ、ある1台の `v2/` から取得して検証します。revisionは [`config/model.lock.json`](config/model.lock.json) にあります：
+
+```sh
+python -m glm53_tf download --background
+python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
+```
+
+その後、他のホストへcacheを写し、写しごとに同じ `verify-download` で検証します。写し方と、読み込む前に検証する理由は[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じです。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
 
 ## 3. image
 
@@ -66,10 +81,10 @@ rank 0がOpenAI互換のAPIをloopbackで出します。参照機では、読み
 
 ## 7. tool引数ゲート（任意）
 
-1.x系のゲートは、tool呼び出しの引数を各toolの必須項目と照らし、満たさなければモデルにもう一度だけ尋ねる中継です（[tool引数ゲート](../v1/docs/harnesses.ja.md#tool引数ゲート)）。エンジンに依存しません。rank 0で、`v1/` からその仮想環境で：
+ゲートは1.x系のものの写しで、tool呼び出しの引数を各toolの必須項目と照らし、満たさなければモデルにもう一度だけ尋ねる中継です（[tool引数ゲート](../v1/docs/harnesses.ja.md#tool引数ゲート)）。エンジンに依存しません。rank 0で、`v2/` からその仮想環境で：
 
 ```sh
-python -m glm53_setup tool-gate --port 8896 --upstream http://127.0.0.1:8095 --log ../records/<run>/gate.jsonl
+python -m glm53_tf tool-gate --port 8896 --upstream http://127.0.0.1:8095 --log ../records/<run>/gate.jsonl
 ```
 
 toolを使うクライアントはport 8896へつなぎます。

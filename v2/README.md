@@ -32,16 +32,17 @@
 - **GPU clock** capped on every host, as in 1.x ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)); [`host/`](host/README.md) installs the cap and a telemetry logger. Every 2.x figure was measured under the cap.
 - **Docker** with NVIDIA's GPU runtime and the RDMA devices (`create_container.sh` refuses a host without `/dev/infiniband`, where NCCL would fall back to sockets).
 - **Disk**: the whole checkpoint on every host, as in 1.x ([what you deploy](../v1/README.md#what-you-deploy-and-supported-hardware)), plus the image.
-- **A control machine** with SSH to every host, for `cluster.sh`. The download and the checks use 1.x's Python tools ([repository layout](#repository-layout)).
+- **A control machine** with SSH to every host, for `cluster.sh`.
+- **Python 3.11+** on the hosts for this line's tools in [`glm53_tf/`](glm53_tf/) (download, verification, tool-argument gate, checks), run from `v2/` ([setup §2](SETUP.md#2-checkout-and-checkpoint)).
 
 ## Quick Start
 
 The steps, with what to check after each, are the [setup runbook](SETUP.md); this is their outline for TP=2. Use the same reviewed `v2.*` tag on every host.
 
 ```sh
-# Once, from v1/ on one host; then copy the cache to the others and verify each copy (SETUP §2)
-python -m glm53_setup download --background
-python -m glm53_setup verify-download --hf .venv/bin/hf --output ../records/checksum --wait
+# Once, from v2/ on one host in its virtual environment; then copy the cache to the others and verify each copy (SETUP §2)
+python -m glm53_tf download --background
+python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # Each host, from the checkout root (SETUP §3-§5); build once and `docker load` it elsewhere, then compare image IDs
 docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
@@ -113,7 +114,7 @@ Rank 0 serves the engine's HTTP API. What the acceptance exercised:
 - **Thinking**: `chat_template_kwargs.reasoning_effort` and `clear_thinking`, as the checks send them. A streamed delta can carry both `reasoning_content` and `content` ([limits](#limits)).
 - **`"draft": false`** in the request body decodes one token a round, the serial reference that drafted replies must equal.
 - **The reply's `tensorfold` block**: `accepted` and `rounds` (MTP acceptance), `cached` (prompt tokens resumed from a kept prompt) and `heat_wait_s`.
-- **`/health`** (the decode `rounds`, among others) and **`/metrics`**, which the 1.x tools read to tell the engines apart.
+- **`/health`** (the decode `rounds`, among others) and **`/metrics`**, which the decode check reads to tell the engines apart.
 - **Stopping**: a client disconnect or a stop string ends the decode on every rank within a round.
 
 The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthropic's `/v1/messages` and `/tokenize`; 2.0.0's acceptance did not check them.
@@ -128,7 +129,7 @@ The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthrop
 | Sequences in flight | one, or two with the published option's two-sequence profile | one |
 | Image input | accepted | not accepted |
 | Published AXL weights | optional | not supported |
-| Tool calls | the model API, optionally behind the tool-argument gate | the same gate, run from `v1/` in front of the engine |
+| Tool calls | the model API, optionally behind the tool-argument gate | the same gate, this line's copy run from `v2/`, in front of the engine |
 | Heat during a long prefill | outside the engine: the cooling gate between requests and the thermal watch ([`host/`](host/README.md#during-long-runs)) | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
 
 ## Measured on the Release
@@ -144,7 +145,7 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
 | Window (tokens) | 300,000 (567,255 with `--context 0`) | 1,048,576 | 262,144 (TP=2) |
 | Passphrase at 199,652 tokens | correct, first token after 163.7 s | correct, first token after 133.2 s | TP=3 AXL 150.5 s |
 | Three passphrases at 1,036,859 tokens | — | 3 of 3, first token after 1,264.8 s, 170.1 s of it heat waits | TP=3 AXL 1,058 s (1,038,423 tokens) |
-| Teacher-forced NLL on the NLL set (`v1/config/nll_set.json`), ja / en / code / math | 2.5474 / 2.9257 / 1.3184 / 0.6250 | 2.5313 / 2.9001 / 1.3101 / 0.6237 | TP=2 defaults (1.26.0) 2.5412 / 2.9079 / 1.3145 / 0.6285 |
+| Teacher-forced NLL on the NLL set (`config/nll_set.json`), ja / en / code / math | 2.5474 / 2.9257 / 1.3184 / 0.6250 | 2.5313 / 2.9001 / 1.3101 / 0.6237 | TP=2 defaults (1.26.0) 2.5412 / 2.9079 / 1.3145 / 0.6285 |
 | tool-eval-bench through the tool-argument gate | 93/100, Safety Gate passed | 91/100, Safety Gate passed | TP=2 AXL 90/100 |
 | A client disconnect or a stop string mid-reply | stops within a round, the next request starts at once | same | — |
 
@@ -167,13 +168,17 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
 
 ## Repository Layout
 
-The 2.x files live in `v2/`; the image is built from the checkout root, where the licenses are.
+The 2.x files live in `v2/`. The image is built from the checkout root, where the licenses are; the Python tools run from `v2/` as `python -m glm53_tf <command>`.
 
 ```
 v2/
   README.md         this page (each .md has a .ja.md beside it)
   SETUP.md          the deployment runbook
   CHANGELOG.md      the 2.x releases; a v2.* tag publishes its section
+  glm53_tf/         the Python tools: download, verify-download, tool-gate,
+                    decode-check, decode-divergence, score-nll
+  config/           model.lock.json (the pinned checkpoint), nll_set.json (the NLL set, a byte copy of 1.x's)
+  requirements/     huggingface.lock.txt: the Hugging Face client for the download and its verification
   docker/           Dockerfile: the image, with the engine pinned by TENSORFOLD_REF
   scripts/          create_container.sh  the serving container on each host
                     build_ext.sh         the engine's CUDA extensions, once per image
@@ -183,11 +188,9 @@ v2/
   host/             the hosts' thermal tools: GPU clock cap, telemetry logger, cool-gate, thermal-watch
   examples/         the reference hosts' rank files and cluster files, TP=2 and TP=3
   docs/             validation.md: the acceptance checks and reference values
-  tests/            CPU tests of host/
+  tests/            CPU tests of glm53_tf/ and host/
   pyproject.toml    the 2.x version
 ```
-
-The download, verification, tool-argument gate and check tools are 1.x's, run from `v1/`.
 
 ## Other Recipes on TensorFold
 

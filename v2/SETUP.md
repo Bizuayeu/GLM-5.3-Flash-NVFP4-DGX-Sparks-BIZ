@@ -2,7 +2,7 @@
 
 [日本語](SETUP.ja.md) · [2.x overview](README.md) · [Validation](docs/validation.md)
 
-The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Every host has the same checkout; the commands below run from its root, where the image's build context is. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
+The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Every host has the same checkout; the commands below run from its root, where the image's build context is; the line's Python tools run from `v2/`. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
 
 ## 1. Hosts and fabric
 
@@ -12,8 +12,23 @@ Cap the GPU clock on every host before long runs, as in 1.x ([GPU clock cap](../
 
 ## 2. Checkout and checkpoint
 
-1. Check out the same reviewed commit on every host (a `v2.*` release tag).
-2. Download the pinned checkpoint once, verify it, copy the cache to the other hosts and verify each copy, as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The downloader runs from `v1/` ([prepare assets](../v1/README.md#prepare-assets)). The engine reads it from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
+Check out the same reviewed commit on every host (a `v2.*` release tag). On every host, prepare the tools' virtual environment from `v2/`:
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements/huggingface.lock.txt
+python -m glm53_tf --version
+```
+
+Download the pinned checkpoint once, from `v2/` on one host, and verify it; the revision is in [`config/model.lock.json`](config/model.lock.json):
+
+```sh
+python -m glm53_tf download --background
+python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
+```
+
+Then copy the cache to the other hosts and verify each copy with the same `verify-download`; how to copy, and why to verify before loading, are as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The engine reads the checkpoint from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
 
 ## 3. Image
 
@@ -66,10 +81,10 @@ Rank 0 serves the OpenAI-compatible API on loopback. A loading start takes about
 
 ## 7. Tool-argument gate (optional)
 
-The 1.x gate is a relay that checks each tool call's arguments against the tool's required fields and asks the model once more when one fails ([tool-argument gate](../v1/docs/harnesses.md#tool-argument-gate)). It does not depend on the engine. On rank 0, from `v1/` with its virtual environment:
+The gate, a copy of 1.x's, is a relay that checks each tool call's arguments against the tool's required fields and asks the model once more when one fails ([tool-argument gate](../v1/docs/harnesses.md#tool-argument-gate)). It does not depend on the engine. On rank 0, from `v2/` with its virtual environment:
 
 ```sh
-python -m glm53_setup tool-gate --port 8896 --upstream http://127.0.0.1:8095 --log ../records/<run>/gate.jsonl
+python -m glm53_tf tool-gate --port 8896 --upstream http://127.0.0.1:8095 --log ../records/<run>/gate.jsonl
 ```
 
 Clients that use tools then talk to port 8896.

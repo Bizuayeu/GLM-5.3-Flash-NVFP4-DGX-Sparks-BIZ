@@ -4,7 +4,7 @@
 
 2.x系の起動を何で受け入れるかを、回す順に基準値と一緒に並べます。基準値は2026-10-02と10-03に参照機で、エンジンの開発版で測りました。2.0.0は2026-10-04にこれらと比べて受け入れました（[リリースでの測定値](../README.ja.md#リリースでの測定値)）。違う結果は日常の利用の前に説明すべき所見で、基準を置き換える値ではありません。
 
-道具はrank 0でcheckoutの `v1/` から、loopbackのエンジン（`http://127.0.0.1:8095`、rankのファイルで変えなければモデル `glm-tf`）に当てます。長い要求の間はホストを冷まし（[GPUクロックの上限](../../v1/docs/operations.ja.md#gpuクロックの上限)）、メモリの見張りを動かしたままにします。
+道具はrank 0でcheckoutの `v2/` から、その仮想環境で（[手順書 §2](../SETUP.ja.md#2-checkoutとcheckpoint)）、loopbackのエンジン（`http://127.0.0.1:8095`、rankのファイルで変えなければモデル `glm-tf`）に当てます。長い要求の間はホストを冷まし（[GPUクロックの上限](../../v1/docs/operations.ja.md#gpuクロックの上限)）、メモリの見張りを動かしたままにします。
 
 ## decode検査
 
@@ -13,11 +13,11 @@
 ```sh
 for k in count prose code; do
   BASE=http://127.0.0.1:8095 MODEL=glm-tf PROMPT_KIND=$k SAMPLES=3 \
-  TOKENS_OUT=../records/<run>/tokens-$k.json python3 tools/decode_check.py
+  TOKENS_OUT=../records/<run>/tokens-$k.json python -m glm53_tf decode-check
 done
 ```
 
-各サンプルの前に `TF_GLM_CACHE_ENTRIES`（既定8、エンジンの既定と同じ）本の短い別の要求を送るので、どのサンプルもpromptを最初からprefillします（各行の `cached` が0）。サーバーを別の値で起動した場合は同じ値を渡します。summaryには速さ、MTPの受理長（各応答の `tensorfold` ブロックから1＋accepted／rounds）、`distinct_completions` が出ます。
+各サンプルの前に `TF_GLM_CACHE_ENTRIES`（既定8、エンジンの既定と同じ）本の短い別の要求を送るので、どのサンプルもpromptを最初からprefillします（各行の `cached` が0）。サーバーを別の値で起動した場合は同じ値を渡します。summaryには速さ、MTPの受理長（各応答の `tensorfold` ブロックから1＋accepted／rounds）、`distinct_completions` が出ます。`TOKENS_OUT` には各サンプルの文章とtoken idが残り、hashの違う2回の起動は `python -m glm53_tf decode-divergence A.json B.json` で最初に分かれたtokenを比べます。
 
 **合格の条件**：各タスクが起動の中で一つのcompletion（`distinct_completions` が1）で、その `completion_sha256` がそのTPの基準と同じこと。
 
@@ -35,15 +35,15 @@ TP=2のhashは開発版の7つの版と1本・2本のrailで、TP=3のhashは10�
 
 ## teacher-forced NLL
 
-[`v1/config/nll_set.json`](../../v1/config/nll_set.json) のNLL採点セット：4領域（日本語・英語・コード・数学）に各4本、領域ごとに5,851〜6,830 token。tokenizerはcheckpoint自身のものを使います。
+[`config/nll_set.json`](../config/nll_set.json) のNLL採点セット（1.x系のもののbyte単位の写し）：4領域（日本語・英語・コード・数学）に各4本、領域ごとに5,851〜6,830 token。tokenizerはcheckpoint自身のものを使います。
 
 ```sh
-python3 tools/score_nll_set.py --url http://127.0.0.1:8095 \
+python -m glm53_tf score-nll --url http://127.0.0.1:8095 \
   --tokenizer ~/.cache/huggingface/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/423acf37583782c51c142d145aef733d72943d93/tokenizer.json \
   --out ../records/<run>/nll.json
 ```
 
-実行する環境に `tokenizers` packageが要ります。各本文を2回採点し、全要求が答え、各本文の2回が一致すれば（参照機ではargmaxの一致1.0、動き0）passです。
+実行する環境に `tokenizers` packageが要ります（Hugging Faceのlockには入っていません）。各本文を2回採点し、全要求が答え、各本文の2回が一致すれば（参照機ではargmaxの一致1.0、動き0）passです。
 
 | 領域（位置数） | TP=2 | TP=3 | 1.x TP=2配布既定（1.26.0） |
 |---|---|---|---|

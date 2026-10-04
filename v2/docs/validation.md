@@ -4,7 +4,7 @@
 
 What a 2.x launch is accepted on, in the order to run it, with the reference values. The reference values were measured on the reference hosts on 2026-10-02 and 10-03 with development builds of the engine, and 2.0.0 was accepted against them on 2026-10-04 ([measured on the release](../README.md#measured-on-the-release)). A check that differs is a finding to explain before routine use, not a value to replace.
 
-Run the tools from `v1/` of the checkout on rank 0, against the engine on loopback (`http://127.0.0.1:8095`, model `glm-tf` unless the rank file sets others). Let the hosts cool between long requests ([GPU clock cap](../../v1/docs/operations.md#gpu-clock-cap)) and keep the memory guard running.
+Run the tools from `v2/` of the checkout on rank 0, in its virtual environment ([setup §2](../SETUP.md#2-checkout-and-checkpoint)), against the engine on loopback (`http://127.0.0.1:8095`, model `glm-tf` unless the rank file sets others). Let the hosts cool between long requests ([GPU clock cap](../../v1/docs/operations.md#gpu-clock-cap)) and keep the memory guard running.
 
 ## Decode check
 
@@ -13,11 +13,11 @@ Greedy 512 tokens after the fixed prompt of about 2,048 tokens (`PROMPT_TOKENS`;
 ```sh
 for k in count prose code; do
   BASE=http://127.0.0.1:8095 MODEL=glm-tf PROMPT_KIND=$k SAMPLES=3 \
-  TOKENS_OUT=../records/<run>/tokens-$k.json python3 tools/decode_check.py
+  TOKENS_OUT=../records/<run>/tokens-$k.json python -m glm53_tf decode-check
 done
 ```
 
-Before each sample it sends `TF_GLM_CACHE_ENTRIES` (default 8, the engine's) short distinct requests, so every sample prefills the whole prompt (`cached` 0 in each row); if the server was started with another value, pass the same one. The summary gives the speed, the MTP acceptance length (1 + accepted / rounds, from each reply's `tensorfold` block) and `distinct_completions`.
+Before each sample it sends `TF_GLM_CACHE_ENTRIES` (default 8, the engine's) short distinct requests, so every sample prefills the whole prompt (`cached` 0 in each row); if the server was started with another value, pass the same one. The summary gives the speed, the MTP acceptance length (1 + accepted / rounds, from each reply's `tensorfold` block) and `distinct_completions`. `TOKENS_OUT` keeps each sample's text and token ids; two launches whose hashes differ are compared at their first diverging token with `python -m glm53_tf decode-divergence A.json B.json`.
 
 **Accepted when** each task gives one completion within the launch (`distinct_completions` 1) and its `completion_sha256` is the reference of its TP:
 
@@ -35,15 +35,15 @@ The same prompt with and without drafts (`"draft": false` in the request body de
 
 ## Teacher-forced NLL
 
-The NLL set of [`v1/config/nll_set.json`](../../v1/config/nll_set.json): four domains (Japanese, English, code, math) of four texts each, 5,851-6,830 tokens per domain. The tokenizer must be the checkpoint's own:
+The NLL set of [`config/nll_set.json`](../config/nll_set.json), a byte copy of 1.x's: four domains (Japanese, English, code, math) of four texts each, 5,851-6,830 tokens per domain. The tokenizer must be the checkpoint's own:
 
 ```sh
-python3 tools/score_nll_set.py --url http://127.0.0.1:8095 \
+python -m glm53_tf score-nll --url http://127.0.0.1:8095 \
   --tokenizer ~/.cache/huggingface/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/423acf37583782c51c142d145aef733d72943d93/tokenizer.json \
   --out ../records/<run>/nll.json
 ```
 
-Needs the `tokenizers` package in the environment that runs it. Each text is scored twice; the run passes when every request answered and the two scores of each text agree (argmax agreement 1.0 and no movement on the reference hosts).
+Needs the `tokenizers` package in the environment that runs it; the Hugging Face lock does not install it. Each text is scored twice; the run passes when every request answered and the two scores of each text agree (argmax agreement 1.0 and no movement on the reference hosts).
 
 | Domain (positions) | TP=2 | TP=3 | 1.x TP=2 defaults (1.26.0) |
 |---|---|---|---|

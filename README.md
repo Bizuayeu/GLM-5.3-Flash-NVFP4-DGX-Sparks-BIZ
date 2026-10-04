@@ -11,7 +11,7 @@
 | 1.x | vLLM | [v1/](v1/README.md) | [v1/CHANGELOG.md](v1/CHANGELOG.md) |
 | 2.x | TensorFold | [v2/](v2/README.md): TP=2 and TP=3, FP8 KV, text and tool calls ([setup](v2/SETUP.md)) | [v2/CHANGELOG.md](v2/CHANGELOG.md) |
 
-Each line has its own README, version and changelog; a release tag `v1.*` or `v2.*` publishes the section of that line's changelog. Run 1.x's commands from `v1/`; 2.x builds its image and runs its scripts from the checkout root ([setup](v2/SETUP.md)). `state/` and `records/` are untracked and stay at the checkout root.
+Each line has its own README, version and changelog; a release tag `v1.*` or `v2.*` publishes the section of that line's changelog. Each line holds everything that runs it: 1.x's commands run from `v1/`, 2.x's tools from `v2/` and its image build and scripts from the checkout root ([setup](v2/SETUP.md)). The root's `tools/` holds only the repository's publication audit and release notes. `state/` and `records/` are untracked and stay at the checkout root.
 
 ## BIZ
 
