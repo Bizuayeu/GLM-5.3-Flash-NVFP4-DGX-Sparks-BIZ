@@ -8,7 +8,7 @@
 
 ## decode検査
 
-約2,066 tokenの固定promptの後にgreedyで512 token、タスクごとに3回。1.x系と同じです（[切替の後のdecode検査](../../v1/docs/launch-safety.ja.md#切替の後のdecode検査)）。
+約2,048 tokenの固定prompt（`PROMPT_TOKENS`。正確な数は各行の`prompt_tokens`）の後にgreedyで512 token、タスクごとに3回。1.x系と同じです（[切替の後のdecode検査](../../v1/docs/launch-safety.ja.md#切替の後のdecode検査)）。
 
 ```sh
 for k in count prose code; do

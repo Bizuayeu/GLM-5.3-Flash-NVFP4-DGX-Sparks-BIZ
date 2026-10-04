@@ -8,7 +8,7 @@ Run the tools from `v1/` of the checkout on rank 0, against the engine on loopba
 
 ## Decode check
 
-Greedy 512 tokens after a fixed prompt of about 2,066 tokens, three times for each task, as in 1.x ([after a switch](../../v1/docs/launch-safety.md#after-a-switch-the-decode-check)):
+Greedy 512 tokens after the fixed prompt of about 2,048 tokens (`PROMPT_TOKENS`; each row's `prompt_tokens` gives the exact count), three times for each task, as in 1.x ([after a switch](../../v1/docs/launch-safety.md#after-a-switch-the-decode-check)):
 
 ```sh
 for k in count prose code; do

@@ -137,14 +137,14 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
 
 | Measurement | TP=2 | TP=3 | 1.x |
 |---|---|---|---|
-| Decode check count / prose / code (tok/s) | 41.04 / 26.73 / 34.85 | 52.47 / 37.99 / 48.47 | TP=2 defaults 32.59 / 21.12 / 28.21; TP=3 AXL 49.59 / 28.32 / 38.33 |
+| Decode check count / prose / code (tok/s) | 41.04 / 26.73 / 34.85 | 52.47 / 37.99 / 48.47 | TP=2 defaults 32.59 / 21.12 / 28.21; TP=3 AXL 51.00 / 30.10 / 39.48 |
 | MTP acceptance length, same tasks | 3.821 / 2.098 / 3.180 | 3.549 / 2.222 / 3.234 | — |
-| Prefill of 38,960 tokens (tok/s, median of three, cooled before each) | 1,329.9 | 1,668.5 (1,671.4 with the heat wait off) | TP=2 defaults 1,233.4 |
+| Prefill of 38,960 tokens (tok/s, median of three, cooled before each) | 1,329.9 | 1,668.5 (1,671.4 with the heat wait off) | TP=2 defaults 1,233.4 (38,962 tokens) |
 | Decode after a short fixed prompt, 512 tokens (tok/s) | 35.31 | 52.93 | TP=2 defaults 27.18 |
 | Window (tokens) | 300,000 (567,255 with `--context 0`) | 1,048,576 | 262,144 (TP=2) |
 | Passphrase at 199,652 tokens | correct, first token after 163.7 s | correct, first token after 133.2 s | TP=3 AXL 150.5 s |
-| Three passphrases at 1,036,859 tokens | — | 3 of 3, first token after 1,264.8 s, 170.1 s of it heat waits | TP=3 AXL 1,058 s |
-| Teacher-forced NLL, ja / en / code / math | 2.5474 / 2.9257 / 1.3184 / 0.6250 | 2.5313 / 2.9001 / 1.3101 / 0.6237 | TP=2 defaults (1.26.0) 2.5412 / 2.9079 / 1.3145 / 0.6285 |
+| Three passphrases at 1,036,859 tokens | — | 3 of 3, first token after 1,264.8 s, 170.1 s of it heat waits | TP=3 AXL 1,058 s (1,038,423 tokens) |
+| Teacher-forced NLL on the NLL set (`v1/config/nll_set.json`), ja / en / code / math | 2.5474 / 2.9257 / 1.3184 / 0.6250 | 2.5313 / 2.9001 / 1.3101 / 0.6237 | TP=2 defaults (1.26.0) 2.5412 / 2.9079 / 1.3145 / 0.6285 |
 | tool-eval-bench through the tool-argument gate | 93/100, Safety Gate passed | 91/100, Safety Gate passed | TP=2 AXL 90/100 |
 | A client disconnect or a stop string mid-reply | stops within a round, the next request starts at once | same | — |
 
