@@ -4,7 +4,7 @@
 
 **NVFP4 BIZ** は、NVIDIAの固定したGLM-5.3-Flash NVFP4 checkpointを、再学習も再量子化もせず配布のまま、DGX Sparkまたは互換のGB10機で配信します。名前はこの意図を表し、エンジンには依存しません。2.x系はvLLMに代えて[TensorFold](https://github.com/ashhart/TensorFold)（Apache-2.0）で、2台のTP=2または3台のTP=3で配信します。2.0.0が最初のリリースです。[1.x系](../v1/README.ja.md)も並んで続きます。
 
-**BIZ**は保守者の印（Bizuayeu）であり、意図を示す語です。商用利用できるライセンス、資産の固定、検査結果の記録、戻せる運用を整えた**業務利用向けの構成**という意味です。意味しないことは[免責事項](#免責事項)にあります。
+**BIZ**は保守者の印で、リポジトリの意図を示す語です。意味することと意味しないことは[リポジトリのREADME](../README.ja.md#biz)にあります。
 
 ## 要約
 
@@ -12,7 +12,7 @@
 - **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
-- **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](#ライセンスの早見表)）。
+- **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
 - **未検証。** 同時に2系列以上、画像入力、公開したAXLの重み、ハーネス連携（ZCode・Claude Code）、他のrank数と機材、アプリケーション全体の品質と本番の信頼性（[制限](#制限)）。
 
 ## 何であるか
@@ -185,19 +185,6 @@ v2/
 
 ダウンロード・検証・tool引数ゲート・検査の道具は1.x系のもので、`v1/` から動かします。
 
-## ライセンスの早見表
-
-成果物ごとに自分の条件を持ちます。来歴は[第三者の表示](../THIRD_PARTY_NOTICES.md)に、成果物ごとの義務は[ライセンスの手引き](../v1/docs/licensing.ja.md)にあります。
-
-| 成果物 | ライセンス | 出どころ |
-|---|---|---|
-| セットアップのコードと文書 | **Apache-2.0** | 本リポジトリ |
-| GLM-5.3-Flash NVFP4の重み | **MIT**（固定したNVIDIAのmodel cardの表記。上流のZ.aiのモデルもMIT） | 運用者がダウンロード。同梱しない |
-| TensorFoldのBIZ版 | **Apache-2.0**（0.6.0より前のコードはMITの表示を保つ） | [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) から `TENSORFOLD_REF` でimageにclone。エンジン自身の表示は `/opt/tensorfold` に。ここには同梱しない |
-| buildしたcontainer image | 同梱した部品ごと。NVIDIAのPyTorch containerはNVIDIAの条件 | 公式のbase imageから運用者がbuild |
-
-配信の経路には非商用・改変禁止の条件がありません：DFlash2のdraftの重み（CC BY-NC-ND 4.0）は読み込まず（`--drafter none`）、EXL3などの再量子化した重みも使いません。本リポジトリをソースとして配るにはApache-2.0に従い表示を残します。重みやbuildしたimageを再配布するときは、それぞれの条件が加わります。
-
 ## TensorFoldの他のレシピ
 
 GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピのリンク、2026-10-04に確認したライセンス、この系列が取り込んだものは、この表が正典です。他のエンジンのレシピは[1.x系の表](../v1/README.ja.md#dgx-spark向けの他のglm-53-flashレシピ)にあります。それぞれの測定は別の重みと設定によるもので、上の数字とは比べられません。
@@ -210,7 +197,7 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 
 ## 免責事項
 
-- **BIZは意図であり、約束ではありません。** 1.x系と同じく、製品ティア・サポート・保証・認定を意味しません（[1.x系の免責事項](../v1/README.ja.md#免責事項)）。業務利用に適するかは、宣言した範囲についての検収の結果であり、接尾辞からは導かれません。
+- **BIZは意図であり、約束ではありません**（[リポジトリのREADME](../README.ja.md#biz)）。
 - **受け入れは参照機のものです。** 他の機や別のimage IDでの起動は、そこで[検証](docs/validation.ja.md)を回して受け入れます。
 - **上流が取り込むまで、エンジンはforkです。** 上のissueとpull requestは上流でまだopenで、その間はリリースのbranchが持ちます。
 
@@ -230,4 +217,4 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 
 ## ローカルデータと開発
 
-`state/`・`records/`・資格情報・重みはGitとimageのbuild contextから外してあります。自分の機の値を入れたrankとclusterのファイルもGitに入れないでください。公開するのは確認済みの要約で、生のlogではありません。[開発への参加](../CONTRIBUTING.ja.md)に検査の説明があり、2.x系の変更は[CHANGELOG.ja.md](CHANGELOG.ja.md)に、[LICENSE](../LICENSE)（Apache-2.0）・[NOTICE](../NOTICE)・[第三者の表示](../THIRD_PARTY_NOTICES.md)はリポジトリのルートにあります。
+Gitに入れないもの（自分の機の値を入れたrankとclusterのファイルを含む）、ライセンス、開発への参加は[リポジトリのREADME](../README.ja.md#ローカルデータと開発)にあります。2.x系の変更は[CHANGELOG.ja.md](CHANGELOG.ja.md)にあります。

@@ -2,7 +2,7 @@
 
 **Short name: NVFP4 BIZ** (cite as "NVFP4 BIZ 1.28.3"). It names this serving stack, which serves NVIDIA's pinned checkpoint as distributed. The published option's weights are **NVFP4 BIZ AXL** (AXL: the attention projections and `lm_head` in W4A16; on Hugging Face as [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16), whose repository name describes the contents). The repository names stay as they are.
 
-**BIZ** is the maintainer's mark (Bizuayeu) and states the intent: a business-use setup with commercially usable licensing, pinned assets, recorded checks and reversible operation. What it does not mean is in the [disclaimer](#disclaimer).
+**BIZ** is the maintainer's mark and states the repository's intent; what it means and does not mean is in the [repository README](../README.md#biz).
 
 [日本語](README.ja.md) · [Setup runbook](SETUP.md) · [Operations](docs/operations.md) · [Validation](docs/validation.md) · [Architecture](docs/architecture.md) · [Document map](docs/README.md)
 
@@ -12,7 +12,7 @@
 - **Status.** **Accepted for routine use:** on two hosts at TP=2, both profiles for one active sequence since 2026-09-22 and the published option's two-sequence profile for two sequences of up to about 200K tokens each since 2026-09-23; on three hosts at TP=3, both profiles since 2026-10-01. [SETUP step 6](SETUP.md#6-qualify-the-full-model) records what each acceptance rests on; harness acceptance is recorded per case in [harnesses](docs/harnesses.md#acceptance-matrix-and-status). Other hardware, more sequences than those and video input are outside the accepted scope ([status by scope](#status-by-scope)).
 - **Two served profiles.** The **distributed defaults** serve the pinned weights exactly as NVIDIA distributes them. The **published option (NVFP4 BIZ AXL)** repacks the attention projections and `lm_head` to W4A16 for faster decode at a measured quality cost, and is an operator opt-in. [What has been verified](#what-has-been-verified) compares them and lists the status of every scope.
 - **Precision.** Serving runs Marlin W4A16 on GB10. NVIDIA's model card evaluated its checkpoint under a different recipe on different hardware, so its accuracy table does not describe this stack; [validation](docs/validation.md#evidence-not-production-qualification) says which numbers do.
-- **Licensing.** Apache-2.0 code; MIT weights that the operator downloads, not bundled; each artifact keeps its own terms ([licensing at a glance](#licensing-at-a-glance)).
+- **Licensing.** Apache-2.0 code; MIT weights that the operator downloads, not bundled; each artifact keeps its own terms ([licensing at a glance](../README.md#licensing-at-a-glance)).
 - **Not validated.** Concurrent serving beyond the accepted scopes (two sequences on the pair, three ~200K requests on the ring's distributed defaults), video input, full application quality, production reliability and maximum performance ([status by scope](#status-by-scope)).
 
 ## What you deploy and supported hardware
@@ -34,21 +34,6 @@ The source checkout contains code, pinned references and build instructions. The
 NVFP4 names the downloaded weight format. The tested reference profile executes with Marlin **W4A16**, which differs from NVIDIA's W4A4 recipe; the accuracy table on NVIDIA's model card was measured under that recipe, on other hardware and another engine path, and is not a quality claim for this serving. See [precision and validation scope](docs/validation.md#evidence-not-production-qualification) for what the card's figures describe and which numbers describe this stack.
 
 [LPA (late-prefill approximation)](docs/lpa.md) ships disabled in the distributed server template and is a batch opt-in, because an approximated request publishes nothing to the shared prefix cache. Teacher replay, corpus sampling and projector fitting tools are included for that path; its quality/speed acceptance is separate from the verified scope below.
-
-### Licensing at a glance
-
-Each artifact keeps its own terms; obligations and the rationale are in the [licensing guide](docs/licensing.md), provenance in the [third-party notices](../THIRD_PARTY_NOTICES.md).
-
-| Artifact | License | Where it comes from |
-|---|---|---|
-| Original setup code and documents | **Apache-2.0** | This repository |
-| GLM-5.3-Flash NVFP4 weights | **MIT** (stated in the pinned NVIDIA model card; upstream Z.ai model is MIT) | Downloaded by the operator; not bundled |
-| Attention and `lm_head` W4A16 repack (the published option) | **MIT**, with NVIDIA's model card beside it | Optional [Hugging Face weights](docs/licensing.md#weight-notices); outside Git |
-| LPA cut32 auxiliary projector | **Apache-2.0**; training-data notices retained separately | Optional [Release asset](docs/lpa.md#download-the-trained-projector); outside Git |
-| Built container image | Per bundled component (CUDA, Torch, NCCL and others); not treated as one blanket license | Built by the operator from the pinned official base image |
-| ZCode / Claude Code harnesses | Each product's own terms | Installed separately; nothing is relicensed here |
-
-Distributing this repository as source, pinned references and build steps requires Apache-2.0 compliance plus retention of the copyright and license notices of the adapted third-party code (MIT and Apache). Redistributing weights or built images adds those artifacts' conditions. The setup does not require EXL3/TR3 weights, DFlash2 weights, or Mia's current AGPL distribution. See [commercial use, modification and redistribution](docs/licensing.md) for permissions and obligations by artifact.
 
 ## Prerequisites
 
@@ -198,7 +183,7 @@ Several public recipes serve the same model on the same class of hardware with d
 
 ## Disclaimer
 
-- **BIZ is an intent, not a promise.** It is not a product tier, a support commitment, a warranty or a certification. Business-use readiness is an acceptance outcome for the declared scope ([status by scope](#status-by-scope)), not implied by the suffix.
+- **BIZ is an intent, not a promise** ([repository README](../README.md#biz)). This line's business-use readiness is the acceptance for its declared scope ([status by scope](#status-by-scope)).
 - **The kpool tail ring fix is partial.** The port of [vLLM #58454](https://github.com/vllm-project/vllm/pull/58454) (`patch_kpool_ring`) is a partial fix by upstream's own account, and follow-up changes are expected ([operations](docs/operations.md#full-model-launch-checks)).
 - **The tail ring depends on the MTP depth.** Its block is 4 slots without MTP, 8 for depths 1 to 4 and 16 for depth 5, so the KV-capacity breakdown and the figures recorded from a boot change with the depth ([KV capacity](docs/server-configuration.md#kv-capacity-and-ram-requirements)).
 - **Repeatability references for decodes whose context passes 2,048 tokens were re-baselined on 1.19.0.** Past the indexer's `index_topk` (2,048), the ring fix can change the compressed keys of pools built during decode with MTP, so reference hashes recorded on earlier images are not a baseline for them. For a prompt past that length, the decode check's hashes on both profiles are the reference ([measurements on 1.19.0](docs/benchmarks.md#measurements-on-1190)); no reference was taken for an output that passes it.
@@ -229,6 +214,4 @@ Each item is a trigger and what this repository then does.
 
 ## Local data and contribution
 
-`state/`, `records/`, credentials, site-specific configuration and weights are excluded from Git and the Docker build context. Publish reviewed summaries, not raw local logs.
-
-[Contributing](../CONTRIBUTING.md) describes CPU checks and the publication audit. [CHANGELOG.md](CHANGELOG.md) tracks changes; [LICENSE](../LICENSE) and [NOTICE](../NOTICE) define project licensing and attribution.
+What stays out of Git, licensing and contributing are in the [repository README](../README.md#local-data-and-contribution). [CHANGELOG.md](CHANGELOG.md) tracks 1.x changes.

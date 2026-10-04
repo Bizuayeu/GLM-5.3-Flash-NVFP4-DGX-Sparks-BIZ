@@ -2,7 +2,7 @@
 
 **略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.28.3」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
 
-**BIZ**は保守者の印（Bizuayeu）であり、意図を示す語です。商用利用できるライセンス、資産の固定、検査結果の記録、戻せる運用を整えた**業務利用向けの構成**という意味です。意味しないことは[免責事項](#免責事項)にあります。
+**BIZ**は保守者の印で、リポジトリの意図を示す語です。意味することと意味しないことは[リポジトリのREADME](../README.ja.md#biz)にあります。
 
 [English](README.md) · [セットアップ手順書](SETUP.ja.md) · [運用手順](docs/operations.ja.md) · [検証範囲](docs/validation.ja.md) · [構成](docs/architecture.ja.md) · [文書一覧](docs/README.ja.md)
 
@@ -12,7 +12,7 @@
 - **状態。** **通常運用として受け入れ済み**：2台のTP=2では、両profileは2026-09-22から同時1系列で、公開した任意設定の同時2系列profileは2026-09-23から同時2系列・1要求あたり約200K tokenまで。3台のTP=3では両profileが2026-10-01からです。それぞれの受け入れが何に拠るかは[SETUP手順6](SETUP.ja.md#6-フルモデルの検証)が記録し、ハーネスの受け入れはケース別に[ハーネス](docs/harnesses.ja.md#受け入れ試験一覧と実施状態)に記録しています。他の機体、それを超える同時数、動画入力は受け入れた範囲の外です（[範囲ごとの状態](#範囲ごとの状態)）。
 - **配信する二つのprofile。** **配布既定**はNVIDIA配布の固定の重みをそのまま配信します。**公開した任意設定（NVFP4 BIZ AXL）**はattention projectionと `lm_head` をW4A16に再パックしたもので、decodeが速い代わりに実測した品質の費用があり、運用者が有効にします。[確認した範囲](#確認した範囲)が両者を比較し、範囲ごとの状態を並べています。
 - **精度。** 配信はGB10上のMarlin W4A16で動きます。NVIDIAのモデルカードは別のrecipe・別の機体でcheckpointを評価しているため、その精度表はこのスタックを記述しません。どの数値がこの配信を記述するかは[検証範囲](docs/validation.ja.md#証拠であり本番認定ではない)にあります。
-- **ライセンス。** コードはApache-2.0、重みは運用者が取得するMITで同梱しません。資産ごとに条件が異なります（[ライセンスの早見表](#ライセンスの早見表)）。
+- **ライセンス。** コードはApache-2.0、重みは運用者が取得するMITで同梱しません。資産ごとに条件が異なります（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
 - **未検証。** 受け入れた範囲（対の2系列、リングの配布既定での約200K 3本）を超える同時実行の配信、動画入力、アプリケーション全体の品質、本番の信頼性、最大性能（[範囲ごとの状態](#範囲ごとの状態)）。
 
 ## 導入するものと対応機体
@@ -34,21 +34,6 @@
 NVFP4は取得する重みの形式です。検証済みの参照構成はMarlin **W4A16**で実行しており、NVIDIAのW4A4 recipeとは演算精度が異なります。NVIDIAのモデルカードの精度表はそのrecipeで、別の機体・別のengine経路で測ったもので、この配信の品質の主張ではありません。モデルカードの数値が何を記述し、どの数値がこのスタックを記述するかは[精度と検証範囲](docs/validation.ja.md#証拠であり本番認定ではない)を参照してください。
 
 [LPA（後段Prefill近似）](docs/lpa.ja.md)は配布テンプレートでは無効で、バッチ用のopt-inです（近似した要求は共有prefix cacheに登録されないため）。教師状態の復元・コーパス採取・補助器学習の道具はその経路向けに同梱しています。その品質・速度の検収は、下記の確認した範囲とは別に扱います。
-
-### ライセンスの早見表
-
-対象ごとに条件が違い、義務と選定理由は[ライセンス整理](docs/licensing.ja.md)、出所は[第三者通知](../THIRD_PARTY_NOTICES.md)が正典です。
-
-| 対象 | ライセンス | 出所 |
-|---|---|---|
-| 独自のセットアップコード・文書 | **Apache-2.0** | 本リポジトリ |
-| GLM-5.3-Flash NVFP4 重み | **MIT**（固定NVIDIAモデルカードの表記。上流Z.aiモデルもMIT） | 利用者が取得。同梱しない |
-| attentionと `lm_head` のW4A16再パック（公開した任意設定） | **MIT**。NVIDIAのモデルカードを併置 | 任意の[Hugging Face配布の重み](docs/licensing.ja.md#重みのmit通知)。Git追跡外 |
-| LPA cut32補助重み | **Apache-2.0**。学習データの通知は別途保持 | 任意の[Release添付物](docs/lpa.ja.md#学習済みprojectorの取得)。Git追跡外 |
-| 完成Dockerイメージ | 同梱物ごと（CUDA・Torch・NCCL等）。一括して一色とは扱わない | 利用者が固定の公式base imageから構築 |
-| ZCode／Claude Codeハーネス | 各製品の規約 | 別途導入。本リポジトリで再許諾しない |
-
-本リポジトリをソース・固定参照・ビルド手順として配る場合の義務は、Apache-2.0の条件と、取り込んだ第三者コード（MIT・Apache）の著作権表示・許諾文の保持です。重みや完成イメージを再配布する場合に、それぞれの条件が加わります。EXL3/TR3重み、DFlash2重み、Mia現行AGPL版を導入する構成ではありません。対象別の許諾範囲と義務は[商用利用・改造・再配布の整理](docs/licensing.ja.md)にまとめています。
 
 ## 必要な環境
 
@@ -198,7 +183,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 
 ## 免責事項
 
-- **BIZは意図であり、約束ではありません。** 製品ティア・サポート・保証・認定を意味しません。業務利用に適するかは、宣言した範囲についての検収の結果であり（[範囲ごとの状態](#範囲ごとの状態)）、接尾辞からは導かれません。
+- **BIZは意図であり、約束ではありません**（[リポジトリのREADME](../README.ja.md#biz)）。この系列が業務利用に適するかは、宣言した範囲についての検収です（[範囲ごとの状態](#範囲ごとの状態)）。
 - **kpool tail ringの修正は部分的です。** [vLLM #58454](https://github.com/vllm-project/vllm/pull/58454) の移植（`patch_kpool_ring`）は上流自身が部分的な修正としており、続く変更が予定されています（[運用手順](docs/operations.ja.md#フルモデルの起動検査)）。
 - **tail ringはMTPの深さで変わります。** blockはMTPなしで4 slot、深さ1〜4で8、深さ5で16です。そのため、KV容量の分解と起動から記録する値は深さによって変わります（[KV容量](docs/server-configuration.ja.md#kv容量とramの条件)）。
 - **文脈が2,048 tokenを超えるdecodeの再現性の基準値は、1.19.0で取り直しました。** indexerの `index_topk`（2,048）を超えると、ringの修正はMTPありのdecode中に作られるpoolの圧縮keyを変え得るため、以前のimageで記録した基準hashは基準になりません。promptで超える要求は、両profileのdecode検査のhashが基準です（[1.19.0での測定](docs/benchmarks.ja.md#1190での測定)）。出力で2,048を超える要求の基準値は取っていません。
@@ -229,6 +214,4 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 
 ## ローカルデータと開発
 
-`state/`・`records/`・認証情報・実サイトの設定・重みをGitとDocker build contextへ含めません。公開するのはレビュー済みの要約です。
-
-CPU検査と公開境界の確認は [CONTRIBUTING.ja.md](../CONTRIBUTING.ja.md)、変更履歴は [CHANGELOG.ja.md](CHANGELOG.ja.md)、ライセンスは [LICENSE](../LICENSE)・[NOTICE](../NOTICE) を参照してください。
+Gitに入れないもの、ライセンス、開発への参加は[リポジトリのREADME](../README.ja.md#ローカルデータと開発)にあります。1.x系の変更は[CHANGELOG.ja.md](CHANGELOG.ja.md)にあります。

@@ -8,7 +8,8 @@
 
 | 文書 | 役割 | EN | JA |
 |---|---|---|---|
-| README | 要約、導入するもの、対応機体、始め方、配信する二つのprofileの主要な比較、範囲ごとの状態、業務利用の目的（BIZ）、他の公開レシピ、免責事項、Next Action | [EN](../README.md) | [JA](../README.ja.md) |
+| リポジトリのREADME | 配信の系列、BIZが意味することと意味しないこと、ライセンスの早見表、ローカルデータ | [EN](../../README.md) | [JA](../../README.ja.md) |
+| README | 要約、導入するもの、対応機体、始め方、配信する二つのprofileの主要な比較、範囲ごとの状態、業務利用の目的（BIZ）、他の公開レシピ、この系列の免責事項、Next Action | [EN](../README.md) | [JA](../README.ja.md) |
 | セットアップ手順書 | 機体確認から受け入れまでの順序付きゲート | [EN](../SETUP.md) | [JA](../SETUP.ja.md) |
 | Contributing | CPU検査、公開監査、貢献の規則 | [EN](../../CONTRIBUTING.md) | [JA](../../CONTRIBUTING.ja.md) |
 | Changelog | 変更履歴と版ごとの検証状態 | [EN](../CHANGELOG.md) | [JA](../CHANGELOG.ja.md) |
@@ -75,13 +76,13 @@
 | `server preflight` が起動前に検査すること、保証しないこと | [運用手順](operations.ja.md#フルモデルの起動検査) |
 | imageの機能marker：どの設定が各markerを要求するか、どの版からimageが持つか | [起動設定](server-configuration.ja.md#現行イメージの契約) |
 | ホストカーネルの要件、`7.0.0-1019-nvidia` のRoCE失敗と `kho=off` の回避策 | [運用手順](operations.ja.md#ホストカーネルと複数ノードroce) |
-| 対象別のライセンス許諾と義務 | [ライセンス整理](licensing.ja.md)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
+| 対象別のライセンス許諾と義務 | [ライセンス整理](licensing.ja.md)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md)。早見表は[リポジトリのREADME](../../README.ja.md#ライセンスの早見表) |
 | ハーネス受け入れ試験と実施状態 | [ハーネス](harnesses.ja.md) |
 | ZCodeの権限モード、モデル上限と圧縮予算の規則、既存ファイルガードのhook | [ハーネス](harnesses.ja.md#zcodeの権限モードモデル上限既存ファイルガード)、スクリプトは [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | 検証範囲と未解決の事項 | [検証範囲](validation.ja.md#評価と未解決の事項) |
 | 生応答、trace、全反復、失敗、実機固有の値 | 非公開の `records/<run-id>/`。配布せず、公開文書には検証した要約を置く |
 | このモデルの他の公開レシピ：リンク・ライセンス・取り込んだもの | 他のエンジンのレシピは[README](../README.ja.md#dgx-spark向けの他のglm-53-flashレシピ)、TensorFoldのレシピは[2.xのREADME](../../v2/README.ja.md#tensorfoldの他のレシピ)。他の文書は名前とPR番号だけで引用し、リンクとライセンスは書かない（`tools/check_publication.py` が検査） |
-| 本プロジェクトが主張しないこと、上流を契機とする予定作業（契機 → 対応） | READMEの[免責事項](../README.ja.md#免責事項)と[Next Action](../README.ja.md#next-action) |
+| 本プロジェクトが主張しないこと、上流を契機とする予定作業（契機 → 対応） | BIZは[リポジトリのREADME](../../README.ja.md#biz)、この系列はREADMEの[免責事項](../README.ja.md#免責事項)と[Next Action](../README.ja.md#next-action) |
 | 非公開の実装計画とStage状態 | `docs/plans/`。Git追跡外・公開対象外で、`docs/plans/README.md` がローカルの索引、状態は各計画の先頭の状態行が正典 |
 | サイト設定と取得状態 | `state/`。Git追跡外 |
 

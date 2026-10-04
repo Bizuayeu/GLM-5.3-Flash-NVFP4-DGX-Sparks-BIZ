@@ -4,7 +4,7 @@
 
 **NVFP4 BIZ** serves NVIDIA's pinned GLM-5.3-Flash NVFP4 checkpoint as distributed, without retraining or requantizing it, on DGX Spark or compatible GB10 systems. The name states that intent and does not depend on the engine. The 2.x line serves it with [TensorFold](https://github.com/ashhart/TensorFold) (Apache-2.0) in place of vLLM, on two hosts at TP=2 or three hosts at TP=3. 2.0.0 is its first release; the [1.x line](../v1/README.md) continues beside it.
 
-**BIZ** is the maintainer's mark (Bizuayeu) and states the intent: a business-use setup with commercially usable licensing, pinned assets, recorded checks and reversible operation. What it does not mean is in the [disclaimer](#disclaimer).
+**BIZ** is the maintainer's mark and states the repository's intent; what it means and does not mean is in the [repository README](../README.md#biz).
 
 ## Summary
 
@@ -12,7 +12,7 @@
 - **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
 - **Repeatable by contract.** Drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on how the prompt is chunked. These are the engine's contract, where 1.x buys repeatability with switches on vLLM ([differences from 1.x](#differences-from-1x)).
 - **Precision.** W4A16 for the routed experts and the dense MLP, BF16 elsewhere, FP8 KV. NVIDIA's model card measured its checkpoint under another recipe on other hardware, so its accuracy table does not describe this serving; [validation](docs/validation.md) gives the numbers that do.
-- **Licensing.** Apache-2.0 code and engine, MIT weights that the operator downloads, nothing non-commercial in the serving path ([licensing at a glance](#licensing-at-a-glance)).
+- **Licensing.** Apache-2.0 code and engine, MIT weights that the operator downloads, nothing non-commercial in the serving path ([licensing at a glance](../README.md#licensing-at-a-glance)).
 - **Not validated.** More than one sequence at a time, image input, the published AXL weights, harness integration (ZCode, Claude Code), other world sizes and hardware, full application quality and production reliability ([limits](#limits)).
 
 ## What It Is
@@ -185,19 +185,6 @@ v2/
 
 The download, verification, tool-argument gate and check tools are 1.x's, run from `v1/`.
 
-## Licensing at a Glance
-
-Each artifact keeps its own terms; provenance is in the [third-party notices](../THIRD_PARTY_NOTICES.md), and the obligations by artifact in the [licensing guide](../v1/docs/licensing.md).
-
-| Artifact | License | Where it comes from |
-|---|---|---|
-| Setup code and documents | **Apache-2.0** | This repository |
-| GLM-5.3-Flash NVFP4 weights | **MIT** (stated in the pinned NVIDIA model card; the upstream Z.ai model is MIT) | Downloaded by the operator; not bundled |
-| TensorFold, the BIZ release | **Apache-2.0** (code from before 0.6.0 keeps its MIT notice) | Cloned into the image from [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `TENSORFOLD_REF`, with the engine's own notices under `/opt/tensorfold`; not vendored here |
-| Built container image | Per bundled component; NVIDIA's PyTorch container is under NVIDIA's terms | Built by the operator from the official base image |
-
-The serving path has no non-commercial or no-derivatives terms in it: the DFlash2 draft weights (CC BY-NC-ND 4.0) are not loaded (`--drafter none`), and no EXL3 or other requantized weights are used. Distributing this repository as source requires Apache-2.0 compliance and retention of the notices; redistributing weights or built images adds those artifacts' conditions.
-
 ## Other Recipes on TensorFold
 
 Public recipes that serve GLM-5.3-Flash on TensorFold. This table owns their links, their licenses as read on 2026-10-04 and what this line took from each; the recipes on other engines are in [1.x's table](../v1/README.md#other-glm-53-flash-recipes-for-dgx-spark-systems). Their measurements use other weights and settings and do not compare with the ones above.
@@ -210,7 +197,7 @@ Public recipes that serve GLM-5.3-Flash on TensorFold. This table owns their lin
 
 ## Disclaimer
 
-- **BIZ is an intent, not a promise**: not a product tier, a support commitment, a warranty or a certification, as for 1.x ([1.x disclaimer](../v1/README.md#disclaimer)). Business-use readiness is an acceptance outcome for the declared scope, not implied by the suffix.
+- **BIZ is an intent, not a promise** ([repository README](../README.md#biz)).
 - **The acceptance is the reference hosts'.** A launch elsewhere, or on another image ID, is accepted by running [validation](docs/validation.md) there.
 - **The engine is a fork until upstream takes its commits.** The issues and pull requests above are open upstream; the release branch carries them meanwhile.
 
@@ -230,4 +217,4 @@ Each item is a trigger and what this line then does.
 
 ## Local Data and Contribution
 
-`state/`, `records/`, credentials and weights are excluded from Git and the image's build context; keep rank and cluster files with your site's values out of Git as well. Publish reviewed summaries, not raw local logs. [Contributing](../CONTRIBUTING.md) describes the checks; [CHANGELOG.md](CHANGELOG.md) tracks 2.x changes; [LICENSE](../LICENSE) (Apache-2.0), [NOTICE](../NOTICE) and the [third-party notices](../THIRD_PARTY_NOTICES.md) are at the repository root.
+What stays out of Git (rank and cluster files with your site's values included), licensing and contributing are in the [repository README](../README.md#local-data-and-contribution). [CHANGELOG.md](CHANGELOG.md) tracks 2.x changes.

@@ -8,7 +8,8 @@ Every document has one role; other documents link to it instead of repeating its
 
 | Document | Role | EN | JA |
 |---|---|---|---|
-| README | Summary, what is deployed, supported hardware, how to start, the headline comparison of the two served profiles, status by scope, business-use objectives (BIZ), other public recipes, disclaimer, Next Action | [EN](../README.md) | [JA](../README.ja.md) |
+| Repository README | The serving lines, what BIZ means and does not mean, licensing at a glance, local data | [EN](../../README.md) | [JA](../../README.ja.md) |
+| README | Summary, what is deployed, supported hardware, how to start, the headline comparison of the two served profiles, status by scope, business-use objectives (BIZ), other public recipes, this line's disclaimer, Next Action | [EN](../README.md) | [JA](../README.ja.md) |
 | Setup runbook | Ordered deployment gates from host inspection to acceptance | [EN](../SETUP.md) | [JA](../SETUP.ja.md) |
 | Contributing | CPU checks, publication audit, contribution rules | [EN](../../CONTRIBUTING.md) | [JA](../../CONTRIBUTING.ja.md) |
 | Changelog | Change history and validation status by release | [EN](../CHANGELOG.md) | [JA](../CHANGELOG.ja.md) |
@@ -75,13 +76,13 @@ Every document has one role; other documents link to it instead of repeating its
 | What `server preflight` checks before a start, and what it does not certify | [Operations](operations.md#full-model-launch-checks) |
 | Image capability markers: which setting requires each, and from which version images carry it | [Server configuration](server-configuration.md#current-image-contract) |
 | Host kernel requirement, the `7.0.0-1019-nvidia` RoCE failure and the `kho=off` workaround | [Operations](operations.md#host-kernel-and-multi-node-roce) |
-| License permissions and obligations by artifact | [Licensing guide](licensing.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
+| License permissions and obligations by artifact | [Licensing guide](licensing.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md); the summary table is the [repository README's](../../README.md#licensing-at-a-glance) |
 | Harness acceptance cases and their run status | [Harnesses](harnesses.md) |
 | ZCode permission-mode facts, model limit and compaction budget rules, and the existing-file guard hook | [Harnesses](harnesses.md#zcode-permission-modes-model-limits-and-the-existing-file-guard), script in [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | Validation scope and open items | [Validation](validation.md#evaluations-and-open-items) |
 | Raw responses, traces, all repetitions, failures, host-specific values | Private `records/<run-id>/`, never distributed; public documents carry reviewed summaries |
 | Other public recipes for this model: links, licenses and what was taken from each | [README](../README.md#other-glm-53-flash-recipes-for-dgx-spark-systems) for the recipes on other engines, [2.x's README](../../v2/README.md#other-recipes-on-tensorfold) for those on TensorFold; other documents cite by name and pull request, without links or licenses (`tools/check_publication.py` enforces this) |
-| What the project does not claim, and upstream-triggered work (trigger → action) | [README disclaimer](../README.md#disclaimer) and [next action](../README.md#next-action) |
+| What the project does not claim, and upstream-triggered work (trigger → action) | [Repository README](../../README.md#biz) for BIZ, this line's [README disclaimer](../README.md#disclaimer) and [next action](../README.md#next-action) |
 | Private implementation plans and their stage status | `docs/plans/`, untracked and excluded from publication; `docs/plans/README.md` indexes them locally and each plan's own leading status line owns its state |
 | Site configuration and acquisition state | `state/`, untracked |
 
