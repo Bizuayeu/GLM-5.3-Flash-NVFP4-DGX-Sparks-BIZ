@@ -83,13 +83,30 @@ Both profiles were checked on the 1.19.0 image (the published option on 2026-09-
 
 - One run each; times include the SSH round trip. Acceptance on image descriptions was expected to be lower than on text and came out higher on both profiles (one run each, so the spread is unknown).
 
+### 1.29.0 (2026-10-04)
+
+The 1.29.0 reference image carries [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565) on the pinned source (`patch_image_budget`). On the reference pair at TP=2, both ranks of both profiles logged `Encoder cache will be initialized with a budget of 8000 tokens` (7,921 before). Each image below was sent with the one-line request of [#59539](https://github.com/vllm-project/vllm/issues/59539) and with a request to read the size written on it.
+
+| Image | Prompt tokens of the one-line request | Before 1.29.0 | Published option | Distribution defaults |
+|---|---:|---|---|---|
+| 2560×1440 | 4,802 | answered | 200, read correctly | 200, read correctly |
+| 3000×3000 (resized to 2492×2492) | 7,939 | answered | 200, read correctly | 200, read correctly |
+| 5000×2000 | 7,858 | answered | 200, read correctly | 200, read correctly |
+| 4032×3024 | 7,949 | refused | 200, read correctly | 200, read correctly |
+| 3840×2160 | 7,991 | refused | 200, read correctly | 200, read correctly |
+| 3508×2480 | 7,968 | refused | 200, read correctly | 200, read correctly |
+| 2600×2400 | 8,016 | refused | 200, read correctly | 200, read correctly |
+| 2240×2800 and 2800×2240 (8,000 image tokens) | 8,018 | refused | 200, read correctly | 200, read correctly |
+
+The seven regression checks passed on both profiles, and the decode-check completions were the earlier image's on both. One run each.
+
 ### Three hosts at TP=3
 
 On three hosts at TP=3, at 262,144 tokens, a 672×336 single-colour image check passed on the distributed defaults on 2026-09-29 and on the published option on 2026-10-01: blue and orange named correctly, and without an image the model said that none was attached ([measurements on 1.24.0](benchmarks.md#measurements-on-1240) has the launches). The large-image, several-image and two-sequence checks above were not run at TP=3.
 
 ## Limits and open items
 
-- The checks use synthetic images. Images of up to 7,776 tokens and up to eight images were read correctly (1.19.0 above); image understanding in general is unmeasured. Images whose processed size is 7,922 to 8,000 tokens are refused with HTTP 400 ([vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)), because the server's encoder cache is sized from a square image (7,921 = 89×89 tokens); the model's own limit is 8,000. Ordinary images fall in that range: on the distribution's AXL profile (2026-10-01, generated images) 4032×3024 (7,931 tokens), 3840×2160 (7,973) and 3508×2480 (7,950) were refused, while 2560×1440 (4,784), 5000×2000 (7,840) and a square image (7,921) were answered. Downscale such images before sending them. [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565), which sizes the cache from the exact token ceiling, was applied to the pinned source and run on the reference pair on 2026-10-02: the cache grew from 7,921 to 8,000 tokens, the refused images and the 2800×2240 and 2240×2800 canvases of 8,000 tokens were answered and read correctly, and the decode-check completions were unchanged. It is ported when it merges ([next action](../README.md#next-action)).
+- The checks use synthetic images. Images of up to 8,000 tokens, the model's own limit, and up to eight images were read correctly (1.29.0 and 1.19.0 above); image understanding in general is unmeasured. Before 1.29.0 the server's encoder cache was sized from a square image (7,921 = 89×89 tokens), so images whose processed size is 7,922 to 8,000 tokens, among them a 4:3 phone photo, a 4K frame and an A4 scan at 300 dpi, were refused with HTTP 400 ([vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)); 1.29.0 carries the fix, [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565), on the pinned source. A larger image is resized by the processor to fit the limit.
 - Images at TP=3 beyond 262,144 tokens are not measured.
 - The MTP draft is text-only; its acceptance rate on image requests was measured once per profile on 1.19.0 (above). LPA with images is not validated (LPA ships disabled).
 - In one ZCode terminal session (2026-09-15, one run), the model downloaded a screenshot with a shell command, read it with the file-read tool and correctly described text that appeared only in the image. Attaching an image directly to a ZCode prompt has not been checked (Claude Code is out of scope, [harnesses](harnesses.md#acceptance-matrix-and-status)); the measurements above used the API directly.

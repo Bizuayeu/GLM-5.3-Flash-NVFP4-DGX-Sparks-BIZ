@@ -87,6 +87,7 @@ OPTIONAL_KEYS = {
         }
     ),
     "server.context": frozenset({"long_prefill_token_threshold"}),
+    "server.mtp": frozenset({"disable_eagle_block_drop"}),
     "server.cache": frozenset(
         {"prefix_cache_retention_interval", "mm_processor_cache_gb"}
     ),
@@ -119,6 +120,7 @@ OPTIONAL_DEFAULTS = {
         "inductor_deterministic": False,
     },
     "context": {"long_prefill_token_threshold": 0},
+    "mtp": {"disable_eagle_block_drop": False},
     "cache": {"prefix_cache_retention_interval": 0, "mm_processor_cache_gb": 0.1},
     "api": {"prompt_tokens_details": False, "dev_endpoints": False},
     "validation": {"memory_probe": False},
@@ -482,6 +484,17 @@ def check_speculation(profile):
     view = PurePosixPath(profile["mtp"]["view"])
     if view.is_absolute() or ".." in view.parts or not view.parts or ":" in str(view):
         raise ValueError("mtp.view must be a relative path inside the HF cache")
+    keep = optional(profile, "mtp", "disable_eagle_block_drop")
+    if type(keep) is not bool:
+        raise ValueError("mtp.disable_eagle_block_drop must be true or false")
+    if keep and not (profile["mtp"]["enabled"] and profile["cache"]["prefix_caching"]):
+        raise ValueError(
+            "mtp.disable_eagle_block_drop needs MTP and prefix caching: it keeps the "
+            "last matched block of a prefix-cache hit that MTP otherwise recomputes"
+        )
+    if keep and profile["lpa"]["enabled"]:
+        # Not measured with the APC-first LPA path (P22), whose hits it would move.
+        raise ValueError("mtp.disable_eagle_block_drop is not measured with LPA")
 
 
 def check_lpa(profile):
@@ -1009,9 +1022,17 @@ def apply_reasoning_default(args, profile):
     ]
 
 
-def speculative_config(depth):
-    """vLLM's MTP draft at this depth; examples/speculative.mtp*.json spell it."""
-    return {"method": "mtp", "num_speculative_tokens": depth, "moe_backend": "triton"}
+def speculative_config(depth, disable_eagle_block_drop=False):
+    """vLLM's MTP draft at this depth; examples/speculative.mtp*.json spell it.
+
+    ``disable_eagle_block_drop`` keeps the last matched block of a prefix-cache hit,
+    which the pinned vLLM otherwise drops and recomputes for MTP as for EAGLE; it is
+    added only when set, so the default spelling is unchanged.
+    """
+    spec = {"method": "mtp", "num_speculative_tokens": depth, "moe_backend": "triton"}
+    if disable_eagle_block_drop:
+        spec["disable_eagle_block_drop"] = True
+    return spec
 
 
 def apply_speculation(args, profile):
@@ -1020,7 +1041,12 @@ def apply_speculation(args, profile):
         return
     args += [
         "--speculative-config",
-        json.dumps(speculative_config(profile["mtp"]["num_speculative_tokens"])),
+        json.dumps(
+            speculative_config(
+                profile["mtp"]["num_speculative_tokens"],
+                optional(profile, "mtp", "disable_eagle_block_drop"),
+            )
+        ),
     ]
 
 

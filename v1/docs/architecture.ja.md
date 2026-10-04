@@ -42,6 +42,7 @@
 | `glm53_setup/runtime/tp_padding.py` | tensor並列の数で割り切れないヘッド・MoEの幅・語彙を埋めた形を、`GLM53_TP_PAD_MULTIPLE`（未設定なら無効）の純粋関数として持つ。3ならヘッド66・幅2,112・語彙は192の倍数。loaderがrankの分を取る前に掛けるゼロ拡張も持つ |
 | `glm53_setup/runtime/patch_tp_padding.py` | その埋め方をロード時に組み込むsource固定patch。text config、column・row・shardedのparameter loader、FusedMoEのloader、語彙のembeddingに当て、checkpointは公開されたままにする。`patch_load_clone` の後に当てる（[3ノード](server-configuration.ja.md#3ノード)） |
 | `glm53_setup/runtime/patch_sampler_nonfinite.py` | source固定patch：Gumbel sampler、rejection samplerのgreedyの統計とresampleで、tileのargmaxを語彙の範囲に収め、非有限のlogitsの行が語彙外のidを出さないようにする（vLLM #50843、上流では未merge） |
+| `glm53_setup/runtime/patch_image_budget.py` | source固定patch：GLM-5.3-Flashのprocessing infoが、画像のencoder cacheを正方形の試算ではなくprocessorのtoken上限ちょうどから見積もり、7,922〜8,000 tokenの画像を拒まなくなる（vLLM #59565、固定より後にmerge） |
 | `glm53_setup/runtime/inductor_pin.py`、`inductor_pin_pth.txt` | Dynamo の状態復元が最初の compile の後に切ってしまう Inductor の決定性モードを保つ（`runtime.inductor_deterministic`）。テキストファイルを image の site ディレクトリに `glm53-inductor-pin.pth` として mount し、インタプリタ起動時に読み込ませる |
 | `glm53_setup/runtime/shm_spin.py`、`shm_spin_pth.txt` | 共有メモリのbroadcastのreaderが眠る前にspinする時間を設定する（`runtime.shm_spin_seconds`。未指定はvLLMの1秒）。テキストファイルを image の site ディレクトリに `glm53-shm-spin.pth` として mount し、インタプリタ起動時に読み込ませる |
 | `glm53_setup/runtime/lpa.py`、`lpa_query.py` | LPAのworker制御、Attention入力の近似、要求単位のquery省略 |

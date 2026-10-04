@@ -4,6 +4,10 @@
 !.env.example
 state/
 records/
+# A checkout may link these to the host's persistent directories; a link is not a directory.
+/state
+/records
+/docs/plans
 upstream
 .venv/
 __pycache__/

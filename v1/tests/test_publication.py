@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -245,6 +246,18 @@ class ArchitectureTests(unittest.TestCase):
         )
 
 
+def link_directory(link, target):
+    """A directory symlink, or a junction where Windows refuses symlinks."""
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError:
+        if os.name != "nt":
+            raise
+        import _winapi
+
+        _winapi.CreateJunction(str(target), str(link))
+
+
 class PlanLinkTests(unittest.TestCase):
     def test_plan_links_must_resolve_on_disk(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -262,6 +275,22 @@ class PlanLinkTests(unittest.TestCase):
                     "broken plan link: docs/plans/A_PLAN.md -> ../../records/run/REPORT.md"
                 ],
             )
+
+    def test_linked_plans_resolve_from_where_they_live(self):
+        # A checkout may link docs/plans to a directory outside it; the plans'
+        # links are relative to that directory, and Windows resolves ".."
+        # textually unless the path is resolved first.
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            root = home / "repo"
+            (root / "docs").mkdir(parents=True)
+            (root / "docs/x.md").write_text("x", encoding="utf-8")
+            (home / "plans").mkdir()
+            (home / "plans/A_PLAN.md").write_text(
+                "[x](../repo/docs/x.md)\n", encoding="utf-8"
+            )
+            link_directory(root / "docs/plans", home / "plans")
+            self.assertEqual(plan_link_problems(root), [])
 
 
 class AnchorTests(unittest.TestCase):

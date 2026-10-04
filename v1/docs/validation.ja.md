@@ -53,7 +53,6 @@ vLLMは[既定での再現性を保証していません](https://github.com/vll
 未解決の事項と、それぞれの正典：
 
 - FB-05のLPAの部分（近似を実際に通すA/B/A）は、LPAがoffの間は未実施（[FreedomBench](freedombench.ja.md)）。
-- 7,922〜8,000 tokenの画像は拒否される（[画像入力](vision.ja.md#限界と未解決の事項)）。
 - 長いcontextで、公開した任意設定は問われた記録の直前の記録で答えた。原因は切り分けていない（[prefix cacheの関門](correctness-gates.ja.md#prefix-cacheの正しさの関門)）。
 - モデルのAPIではtool-eval-benchのSafety Gateを通らない。任意の[tool引数ゲート](harnesses.ja.md#tool引数ゲート)越しでは通る。
 - 持続的な混在負荷とbatchingの組合せは未検証。TP=3ではキャンセル、ツール利用、障害からの復旧を実施していない（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。

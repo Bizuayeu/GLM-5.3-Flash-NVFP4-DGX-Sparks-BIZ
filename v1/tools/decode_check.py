@@ -13,7 +13,7 @@ short distinct requests push the kept prompts out (`evicted_before_each`); each 
 result. Within a launch the samples agree, and across launches the hashes are compared with the previous launch
 of the same profile (docs/launch-safety.md, "After a switch").
 
-    PROMPT_KIND=prose SAMPLES=3 TOKENS_OUT=records/<run>/tokens-prose.json python3 tools/decode_check.py
+    PROMPT_KIND=prose SAMPLES=3 TOKENS_OUT=../records/<run>/tokens-prose.json python3 tools/decode_check.py
 
 Environment: BASE (default http://127.0.0.1:8893), MODEL (default glm-5.3-flash-nvidia), PROMPT_TOKENS (2048),
 MAX_TOKENS (512), SAMPLES (3), TF_GLM_CACHE_ENTRIES (8, TensorFold's default; set it to the server's value).

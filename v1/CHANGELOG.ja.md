@@ -4,6 +4,36 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.0 — 2026-10-04
+
+### Fixed
+
+- **7,922〜8,000 tokenの画像に答えるようになりました。** 固定版のvLLMは、画像のencoder cacheの大きさを正方形の試算から決めており、モデルの上限8,000 tokenを89 × 89 = 7,921に収めていました。そのため、processorが7,922〜8,000 tokenにする画像（4:3のスマホの写真、4Kの画面、300 dpiのA4のスキャン）をHTTP 400で拒んでいました（[vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)）。参照imageは、mergeされた修正[vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)を固定版のsourceに当てます（`glm53_setup/runtime/patch_image_budget.py`、marker `GLM53_IMAGE_BUDGET_EXACT=1`、要求する検査は無し）。上流は `glm5next/common/multimodal.py`、固定版の木は同じclassを `glm5next/nvidia/multimodal.py` に持ちます。足したmethodは上流のものと一行ずつ同じです。参照機の対では、両profileがbudget 8,000 tokenをlogに出し、issueの画像と8,000 tokenの2つの画像すべてに答えて正しく読みました（[画像入力](docs/vision.ja.md#12902026-10-04)）。
+
+### Added
+
+- **`mtp.disable_eagle_block_drop`**（任意。無ければ `false`＝vLLMの既定）。固定版のvLLMはMTPで、prefix cacheの一致のたびに最後に一致したblockを落として計算し直します（TP=2で4,608 token、TP=3で3,072 token）。`true` はvLLM自身のswitchを渡してblockを残します。MTPとprefix cachingが無い構成と、測っていないLPAのある構成では起動時に拒みます。TP=2の両profileで、cache済みの124,272 tokenの送り直しの最初のtokenまでが8.5 sから4.4 sになり、応答とdecode検査のcompletionは同じでした（[1.29.0での測定](docs/benchmarks.ja.md#1290での測定)）。vLLMはdraftの受理率について実験的と警告するので、それを測るまでどのテンプレートも採用しません（[Next Action](README.ja.md#next-action)）。
+
+### Documentation
+
+- [vLLM #59759](https://github.com/vllm-project/vllm/pull/59759)（MTPとprefix cachingで、chunkの途中に線形attentionのcheckpointを保存するprefillのstepの後に壊れた出力）は本stackには届きません。固定版のvLLMはGLMにprefill checkpointのblockを設定せず、それを足すのは[#56960](https://github.com/vllm-project/vllm/pull/56960)です。Next Actionの行は、固定が#56960より後へ動くときのきっかけにしました。
+- 公開した任意設定の長いcontextでの1つずれた答えは、cacheを読まない要求でも返り、もう1つはpromptのprefillの区切られ方で変わります（[検証](docs/correctness-gates.ja.md#prefix-cacheの正しさの関門)）。
+
+### Reference image
+
+2026-10-04に `3569b23` の木からbuildしました。その `glm53_setup/`・Dockerfile・設定は本リリースと同じです（imageに写した `pyproject.toml` の版は1.28.3のまま）：参照機で `sha256:4d294272ea545a72dcaf60fc23f335a5080fb1bb18fdc619304bd721ed3f6cc6`。1.25.0のimage（`b9ae6459…`）と比べ、vLLMの違いは `glm5next/nvidia/multimodal.py` だけで、AXLのoverlayの元のファイル（`kda.py`・`model.py`）は変わりません。両profileのdecode検査のcompletionは以前のimageと同じです。
+
+## 1.28.4 — 2026-10-04
+
+### Fixed
+
+- `tools/check_publication.py --plans` は、各計画書のリンクを計画書の実体の場所から読みます。`docs/plans` がcheckoutの外のディレクトリへのリンクのとき、Windowsは `..` をリンクのパスの上で解決し、実在するリンクを切れと報告していました。計画書のパスを先に解決するようにしました。リンクした配置を作る単体テストつき。
+- `.gitignore` は、checkoutのルートの `state`・`records`・`docs/plans` がsymbolic linkのとき（deploy checkoutと同じ形、[運用](docs/operations.ja.md)）も無視します。`state/`・`records/` の型はディレクトリにしか当たらず、Gitはリンクを未追跡と表示していました。
+
+### Documentation
+
+- `tools/decode_check.py`・`tools/decode_divergence.py`・`tools/kernel_hashes.py`・`tools/weight_digest.py` の使用例の出力先を `../records/<run>/` にしました。1.28.0から `v1/` で実行する[起動の安全](docs/launch-safety.ja.md)のコマンドと同じ形です。
+
 ## 1.28.3 — 2026-10-04
 
 ### Documentation

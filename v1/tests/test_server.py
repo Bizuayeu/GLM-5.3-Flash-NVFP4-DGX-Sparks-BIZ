@@ -1270,6 +1270,50 @@ class ServerConfigTests(unittest.TestCase):
             ),
         )
 
+    def test_the_last_block_drop_is_kept_unless_the_profile_turns_it_off(self):
+        # Absent, the launcher passes vLLM's default: MTP drops the last matched block.
+        self.profile["mtp"]["enabled"] = True
+        self.profile["cache"]["prefix_caching"] = True
+        config.validate(self.profile)
+        args = config.serve_args(self.profile, 0, "/hf/mtp-view")
+        spec = json.loads(args[args.index("--speculative-config") + 1])
+        self.assertNotIn("disable_eagle_block_drop", spec)
+        self.profile["mtp"]["disable_eagle_block_drop"] = True
+        config.validate(self.profile)
+        args = config.serve_args(self.profile, 0, "/hf/mtp-view")
+        spec = json.loads(args[args.index("--speculative-config") + 1])
+        self.assertIs(spec["disable_eagle_block_drop"], True)
+        self.assertEqual(
+            list(spec),
+            [
+                "method",
+                "num_speculative_tokens",
+                "moe_backend",
+                "disable_eagle_block_drop",
+            ],
+        )
+
+    def test_the_last_block_drop_switch_is_refused_where_it_was_not_measured(self):
+        self.profile["mtp"]["disable_eagle_block_drop"] = "yes"
+        with self.assertRaisesRegex(ValueError, "true or false"):
+            config.validate(self.profile)
+        # Without drafts or without prefix caching there is no block to keep.
+        self.profile["mtp"]["disable_eagle_block_drop"] = True
+        with self.assertRaisesRegex(ValueError, "MTP and prefix caching"):
+            config.validate(self.profile)
+        self.profile["mtp"]["enabled"] = True
+        with self.assertRaisesRegex(ValueError, "MTP and prefix caching"):
+            config.validate(self.profile)
+        # The APC-first LPA path primes a replay margin of one block (P22).
+        self.profile["cache"]["prefix_caching"] = True
+        self.profile["lpa"]["enabled"] = True
+        with self.assertRaisesRegex(ValueError, "LPA"):
+            config.validate(self.profile)
+        # False is the default, allowed everywhere.
+        self.profile["mtp"]["disable_eagle_block_drop"] = False
+        self.profile["mtp"]["enabled"] = False
+        config.validate(self.profile)
+
     def test_speculative_config_carries_each_depth_in_a_fresh_dict(self):
         for depth in (1, 2, 3, 4, 5):
             spec = config.speculative_config(depth)
@@ -1665,6 +1709,7 @@ class ReferenceImageMarkerTests(unittest.TestCase):
         "GLM53_LOAD_CLONE=1": "build-patch record, no reader (weight loading off the file mapping)",
         "GLM53_SLOT_MAPPING_GUARD=1": "build-patch record, no reader (CHANGELOG 1.7.0)",
         "GLM53_SAMPLER_VOCAB_BOUND=1": "build-patch record, no reader (vLLM #50843)",
+        "GLM53_IMAGE_BUDGET_EXACT=1": "build-patch record, no reader (vLLM #59565)",
         "GLM53_CANONICAL_CANDIDATES=1": "switch default read by candidate_order",
         "GLM53_CANONICAL_MOE_ORDER=1": "switch default read by moe_token_order",
         "GLM53_STABLE_INDEXER_TOPK=1": "switch default read by stable_topk",

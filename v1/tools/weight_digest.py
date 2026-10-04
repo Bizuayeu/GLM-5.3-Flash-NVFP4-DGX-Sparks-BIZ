@@ -7,7 +7,7 @@ switch, before requests, and compared with the previous launch of the profile, i
 first question a launch in another numerical state raises: did it compute from the same bits?
 Exit status 1 when a rank's tensors differ from the reference (their names are in the record).
 
-    python3 tools/weight_digest.py --output records/<run>/weights.json [--reference records/<earlier>/weights.json]
+    python3 tools/weight_digest.py --output ../records/<run>/weights.json [--reference ../records/<earlier>/weights.json]
 """
 
 import argparse

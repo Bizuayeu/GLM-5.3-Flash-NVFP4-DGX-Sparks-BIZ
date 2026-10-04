@@ -977,6 +977,28 @@ Only the head's EngineCore spun: every dump of arms A1 and A2 found it in `sched
 
 The adoption decision, against a line written before the window, is in [catalog P29](optimization-catalog.md#performance-initiatives). Not measured: the distributed defaults with the key, TP=3, two requests in flight.
 
+## Measurements on 1.29.0
+
+### Keeping the last block of a prefix-cache hit (2026-10-04)
+
+The reference pair at TP=2 with the 1.29.0 image (`sha256:4d294272…`) and checkout, GPU clock capped at 2,200 MHz, five launches in one window: each profile with `mtp.disable_eagle_block_drop` absent (vLLM drops the last matched block) and then `true` (it keeps it), and the published option once more with the drop. From the second launch on, each long request waited until the head's hottest thermal zone was below 60 °C.
+
+| | Published option, drop | Published option, keep | Defaults, drop | Defaults, keep |
+|---|---|---|---|---|
+| Decode-check completions | as on the 1.25.0 image | the same | as on the 1.25.0 image | the same |
+| Prefix-cache gate, warm cached tokens, short / long | 9,216 / 92,160 | **13,824 / 96,768** | 9,216 / 92,160 | **13,824 / 96,768** |
+| Prefix-cache gate, verdict | inconclusive (the two known answers) | inconclusive (the two known answers and one more) | pass / pass | pass / pass |
+| A 124,272-token prompt sent again three times: cached tokens | 115,200 | **119,808** | 115,200 | **119,808** |
+| First token on those resends (s) | 8.47–9.35 | **4.36–4.37** | 8.48–8.60 | **4.42–4.66** |
+| First token on the uncached first send (s) | 111.4 | 106.1 | 106.9 | 108.3 |
+
+- Keeping the block adds one KDA-aligned block (4,608 tokens) to every hit and halves the time to the first token of a long cached resend. Every reply of the resends, uncached and cached, was the same text in all four arms.
+- vLLM logs `EAGLE trailing prefix-cache block dropping is disabled. This is experimental and may affect speculative-token acceptance rates.` with the key on.
+- The published option's extra wrong answer in the long gate (quoting Record 01524, answered with the line of Record 01523) is not caused by the key: sent alone with nothing cached, it came back the same with the drop as well (the fifth launch), together with the known Record 03008 answer. With the drop it had passed in the gate only because its request there read the prefix that a parallel request of the cold phase had written. On the defaults every task passed, cached and uncached, in both arms ([prefix-cache gate](correctness-gates.md#prefix-cache-correctness-gate)).
+- Not measured: the MTP acceptance rate on requests that hit the cache, which vLLM's warning concerns (the resends stopped at 64 tokens and the decode check reads nothing from the cache); TP=3; two requests in flight beyond the gate's parallel requests on the published option.
+
+No template sets the key; the [next action](../README.md#next-action) holds the acceptance measurement that comes first.
+
 ## Records of earlier profiles
 
 These were measured with the 204,800-token (200K) setting. The current defaults and the published option serve 262,144 tokens (256K), so these values do not describe the current profiles. The headings keep their wording so that links to them still resolve. The chunk budget on the 200K image profile is the measured basis of the current default `max_num_batched_tokens = 2048`.

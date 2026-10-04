@@ -273,6 +273,7 @@ KVが不足すれば起動が拒否される場合があり、実行時は待ち
 | `GLM53_LOAD_CLONE=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.19.0 |
 | `GLM53_TP_PAD_API=1` | ヘッド・MoE幅・語彙をTPが割り切らない3ノード（`tp_padding_support`）。そのときランチャーが全rankに `GLM53_TP_PAD_MULTIPLE` を設定し、imageが読み込み時にzero-padする（`glm53_setup/runtime/patch_tp_padding.py`） | 1.24.0 |
 | `GLM53_SAMPLER_VOCAB_BOUND=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.25.0 |
+| `GLM53_IMAGE_BUDGET_EXACT=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.29.0 |
 
 preflightが要求しないmarkerは、無くてもimageは起動でき、`cluster switch` を通ります。
 
@@ -291,6 +292,8 @@ Graph経路では内部候補indexの範囲検査をGPU上で非同期に行い�
 `cache.fused_unpack=true` が配布既定です。falseならTorchの参照変換を使い、trueなら656バイトのMLAキャッシュからのFP8変換とFP32スケール乗算を一つのTritonカーネルで処理し、`GLM53_FUSED_UNPACK_SUPPORTED=1` が必要です。候補集合の変更や層間のKV共有は行いません。
 
 `mtp.enabled` と `lpa.enabled` を個別に切り替えます。MTP有効時は [prepare_mtp_view.py](../tools/prepare_mtp_view.py) で作成したviewとBF16 Triton下書きバックエンドを使います。`mtp.num_speculative_tokens` は1〜5を受けます。五つとも再量子化したcheckpointで、1・3・4は固定のcheckpointで測定済みで、両方のexampleは3を使います（[投機デコード](speculative-decoding.ja.md#両方のcheckpointで深さ32026-09-21)）。LPA有効時は `runtime.lpa_image` を選び、projectorを読み取り専用でマウントしてworker拡張を有効にします。LPAは `runtime.fa2_attention` と排他で、MTPと併用するときは深さ1・2・3を受け（4と5は検証で拒否します）、MTP対応を明示したLPA workerを含むイメージが必要です。深さ2のLPAは4層fixtureでだけ確かめています（[部品検証](component-validation.ja.md#apc優先lpaのcache隔離p22)）。LPAの起動はこのcheckoutの `lpa.py` をマウントするので、prefix cachingなしなら深さ2はどのイメージでも動きます。`apc_worker.py` はイメージに焼き込まれたままなので、prefix cachingありでは、深さ2を許す前に作ったイメージが要求のたびにこれを拒否します。
+
+`mtp.disable_eagle_block_drop`（任意。無ければ `false`＝vLLMの既定）はspeculative configに渡ります。固定版のvLLMはMTPでもEAGLEと同じく、prefix cacheが一致するたびに最後に一致したblockを落とします。そのblockのdraftのKVには、それを書いた要求のlookahead tokenが入っているからです。落としたblockは計算し直され、TP=2で4,608 token、TP=3で3,072 tokenです。`true` にすると残します。draftしたtokenは引き続き本体のモデルが検証しますが、draftはそのlookaheadを読み、vLLMは「実験的で受理率に影響し得る」とlogに出します。decode検査の出力が同じままかどうかも測定の対象です。MTPとprefix cachingが無い構成と、測っていないLPAのある構成では起動時に拒みます。参照機の対では、cache済みの124,272 tokenの送り直しが、同じ応答のまま、最初のtokenまで8.5 sから4.4 sになりました（[1.29.0での測定](benchmarks.ja.md#1290での測定)）。cacheが当たった後の受理率を測るまで、どのテンプレートも採用しません（[Next Action](../README.ja.md#next-action)）。
 
 LPAはリクエストごとの入力長が必要です。専用クライアントが実際のテンプレートでトークン数を求め、worker設定→生成→トークン数の一致確認→LPA解除まで行います。入力全体が `lpa.tail` に収まる短文は通常計算です。制御するクライアントは一つに限定してください。専用CLI同士はhead上のロックで直列化しますが、直接APIを呼ぶ他クライアントまでは調停しません。専用送信コマンドは非ストリーミングのテキスト・ツール会話用です。
 

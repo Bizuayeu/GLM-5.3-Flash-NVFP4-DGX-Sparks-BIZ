@@ -977,6 +977,28 @@ spinしていたのはheadのEngineCoreだけでした。A1とA2のdumpではど
 
 窓の前に書いた線に照らした採否は[施策台帳P29](optimization-catalog.ja.md#性能施策一覧)にあります。測っていないもの：キーを付けた配布既定、TP=3、2本の要求を同時に流している間。
 
+## 1.29.0での測定
+
+### prefix cacheの一致の最後のblockを残す（2026-10-04）
+
+参照機の対（TP=2）、1.29.0のimage（`sha256:4d294272…`）とcheckout、GPUクロックの上限2,200 MHz、1つの窓で5回起動しました：各profileで `mtp.disable_eagle_block_drop` を無し（vLLMが最後に一致したblockを落とす）と `true`（残す）で1回ずつ、最後に公開した任意設定をもう一度落とす設定で。2回目の起動からは、長い要求のたびに、headの最も熱いzoneが60 ℃未満になるまで待ちました。
+
+| | 任意設定、落とす | 任意設定、残す | 配布既定、落とす | 配布既定、残す |
+|---|---|---|---|---|
+| decode検査のcompletion | 1.25.0のimageと同じ | 同じ | 1.25.0のimageと同じ | 同じ |
+| prefix cacheの関門、warmのcache済みtoken（short／long） | 9,216／92,160 | **13,824／96,768** | 9,216／92,160 | **13,824／96,768** |
+| prefix cacheの関門の判定 | inconclusive（既知の2つの誤答） | inconclusive（既知の2つと、もう1つ） | pass／pass | pass／pass |
+| 124,272 tokenのpromptを3回送り直す：cache済みtoken | 115,200 | **119,808** | 115,200 | **119,808** |
+| その送り直しの最初のtokenまで（s） | 8.47〜9.35 | **4.36〜4.37** | 8.48〜8.60 | **4.42〜4.66** |
+| cacheの無い最初の送信の最初のtokenまで（s） | 111.4 | 106.1 | 106.9 | 108.3 |
+
+- blockを残すと、一致のたびにKDAに揃ったblockが1つ（4,608 token）増え、長いpromptの送り直しの最初のtokenまでの時間が半分になります。送り直しの応答は、cacheの有無によらず、4つの腕すべてで同じ文でした。
+- keyを有効にすると、vLLMは `EAGLE trailing prefix-cache block dropping is disabled. This is experimental and may affect speculative-token acceptance rates.` とlogに出します。
+- 任意設定のlongの関門で増えた誤答（Record 01524の行の引用に、Record 01523の行で答えた）は、keyのせいではありません。何もcacheされていない状態で1本だけ送ると、落とす設定（5回目の起動）でも、既知のRecord 03008の誤答と一緒に同じ答えが返りました。落とす設定の関門で当たったのは、その要求が、cold段階で並行して送られた別の要求の書いたprefixを読んだためです。配布既定は、両方の腕で、cacheの有無によらずすべての課題に正答しました（[prefix cacheの関門](correctness-gates.ja.md#prefix-cacheの正しさの関門)）。
+- 測っていないもの：vLLMの警告が対象とする、cacheが当たった要求でのMTPの受理率（送り直しは64 tokenで止め、decode検査はcacheを読まない）。TP=3。任意設定での、関門の並行要求を超える2系列の同時処理。
+
+このkeyはどのテンプレートも設定していません。先に測る受理率は[Next Action](../README.ja.md#next-action)にあります。
+
 ## 旧profileの記録
 
 204,800 token（200K）の設定で測った記録です。現行の配布既定と公開した任意設定は262,144 token（256K）で配信しており、ここの値は現行のprofileを記述しません。リンク元が切れないよう、見出しの文言は移す前のままにしています。200K画像profileでのchunk予算は、現行の既定 `max_num_batched_tokens = 2048` の実測の根拠です。

@@ -53,7 +53,6 @@ Before judging a difference, measure the unchanged arm at least twice and preser
 Open, each with its owner:
 
 - FB-05's LPA part (approximation exercised, A/B/A) is not run while LPA stays off ([FreedomBench](freedombench.md)).
-- Images of 7,922 to 8,000 tokens are refused ([image input](vision.md#limits-and-open-items)).
 - In long context the published option answered with the record before the one asked; the cause is not isolated ([prefix-cache gate](correctness-gates.md#prefix-cache-correctness-gate)).
 - On the model API the tool-eval-bench Safety Gate is not passed; through the optional [tool-argument gate](harnesses.md#tool-argument-gate) it is.
 - Sustained mixed load and batching combinations are unvalidated, and at TP=3 cancellation, tool calls and failure recovery were not run ([SETUP step 6](../SETUP.md#6-qualify-the-full-model)).
