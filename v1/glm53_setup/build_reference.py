@@ -7,6 +7,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import host
 from .config import CHECKOUT, RECORDS, ROOT, load_lock
 from .io import write_json
 
@@ -77,14 +78,9 @@ def main(argv=None):
     )
     if result.returncode:
         raise SystemExit(result.returncode)
-    result = subprocess.run(
-        ["docker", "image", "inspect", lock["reference_candidate"]["tag"]],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    (record / "image-inspect.json").write_text(result.stdout, encoding="utf-8")
-    budget = layer_budget(json.loads(result.stdout))
+    inspect = host.run("docker", "image", "inspect", lock["reference_candidate"]["tag"])
+    (record / "image-inspect.json").write_text(inspect, encoding="utf-8")
+    budget = layer_budget(json.loads(inspect))
     write_json(record / "image-layers.json", budget)
     if budget["warning"]:
         print(

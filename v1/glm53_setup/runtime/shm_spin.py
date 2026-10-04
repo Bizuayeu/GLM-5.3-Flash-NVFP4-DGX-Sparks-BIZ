@@ -40,6 +40,10 @@ def set_spin(module, seconds):
 class SetAfterImport(importlib.abc.MetaPathFinder):
     """Finds nothing itself; for the target it wraps the real loader to set after execution."""
 
+    # A twin of inductor_pin.PinAfterImport, kept on purpose: this file is mounted into images
+    # that carry no shared helper, so it may import nothing they lack
+    # (tests/test_contracts.py, MountedRuntimeTests).
+
     def __init__(self, target, seconds):
         self.target = target
         self.seconds = seconds

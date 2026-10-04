@@ -9,7 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .pinned_patch import default_package, replace_once
+from .pinned_patch import default_package, prepare_files, replace_once
 
 # The copy of reference_attention.py beside the vLLM package; the patched backend imports it.
 REFERENCE_FILE = "glm53_reference.py"
@@ -40,12 +40,15 @@ def add_candidate_order(backend):
     )
 
 
-def prepare(package):
-    originals = {name: (package / name).read_bytes() for name in HASHES}
-    for name, data in originals.items():
-        if hashlib.sha256(data).hexdigest() != HASHES[name]:
-            raise ValueError(f"Source hash mismatch: {name}")
-    mla, backend = (data.decode() for data in originals.values())
+MLA, BACKEND = HASHES
+CHANGED = (
+    "# Modified by GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ contributors.\n"
+    "# Changes: GLM NoPE zero-padding, canonical logical candidates and reference attention.\n"
+    "# Original vLLM notices below remain applicable; see distribution NOTICE.\n"
+)
+
+
+def patch_mla(mla):
     mla = replace_once(
         mla,
         "        self.qk_head_dim = qk_nope_head_dim + qk_rope_head_dim\n",
@@ -74,6 +77,10 @@ def prepare(package):
         "            k_pe = q.new_zeros((k_pe.shape[0], 1, self._glm53_reference_pad))\n"
         "        attn_out = self.mla_attn(\n",
     )
+    return finish(MLA, mla)
+
+
+def patch_backend(backend):
     backend = replace_once(
         backend,
         "        self.kv_scale_format = _kv_scale_format_for_model(model_type)\n",
@@ -96,22 +103,23 @@ def prepare(package):
         "            ), None\n"
         "        output = q.new_empty(\n",
     )
-    backend = add_candidate_order(backend)
-    changed = (
-        "# Modified by GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ contributors.\n"
-        "# Changes: GLM NoPE zero-padding, canonical logical candidates and reference attention.\n"
-        "# Original vLLM notices below remain applicable; see distribution NOTICE.\n"
+    return finish(BACKEND, add_candidate_order(backend))
+
+
+def finish(name, text):
+    patched = CHANGED + text
+    compile(patched, name, "exec")
+    return patched
+
+
+def prepare(package):
+    """Check both files against their pinned hashes before patching either."""
+    return prepare_files(
+        package,
+        HASHES,
+        {MLA: patch_mla, BACKEND: patch_backend},
+        "Source hash mismatch: ",
     )
-    result = dict(
-        zip(
-            HASHES,
-            [(changed + mla).encode(), (changed + backend).encode()],
-            strict=True,
-        )
-    )
-    for name, data in result.items():
-        compile(data, name, "exec")
-    return result
 
 
 def main(argv=None):

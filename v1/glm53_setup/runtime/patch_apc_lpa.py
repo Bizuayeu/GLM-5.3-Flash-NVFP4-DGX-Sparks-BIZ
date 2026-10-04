@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .pinned_patch import default_package, replace_once
+from .pinned_patch import default_package, prepare_files, replace_once
 
 SOURCES = {
     "v1/core/kv_cache_manager.py": "ef312a280a1746ca4adc8516d87a05b3c8b331a18015e20758513a33efc7421f",
@@ -94,13 +94,14 @@ def rewrite(name, text):
 
 
 def prepare(package):
-    patches = {}
-    for name, digest in SOURCES.items():
-        raw = (package / name).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != digest:
-            raise ValueError("APC/LPA source hash mismatch: " + name)
-        patches[name] = rewrite(name, raw.decode("utf-8"))
-    return patches
+    """Check every file against its pinned hash before patching any; text by target."""
+    patched = prepare_files(
+        package,
+        SOURCES,
+        {name: lambda text, name=name: rewrite(name, text) for name in SOURCES},
+        "APC/LPA source hash mismatch: ",
+    )
+    return {name: data.decode("utf-8") for name, data in patched.items()}
 
 
 def main(argv=None):
