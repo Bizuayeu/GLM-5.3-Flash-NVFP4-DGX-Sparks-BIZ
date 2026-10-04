@@ -101,7 +101,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `TF_GLM_CACHE_GIB` | `3` (the engine's) | the most memory per rank for other conversations' kept prompts, out of what the window leaves; the same on every rank |
 | | `TF_GLM_CACHE_ENTRIES` | `8` (the engine's) | kept prompts of other conversations; the decode check must be told another value ([decode check](docs/validation.md#decode-check)) |
 | `serve.sh` arguments | after `TP RANK RANK_ENV` | none | passed to `tensorfold serve` after the defaults, so they win (`--context 500000`) |
-| Cluster file (`cluster.sh`) | `TP`, `HOSTS`, `CHECKOUT` | none, required | the TP size, SSH names in rank order, this repository on every host |
+| Cluster file (`cluster.sh`) | `TP`, `HOSTS`, `CHECKOUT` | none, required | the TP size, SSH names in rank order, this repository's root on every host (1.x's `--checkout` names its `v1/` instead) |
 | | `SSH`, `CONTAINER`, `WORK` | `ssh -o ConnectTimeout=20`, `glm53-tf`, `$HOME/glm53-tf` | how to reach the hosts, the container, the host directory at `/work` |
 | `create_container.sh` | `IMAGE [WORK_DIR]`, `CONTAINER`, `HF_HUB` | `~/glm53-tf`, `glm53-tf`, `~/.cache/huggingface/hub` | the image, the work directory (rank file, extensions, logs), the container name, the Hugging Face cache mounted read-only at `/hub` |
 
@@ -131,7 +131,7 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 | Image input | accepted | not accepted |
 | Published AXL weights | optional | not supported |
 | Tool calls | the model API, optionally behind the tool-argument gate | the same gate, this line's copy run from `v2/`, in front of the engine |
-| Heat during a long prefill | outside the engine: the cooling gate between requests and the thermal watch ([`host/`](../host/README.md#during-long-runs)) | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
+| Heat during a long prefill | no wait in the engine; its measurements rested the hosts between requests with a cooling gate, the one [`host/`](../host/README.md#during-long-runs) now holds | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
 
 Why each 2.x setting was chosen, and what was tried and not adopted, is in [decisions](docs/decisions.md).
 
