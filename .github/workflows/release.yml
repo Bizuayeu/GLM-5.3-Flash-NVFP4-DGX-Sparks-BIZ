@@ -24,8 +24,10 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           python v1/tools/release_notes.py "${TAG#v}" --match-project > notes.md
+          # The newest line keeps "Latest": a 1.x patch released after 2.x must not take it.
+          case "$TAG" in v1.*) latest=--latest=false ;; *) latest=--latest ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release edit "$TAG" --title "${TAG#v}" --notes-file notes.md
           else
-            gh release create "$TAG" --verify-tag --title "${TAG#v}" --notes-file notes.md
+            gh release create "$TAG" --verify-tag --title "${TAG#v}" --notes-file notes.md "$latest"
           fi
