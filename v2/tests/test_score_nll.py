@@ -13,8 +13,6 @@ from unittest.mock import patch
 from glm53_tf import score_nll
 
 SET = Path(__file__).resolve().parents[1] / "config/nll_set.json"
-# The 1.x line's copy, read only by the drift guard below.
-V1_SET = Path(__file__).resolve().parents[2] / "v1/config/nll_set.json"
 
 
 def sha(text):
@@ -156,15 +154,8 @@ class MainTests(unittest.TestCase):
         )
 
 
-class CrossLineTests(unittest.TestCase):
-    # Drift guard across the lines: this test alone reads v1/, as a fixture. Both lines
-    # score the same set, so their NLL figures compare; change both copies together.
-    def test_the_set_is_byte_identical_to_the_1x_lines(self):
-        self.assertEqual(
-            hashlib.sha256(SET.read_bytes()).hexdigest(),
-            hashlib.sha256(V1_SET.read_bytes()).hexdigest(),
-        )
-
+class SetCopyTests(unittest.TestCase):
+    # The root's tests/test_lines.py checks this copy against 1.x's.
     def test_the_default_set_is_this_lines_copy(self):
         self.assertEqual(score_nll.SET, SET)
 
