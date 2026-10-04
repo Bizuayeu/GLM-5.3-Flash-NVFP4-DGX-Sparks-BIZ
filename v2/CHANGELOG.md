@@ -4,6 +4,28 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.7 — 2026-10-05
+
+### Changed
+
+- The image is rebuilt and accepted again. The Dockerfile pins NVIDIA's base by digest (`nvcr.io/nvidia/pytorch@sha256:2140e699…`, the one 2.0.0 was accepted on) instead of the tag `26.07-py3`; the image carries a changed `THIRD_PARTY_NOTICES.md` (the licensing guide's new place, and that this image carries the file) and a corrected comment in `serve.sh`. The base, the packages and the engine are 2.0.0's, layer for layer. On 2026-10-05 the rebuilt image was accepted on the reference hosts by equivalence: at TP=2 and TP=3 the [decode check](docs/validation.md#decode-check) gave the reference hashes, token ids and acceptance lengths, and the NLL set equalled 2.0.0's at full precision. 2.0.0's other results stand for it. The tag in the commands is `glm53-tf:2.0.7`.
+- The host tools moved from `v2/host/` to [`host/`](../host/README.md) at the checkout root, beside the [host preparation](../docs/hosts.md) and fabric pages every line shares: `python3 host/cool-gate`, `python3 host/thermal-watch`, and `sudo sh install.sh` from `host/`.
+- The cluster file goes to `state/cluster.env`, which Git ignores; the steps had it at `my-cluster.env` in the checkout root, which Git does not ignore.
+
+### Added
+
+- [Operations](docs/operations.md): how a start ends, a rank that stops while the others wait, NCCL over sockets, recreating the container, moving to a new image, a host that powered off, handing the hosts to 1.x.
+- [Decisions](docs/decisions.md): what 2.x adopted or rejected, with the date, the measured effect and what would reopen it; the release branch's commits the changelog does not name; the measures from 1.x not yet evaluated on 2.x.
+- [Benchmark method](docs/benchmarks.md): how the release measurements and the validation references were taken.
+
+### Documentation
+
+- [Setup](SETUP.md) §6 and §9 say how `cluster.sh` start ends (READY, FAILED with every rank's log tail, TIMEOUT after 15 minutes), where the logs are, and that stop waits up to 60 s a rank. The README names `TF_GLM_CACHE_GIB` and the endpoints the NLL check uses, and its prefill row says that TP=2's three prompts ran back to back after one cooling.
+
+### Tests
+
+- The pages' quotes of `serve.sh`, the scripts' defaults, the gate's ports, `TENSORFOLD_REF`, the pinned base and revision are tested in both languages; the cluster file stays under `state/`; every shell script must parse. Two checks lost in the copy from 1.x are back (the body score-nll sends, and the decode check's token record read by decode-divergence).
+
 ## 2.0.6 — 2026-10-04
 
 ### Added

@@ -6,6 +6,28 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.0.7 — 2026-10-05
+
+### Changed
+
+- imageを作り直して受け入れ直しました。Dockerfileは、tag `26.07-py3` の代わりにdigestでNVIDIAのbaseを固定します（`nvcr.io/nvidia/pytorch@sha256:2140e699…`、2.0.0を受け入れたもの）。imageの中で変わったのは `THIRD_PARTY_NOTICES.md`（ライセンス整理の新しい置き場と、このimageもこのファイルを持つこと）と `serve.sh` のコメントの直しです。base・package・エンジンは層ごとに2.0.0と同じです。2026-10-05に作り直したimageを参照機で同値として受け入れました。TP=2とTP=3で[decode検査](docs/validation.ja.md#decode検査)が基準のhash・token id・受理長を出し、NLLの採点セットは2.0.0と全精度で一致しました。他の結果は2.0.0のものがそのまま当てはまります。コマンドのtagは `glm53-tf:2.0.7` です。
+- ホストのツールを `v2/host/` からcheckoutのルートの[`host/`](../host/README.ja.md)へ移し、全系共通の[ホストの準備](../docs/hosts.ja.md)とfabricの文書と並べました。`python3 host/cool-gate`、`python3 host/thermal-watch`、`host/` から `sudo sh install.sh` です。
+- clusterのファイルは、Gitが無視する `state/cluster.env` に置きます。手順はcheckoutのルートの `my-cluster.env` に置かせていて、そこはGitが無視しません。
+
+### Added
+
+- [運用](docs/operations.ja.md)：起動の終わり方、他のrankが待つ中で一つのrankが止まる場合、socketに落ちたNCCL、containerの作り直し、新しいimageへの移行、電源が落ちたホスト、1.x系へのホストの引き渡し。
+- [採否](docs/decisions.ja.md)：2.x系が採ったもの・採らなかったもの（日付、測った効果、再び開く条件）、変更履歴が名指さないリリースbranchのcommit、2.x系でまだ評価していない1.x系の施策。
+- [ベンチマークの方法](docs/benchmarks.ja.md)：リリースの測定値と検証の基準値の取り方。
+
+### Documentation
+
+- [手順書](SETUP.ja.md)の§6と§9に、`cluster.sh` の起動の終わり方（READY、全rankのlogの末尾つきのFAILED、15分でTIMEOUT）、logの場所、停止がrankごとに最大60秒待つことを書きました。READMEは `TF_GLM_CACHE_GIB` とNLLの検査が使うendpointを挙げ、prefillの行はTP=2の3本が1回の冷却の後に続けて流したものと書きます。
+
+### Tests
+
+- 文書が引く `serve.sh` の値、台本の既定値、ゲートのport、`TENSORFOLD_REF`、固定したbaseとrevisionを両言語で検査します。clusterのファイルは `state/` の下に置くこと、どの台本も構文が通ることも検査します。1.x系からの写しで落ちていた検査2つ（score-nllが送る本文、decode検査のtokenの記録をdecode-divergenceが読むこと）を戻しました。
+
 ## 2.0.6 — 2026-10-04
 
 ### Added

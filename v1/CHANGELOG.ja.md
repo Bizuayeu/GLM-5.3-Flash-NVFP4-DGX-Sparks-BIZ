@@ -4,6 +4,23 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.5 — 2026-10-05
+
+### Changed
+
+- 全系に共通の文書と道具をcheckoutのルートへ移しました。`docs/` に[ホストの準備](../docs/hosts.ja.md)（運用手順からカーネルとRoCEの注意、GPUクロックの上限）、[QSFPネットワーク](../docs/qsfp-network.ja.md)、[NCCL診断](../docs/nccl-validation.ja.md)、[ライセンス整理](../docs/licensing.ja.md)を置き、[リポジトリの文書一覧](../docs/README.ja.md)を並べました。NCCLの診断ツールは `host/nccl_probe.py` で、診断のコマンドはcheckoutのルートで実行します。この系列の[文書一覧](docs/README.ja.md)は自分の文書だけを並べます。旧い置き場への案内は残しません。
+- `tools/decode_check.py` はvLLMだけを測ります。2.x系はTensorFold用の写しを持ちます（`v2/` から `python -m glm53_tf decode-check`）。`tools/score_nll_set.py` の例はこの系列のportを使います。
+
+### Documentation
+
+- [CONTRIBUTING](../CONTRIBUTING.ja.md)はCIが回す検査のすべてと、先に入れるdev lockを挙げます。`ci.yml` との一致はテストで守ります。[構成](docs/architecture.ja.md)は、CIが `v1/`・`v2/`・checkoutのルートで回ると書きます。
+
+### Tests
+
+- `download` が、違うrevision、大きさの違うファイル、indexにある欠けたshard、同じ作業場での二つ目のdownloadを記録することをテストします。`decode_divergence` の標本数が違う場合のテストはその行を確かめます。両系列が揃えるもの（モデルとrevision、NLLの採点セットとHugging Faceのlock、各系列の版の変更履歴の節が両言語にあること）と、共有のbuild contextはcheckoutのルートで検査します。
+
+この系列のimage、配信のコマンド、受け入れは変わりません。
+
 ## 1.29.4 — 2026-10-05
 
 ### Changed

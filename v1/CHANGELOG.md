@@ -2,6 +2,23 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.5 — 2026-10-05
+
+### Changed
+
+- The pages and tools every line shares moved to the checkout root: [host preparation](../docs/hosts.md) (the kernel and RoCE advice and the GPU clock cap, from operations), the [QSFP network](../docs/qsfp-network.md), the [NCCL diagnostics](../docs/nccl-validation.md) and the [licensing guide](../docs/licensing.md) in `docs/`, beside a [repository document map](../docs/README.md). The NCCL probe is `host/nccl_probe.py`, and the diagnostic's commands run from the checkout root. This line's [document map](docs/README.md) lists its own pages. Links to the old page locations are not kept.
+- `tools/decode_check.py` measures vLLM only; 2.x has its own copy for TensorFold (`python -m glm53_tf decode-check` from `v2/`). The example of `tools/score_nll_set.py` uses this line's port.
+
+### Documentation
+
+- [CONTRIBUTING](../CONTRIBUTING.md) lists every check CI runs and the dev lock to install first; a test holds it to `ci.yml`. The [architecture](docs/architecture.md) page says CI runs in `v1/`, `v2/` and at the checkout root.
+
+### Tests
+
+- `download` is tested to record a wrong revision, a file of the wrong size, a missing indexed shard and a second download in one workspace; the test of differing sample counts in `decode_divergence` asserts its line. What both lines must agree on (the model and revision, the NLL set and the Hugging Face lock, a changelog section for each line's version in both languages) and the shared build context are checked at the checkout root.
+
+This line's image, serving commands and acceptance are unchanged.
+
 ## 1.29.4 — 2026-10-05
 
 ### Changed
