@@ -45,7 +45,7 @@ Measure a known, functioning profile before changing kernels or throughput setti
 
 ## Initial matrix
 
-The initial target is two GB10 hosts, TP=2, Marlin W4A16, candidate-preserving reference attention, eager execution, no MTP or prefix caching, context 16,384 and a fixed 1 GiB KV budget per GPU. Server `max_num_seqs=1` is deliberate: two-active-sequence fixture output differed from a single request at a near tie, and that profile was not qualified then. The distributed defaults still serve one sequence; the published option's two-sequence profile was accepted in 1.11.2 ([concurrency scope](validation.md#concurrency-scope)).
+The initial target is two GB10 hosts, TP=2, Marlin W4A16, candidate-preserving reference attention, eager execution, no MTP or prefix caching, context 16,384 and a fixed 1 GiB KV budget per GPU. Server `max_num_seqs=1` is deliberate: two-active-sequence fixture output differed from a single request at a near tie, and that profile was not qualified then. The distributed defaults still serve one sequence; the published option's two-sequence profile is accepted for routine use ([concurrency scope](validation.md#concurrency-scope)).
 
 | Case | Requested input tokens | Output tokens | Client concurrency | Measured requests |
 |---|---:|---:|---:|---:|

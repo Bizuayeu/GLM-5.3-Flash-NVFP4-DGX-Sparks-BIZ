@@ -92,11 +92,11 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 `runtime.stable_indexer_topk`（テンプレートは `true`。未指定はimageの既定で、1.6.0から作ったimageではon）は、全rankに `GLM53_STABLE_INDEXER_TOPK` を設定します。kpool indexerは4 tokenを1 poolに畳み、query行ごとに512 poolを選びます。`true` の時、512位の境界の同点は低いpool indexに決まります。decodeは安定なsort（6行で計測して1回0.07〜0.25 ms。kernelは0.01〜0.02 ms。同期なし）、prefillはkernelのまま、512位の値を収まりきらない数のpoolが共有している行だけを選び直します（呼び出しごとに同期1回）。`GLM53_INDEXER_TOPK_API=1` が要ります。`false` は比較用のarmです。
 
-`runtime.inductor_deterministic`（1.12.0からテンプレートは `true`。未指定か `false` はInductorの計測による選択）は、全rankに `TORCHINDUCTOR_DETERMINISTIC=1` を設定し、`TORCHINDUCTOR_CACHE_DIR` を `/root/.cache/torchinductor-deterministic` に移します。決定性モードのInductorはreductionのconfigを計測せずに、どのrankでも同じものに決めます。torch 2.13と2.12.1は最初にcompileしたframeの後でモードを切るので（[pytorch/pytorch#198563](https://github.com/pytorch/pytorch/issues/198563)。GB10では [vllm-project/vllm#58636](https://github.com/vllm-project/vllm/issues/58636) に報告）、launcherは `glm53_setup/runtime/inductor_pin.py` と一行の `.pth` をmountし、設定を強制値で保ちます。モードなしでcompileしたgraphは既存のcacheから計測の候補ごと戻ってくるので、モードは専用のcacheにcompileします。keyを付けた最初の起動ではindexerのleafを作り直します（rankごとに約45ファイル）。pointwiseのleafはrankごとに計測を続けますが、要素ごとに同じ命令で計算するのでblockの大きさはbitを変えません。imageの対応は要りません。
+`runtime.inductor_deterministic`（テンプレートは `true`。未指定か `false` はInductorの計測による選択）は、全rankに `TORCHINDUCTOR_DETERMINISTIC=1` を設定し、`TORCHINDUCTOR_CACHE_DIR` を `/root/.cache/torchinductor-deterministic` に移します。決定性モードのInductorはreductionのconfigを計測せずに、どのrankでも同じものに決めます。torch 2.13と2.12.1は最初にcompileしたframeの後でモードを切るので（[pytorch/pytorch#198563](https://github.com/pytorch/pytorch/issues/198563)。GB10では [vllm-project/vllm#58636](https://github.com/vllm-project/vllm/issues/58636) に報告）、launcherは `glm53_setup/runtime/inductor_pin.py` と一行の `.pth` をmountし、設定を強制値で保ちます。モードなしでcompileしたgraphは既存のcacheから計測の候補ごと戻ってくるので、モードは専用のcacheにcompileします。keyを付けた最初の起動ではindexerのleafを作り直します（rankごとに約45ファイル）。pointwiseのleafはrankごとに計測を続けますが、要素ごとに同じ命令で計算するのでblockの大きさはbitを変えません。imageの対応は要りません。
 
 これらのスイッチが扱うのは単独の要求です。`max_num_seqs` が2以上だと、他の要求とstepを共有した要求は、なお違うcompletionになりえます。その理由と、`max_num_seqs = 1` で配信すべき場合は[同時実行の範囲](validation.ja.md#同時実行の範囲)にあります。
 
-`runtime.mla_decode_cpb`（1.14.0と1.15.0では両方のexampleで設定）は1.16.0で退役しました。patchが変えるdecodeの呼び出しより前に参照のNoPE attentionがreturnするため、servingでは一度も実行されていません（[servingでの到達性](benchmarks.ja.md#servingでの到達性2026-09-26)）。1.18.0で取り除いたので、keyを持つprofileは、keyを消すよう求めるメッセージとともに拒まれます。
+`runtime.mla_decode_cpb` は取り除きました。keyを持つprofileは、keyを消すよう求めるメッセージとともに拒まれます。patchが変えるdecodeの呼び出しより前に参照のNoPE attentionがreturnするため、servingでは一度も実行されていません（[servingでの到達性](benchmarks.ja.md#servingでの到達性2026-09-26)）。
 
 ### attentionとcacheとcheckpoint
 
@@ -158,7 +158,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 | `host_stats` | workerの常駐匿名メモリ、glibcの `mallinfo2` の内訳、torchのpinned host cache。`{"trim": true}` を付けると二回の読みの間で `malloc_trim(0)` を呼び、保持している空き・生きているオブジェクト・mallocの外のメモリを切り分ける |
 | `host_census` | 生きているPythonオブジェクトの型ごとの数と、その中のCPU tensor |
 | `weight_digest` | loadされた全parameterとbufferの二つのbyte和（層ごと・全体）。`{"tensors": true}` で行そのものを返す。`tools/weight_digest.py` が切替の後にそれを記録し、前の起動と違うtensorを名指しする |
-| `kernel_hashes` | kpool indexerの計算（head gate、gate score、FWHT量子化、pool cacheの書き込み、paged MQA logits、stable top-k）と、1.11.1からは一つの層の実際の重みでの段階（`layer`、既定は19）を、固定入力でworkerの中で走らせたhash。`tools/kernel_hashes.py` が両rankと前の起動を比べる |
+| `kernel_hashes` | kpool indexerの計算（head gate、gate score、FWHT量子化、pool cacheの書き込み、paged MQA logits、stable top-k）と、一つの層の実際の重みでの段階（`layer`、既定は19）を、固定入力でworkerの中で走らせたhash。`tools/kernel_hashes.py` が両rankと前の起動を比べる |
 | `autotuners`、`inductor_state` | 生きている各Inductor kernelが使っているconfigとその出どころ。Inductorの設定、`TORCHINDUCTOR_*` の環境変数、決定性スイッチへの書き込みのすべて |
 | `fa2_stage` | FA2経路の一部だけ（`off`、圧縮の単一操作、`compact`、`plan`、`full`）を走らせて残りを参照経路で答えるので、メモリの増加が始まる段を、段ごとの再起動なしに名指しできる |
 | `trace_begin`、`trace_end` | traceするmodule・draft・sparse NoPE attentionが1要求で受け取り返すものの指紋（byte列をint64の語として読んだwrapする和を二つ、device上に保持）。後の同一要求で最初に食い違った呼び出しを名指しする。`sync` はtraceした呼び出しごとに同期する。候補indexのtensorは行ごとに並べ替えてから指紋を取るので、候補の集合が違う時だけ食い違いとして読める。cache行のgatherはdecodeの大きさの呼び出しでだけ行う。`{"keep": true, "export": true}` で行を返し、`trace_differences` が二つの起動をofflineで比べる |

@@ -45,7 +45,7 @@
 
 ## 初期の測定条件
 
-GB10 2台、TP=2、Marlin W4A16、全候補保持の参照attention、eager、MTP/APCなし、context 16,384、各GPUのKV予算1 GiBを対象とします。サーバーの`max_num_seqs=1`を明示します。fixtureでは同時実行2で僅差の候補が同点となりtoken列が変わったため、そのprofileは当時未検収でした。配布既定は今も1系列です。公開した任意設定の同時2系列profileは1.11.2で検収しました（[同時実行の範囲](validation.ja.md#同時実行の範囲)）。
+GB10 2台、TP=2、Marlin W4A16、全候補保持の参照attention、eager、MTP/APCなし、context 16,384、各GPUのKV予算1 GiBを対象とします。サーバーの`max_num_seqs=1`を明示します。fixtureでは同時実行2で僅差の候補が同点となりtoken列が変わったため、そのprofileは当時未検収でした。配布既定は今も1系列です。公開した任意設定の同時2系列profileは通常運用として受け入れ済みです（[同時実行の範囲](validation.ja.md#同時実行の範囲)）。
 
 | ケース | 要求入力token | 出力token | クライアント同時数 | 測定要求数 |
 |---|---:|---:|---:|---:|

@@ -44,7 +44,7 @@ npm版CLI 3.11.2の設定ファイルは`~/.zcode/cli/config.json`です。3.14.
 
 ## tool引数ゲート
 
-8893のモデルAPIは、モデルが書いたとおりのtool呼び出しを返します。`python -m glm53_setup tool-gate`（1.22.0から、起動しなければ無効）は、別のloopbackポートに中継を立て、`tools` を宣言した `/v1/chat/completions` の要求のtool呼び出しを、tool自身のschemaと照らします。
+8893のモデルAPIは、モデルが書いたとおりのtool呼び出しを返します。`python -m glm53_setup tool-gate`（起動しなければ無効）は、別のloopbackポートに中継を立て、`tools` を宣言した `/v1/chat/completions` の要求のtool呼び出しを、tool自身のschemaと照らします。
 
 - **規則**：argumentsがJSONのobjectでない／`required` の引数が無いかnull／`required` の文字列の引数が空か空白だけ。型・enum・範囲は見ません。要求が宣言していないtoolと、`required` の無いtoolは通します。
 - **違反した手は返しません。** その手の各callにtoolの応答を返し（違反したcall：実行していないこと、どの引数か、分からない値はその値なしで呼び直さず利用者に尋ねること。他のcall：別のcallが不正だったので実行していないこと）、モデルにもう1回だけ答えさせます。2回目も違反なら、そのまま返します。

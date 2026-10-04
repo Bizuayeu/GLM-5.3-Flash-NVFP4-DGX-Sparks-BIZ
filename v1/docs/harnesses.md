@@ -44,7 +44,7 @@ Declare text, tool and image input to match the server (`runtime.vision = true` 
 
 ## Tool-argument gate
 
-The model API on 8893 returns tool calls as the model writes them. `python -m glm53_setup tool-gate` (from 1.22.0, off unless started) serves a relay on another loopback port that checks the tool calls of `/v1/chat/completions` requests that declare `tools`, against the tools' own schemas:
+The model API on 8893 returns tool calls as the model writes them. `python -m glm53_setup tool-gate` (off unless started) serves a relay on another loopback port that checks the tool calls of `/v1/chat/completions` requests that declare `tools`, against the tools' own schemas:
 
 - **Rules**: arguments that are not a JSON object; a `required` argument that is absent or null; a `required` string argument that is empty or blank. Types, enums and ranges are not checked, and a tool the request did not declare, or one without `required`, passes.
 - **A violating turn is not returned.** The gate answers each call of that turn with a tool reply (the violating call: not executed, which argument, and to ask the user for a missing value instead of calling again without it; the other calls: not executed because another call was invalid) and asks the model once more. A second violation is returned as it is.
