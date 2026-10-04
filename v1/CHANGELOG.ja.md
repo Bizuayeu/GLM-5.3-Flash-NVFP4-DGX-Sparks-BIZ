@@ -4,6 +4,17 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.3 — 2026-10-04
+
+### Added
+
+- checkoutのルートの `python tools/check_publication.py --duplicates` は、同じ系列の英語の複数の頁に出てくる実測値らしい数を、変更履歴とコード片を除いて挙げます。文書を直す人への警告で、頁が意図して数を引くこともあるので、終了コードは変えません（[開発への参加](../CONTRIBUTING.ja.md)）。
+
+### Documentation
+
+- まだ複数の頁に書かれていた約30の事実を、[文書一覧](docs/README.ja.md)が持ち主とする頁に書き、他の頁はそこを指すようにしました：画像の上限、配信の既定値、整列したblock、LPAとcacheの規則、GIDの規則、最初の基準、tailのringのslot、NCCLのチャネル、クロックの上限の代価、推論の努力、LPAの閾値の規則、warmupの段、READMEの範囲ごとの状態とSETUP手順6の証拠の数値。持ち主に無かった数値はそこへ移しました：安定したtop-kの代価と、[1.26.0の配布既定でのNLL採点セット](docs/benchmarks.ja.md#1260の配布既定でのnll採点セット2026-10-02)。
+- 出所：[起動設定](docs/server-configuration.ja.md)のprefix cacheの復元の値は1.2.0での測定で、[運用手順](docs/operations.ja.md#warmup-ladder)のchunk 512のprefillの時間は1.5.0ではなく1.4.0より前のものです。
+
 ## 1.29.2 — 2026-10-04
 
 ### Changed
