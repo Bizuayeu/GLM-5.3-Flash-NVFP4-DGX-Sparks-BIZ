@@ -51,12 +51,12 @@
 | `glm53_setup/runtime/memory_probe.py` | dev の `/collective_rpc` 経由で配信workerを調べるprobe。`validation.memory_probe` がこれを読み込み、checkoutの版をimageの上にmountする：`allocator_stats`、`host_stats`、`host_census`、`weight_digest`、`kernel_hashes`、`autotuners`、`inductor_state`、`fa2_stage`、`trace_begin`／`trace_end`（[起動設定](server-configuration.ja.md#apiと診断)） |
 | `glm53_setup/runtime/pipeline_state.py`、`patch_pipeline.py` | PP fixtureの転送と、そのsource固定patch（P17） |
 | `glm53_setup/validation/make_fixture.py`、`run_fixture.py`、`summarize_fixture.py`、`inspect_runtime.py`、`probe_attention.py`、`reference_check.py`、`parity.py` | fixtureの作成・実行・判定、コンテナ内の確認、NoPE dispatchの探査、参照Attentionの一致と、Attention部品ベンチが共有するBF16の許容幅と判定（[検証範囲](validation.ja.md)） |
-| `glm53_setup/validation/run_agreement_fixture.py`、`compare_agreement.py`、`quant_error.py`、`run_repeat_trace.py` | fixture上の再量子化検査と、反復実行で最初に出力が違うモジュールの特定（[検証範囲](validation.ja.md#再現性)） |
+| `glm53_setup/validation/run_agreement_fixture.py`、`compare_agreement.py`、`quant_error.py`、`run_repeat_trace.py` | fixture上の再量子化検査と、反復実行で最初に出力が違うモジュールの特定（[検証範囲](repeatability.ja.md)） |
 | `glm53_setup/validation/run_components.py`、`run_graph_fixture.py`、`run_indexer_fixture.py`、`run_apc_lpa_fixture.py`、`indexer_overlap.py`、`expert_worker.py`、`pipeline_worker.py`、`apc_fixture_worker.py` | 部品A/B/A、Graph、indexer、APC/LPA、EP、PPの各fixtureと、fixture専用のworker（[部品検証](component-validation.ja.md)） |
 | `glm53_setup/validation/run_lpa.py`、`lpa_corpus.py`、`train_lpa.py` | LPA fixtureの検査、コーパスの準備、projectorの学習 |
 | `glm53_setup/validation/freedombench.py`、`freedom_scoring.py`、`apc_history.py`、`profile_trace.py`、`benchmark_*.py` | FreedomBenchの実行と採点、APC履歴の回帰試験、traceのevent集計、部品ベンチ |
 | `glm53_setup/validation/hle.py`、`hle_scoring.py` | HLEの実行（固定した設問ファイル、一問ずつ、再開可能）と、CPUで動く答えの抽出。完全一致の規則はhost外の採点のために置く |
-| `glm53_setup/validation/kpool_ring_repro.py` | 参照imageでのkpool tail ringのGPU再現：pool完成のdraftが棄却されたときの結果をprefill側の書き込みと比べる。1 pool分のringとMTP 3のring（[検証](validation.ja.md#kpool-tail-ringの再現)） |
+| `glm53_setup/validation/kpool_ring_repro.py` | 参照imageでのkpool tail ringのGPU再現：pool完成のdraftが棄却されたときの結果をprefill側の書き込みと比べる。1 pool分のringとMTP 3のring（[検証](component-validation.ja.md#kpool-tail-ringの再現)） |
 | `glm53_setup/validation/fused_nope.py`、`fused_nope_dot.py`、`indexer_candidates.py`、`indexer_reindex.py`、`indexer_shared_pool.py` | 再現のために残す退役した試作。呼ぶのはそれぞれのベンチとテストだけ：融合NoPE attention（[部品検証](component-validation.ja.md)）とindexer候補の再利用（[Indexer再利用](indexer-reuse.ja.md)） |
 | `config/` | モデル・imageの固定値、`lpa-projector.lock.json`（Release URL、checksum、教師・学習来歴）、`nll_set.json`（両系列が採点するNLLセット）。認証情報や実測したサイト設定は持たない |
 | `examples/` | 二つの起動設定 `server.example.toml`（配布既定）と `server.axl.example.toml`（公開した任意設定）。値は例示。`server.tp3.example.toml`（3ノードのリングで配布既定、TP=3、リンクの値は例示）。MTP投機設定のテンプレート |

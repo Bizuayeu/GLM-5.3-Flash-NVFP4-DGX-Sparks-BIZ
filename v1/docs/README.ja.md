@@ -42,8 +42,10 @@
 
 | 文書 | 役割 | EN | JA |
 |---|---|---|---|
-| 検証範囲 | 証拠と本番認定の区別、GPU 1台のfixture、評価と未解決の事項、フルモデルの範囲と再現性 | [EN](validation.md) | [JA](validation.ja.md) |
-| 部品検証 | CUDA／indexer部品、Graph fixture、PP／EP／APCのfixture、履歴fixture | [EN](component-validation.md) | [JA](component-validation.ja.md) |
+| 検証範囲 | 証拠と本番認定の区別、候補と対照の比較、評価と未解決の事項、フルモデルの範囲（同時実行、読み込み・API・ベンチマークの確認） | [EN](validation.md) | [JA](validation.ja.md) |
+| 再現性 | completionが反復する理由と割れる理由：fixtureでの再量子化検査、expert内のtoken順序、indexerのtop-kの同点、起動状態 | [EN](repeatability.md) | [JA](repeatability.ja.md) |
+| 出力の正しさの関門 | prefix cacheの正しさの関門とマルチバイト出力 | [EN](correctness-gates.md) | [JA](correctness-gates.ja.md) |
+| 部品検証 | GPU 1台のfixtureの再現、CPUの検査とkpool ringの再現、CUDA／indexer部品、Graph fixture、PP／EP／APCのfixture、履歴fixture | [EN](component-validation.md) | [JA](component-validation.ja.md) |
 | ベンチマーク | ベンチの方法、施策ごとの全モデル独立評価、版ごとの測定（1.24.0からTP=3を含む） | [EN](benchmarks.md) | [JA](benchmarks.ja.md) |
 | 画像入力 | 256KでのVision：設定、選定の経緯、実測、限界 | [EN](vision.md) | [JA](vision.ja.md) |
 | FreedomBench | 政治的文脈の評価：配信profileでの完了、以前の実行、日本語訳と言い回しの追加試験、未実施のもの | [EN](freedombench.md) | [JA](freedombench.ja.md) |
@@ -74,7 +76,7 @@
 | MTPの投機設定（ランチャーは `mtp.*` から組み立てる。ファイルは手で再現するときの形を示す） | [examples/speculative.mtp1.json](../examples/speculative.mtp1.json)、[speculative.mtp3.json](../examples/speculative.mtp3.json) |
 | FreedomBenchの設問・正答の固定 | [config/freedombench.lock.json](../config/freedombench.lock.json)。確認済みの日本語訳は[config/freedombench-ja.lock.json](../config/freedombench-ja.lock.json) |
 | 施策ID、採否、再評価条件 | [施策台帳](optimization-catalog.ja.md) |
-| 実測値とその条件 | [ベンチマーク](benchmarks.ja.md)、[画像入力](vision.ja.md)、[投機的デコーディング](speculative-decoding.ja.md)、[LPA](lpa.ja.md)、[部品検証](component-validation.ja.md)、[候補順序](candidate-order.ja.md)、[Indexer再利用](indexer-reuse.ja.md)、[NCCL検証](nccl-validation.ja.md)、[FreedomBench](freedombench.ja.md)、[HLE](hle.ja.md)、[検証範囲](validation.ja.md)（prefix cacheの関門、マルチバイト出力、再現性） |
+| 実測値とその条件 | [ベンチマーク](benchmarks.ja.md)、[画像入力](vision.ja.md)、[投機的デコーディング](speculative-decoding.ja.md)、[LPA](lpa.ja.md)、[部品検証](component-validation.ja.md)、[候補順序](candidate-order.ja.md)、[Indexer再利用](indexer-reuse.ja.md)、[NCCL検証](nccl-validation.ja.md)、[FreedomBench](freedombench.ja.md)、[HLE](hle.ja.md)、[出力の正しさの関門](correctness-gates.ja.md)（prefix cacheの関門、マルチバイト出力）、[再現性](repeatability.ja.md) |
 | APC／LPAの共有状態契約（N・H・T・R・B） | [APC優先LPAの設計](apc-lpa-design.ja.md) |
 | クライアント認証、allocator、レール、切替・復旧の契約 | [起動契約](launch-safety.ja.md) |
 | 3ノードの起動順、rank数の変更の拒否、ホストごとのruntime cache | [起動契約](launch-safety.ja.md#3ノード) |

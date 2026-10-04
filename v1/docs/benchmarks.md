@@ -511,7 +511,7 @@ Between 2026-09-18 and 20 (Asia/Tokyo) the 1.6.0 defaults were measured on the r
 
 ### Identical requests repeat
 
-The same request sent nine times, 512 tokens after a fixed 2,048-token prompt at temperature 0, gave one completion for each of three prompts (counting, prose, code) with zero movement of the per-position log-probabilities. `server agreement` read its four texts teacher-forced twice with argmax agreement 1.0 and the same NLL to four decimals (Japanese 1.5963, English 2.0241, code 0.9479, mathematics 0.5931). On 1.5.0 the same check agreed on 0.926 to 0.977 of positions. [What was fixed and how it was found](validation.md#repeatability).
+The same request sent nine times, 512 tokens after a fixed 2,048-token prompt at temperature 0, gave one completion for each of three prompts (counting, prose, code) with zero movement of the per-position log-probabilities. `server agreement` read its four texts teacher-forced twice with argmax agreement 1.0 and the same NLL to four decimals (Japanese 1.5963, English 2.0241, code 0.9479, mathematics 0.5931). On 1.5.0 the same check agreed on 0.926 to 0.977 of positions. [What was fixed and how it was found](repeatability.md).
 
 ### Prefill and decode on 1.6.0
 
@@ -563,7 +563,7 @@ The 1.6.0 requantization and depth comparisons used one prompt per task type; ca
 
 ### How route g was reached (2026-09-18 to 20)
 
-**First reading (2026-09-18).** On a yardstick that moved 11% between identical runs, decode was 26.96 tok/s against 24.91 and 26.21 unmodified (spread 24.35–34.44) as the mean acceptance length fell from 2.9 to 2.37, mathematics NLL rose about 5% and argmax agreement with a reference run was 0.909 against 0.946–0.962 between unmodified runs. The method had moved from load-time FP8 to tenhkspark's route g, the same Marlin arithmetic as the experts. P23 was closed then and reopened once identical requests repeated. On the four-layer fixture the 33 repacked tensors have a relative error of 0.091–0.095, and the layer-3 candidate sets overlap the unmodified fixture at Jaccard 0.950 (0.948 on the eight-layer fixture's second MLA layer), so the shift does not compound across MLA layers ([requantization checks](validation.md#repeatability)).
+**First reading (2026-09-18).** On a yardstick that moved 11% between identical runs, decode was 26.96 tok/s against 24.91 and 26.21 unmodified (spread 24.35–34.44) as the mean acceptance length fell from 2.9 to 2.37, mathematics NLL rose about 5% and argmax agreement with a reference run was 0.909 against 0.946–0.962 between unmodified runs. The method had moved from load-time FP8 to tenhkspark's route g, the same Marlin arithmetic as the experts. P23 was closed then and reopened once identical requests repeated. On the four-layer fixture the 33 repacked tensors have a relative error of 0.091–0.095, and the layer-3 candidate sets overlap the unmodified fixture at Jaccard 0.950 (0.948 on the eight-layer fixture's second MLA layer), so the shift does not compound across MLA layers ([requantization checks](repeatability.md)).
 
 **Route g off/on/off**, after the expert order fix and with FA2 prefill: decode over nine samples rose from 32.87 to 42.39 tok/s on counting (+29%), 20.82 to 25.31 on prose (+22%) and 27.62 to 34.93 on code (+27%) with the acceptance length unchanged, the two unmodified launches within 1% of each other. The weights were 4.0 GiB smaller per rank and the head kept at least 9.52 GiB. NLL rose 4.0% on Japanese, 5.9% on code and 4.3% on mathematics and fell 1.1% on English.
 
@@ -691,7 +691,7 @@ The earlier image (1.8.0, one launch that night) computed in a third state. The 
 | 3 launches of the two-sequence AXL profile with `runtime.inductor_deterministic` (2026-09-25) | 3 / 0 / 0, the same completions | 46.05–46.27 / 27.95–28.44 / 38.39–38.80 |
 | 3 launches of the distributed defaults with the same key (2026-09-25) | the same completions in all three | 32.80–32.84 / 20.76–20.82 / 27.53–27.64 (the defaults' published 32.01 / 20.67 / 26.68) |
 
-Pinning only the Inductor config of the indexer's key norm reproduced state 2 (8 on rank 0, 1 on rank 1) and state 1 (8 on both) on demand; with the key both ranks served that kernel at `XBLOCK` 8 with a single candidate, and warmup's long rung took 52.1–52.7 s (`records/20260924-inductor-autotune-asymmetry/`, `records/20260925-defaults-deterministic/`). The cause and the fix are in [validation](validation.md#repeatability); the steps of the search (the probe methods, the Probe4 and Probe5 launches, the deep traces) are in the [changelog](../CHANGELOG.md) of 1.10.0 to 1.12.2.
+Pinning only the Inductor config of the indexer's key norm reproduced state 2 (8 on rank 0, 1 on rank 1) and state 1 (8 on both) on demand; with the key both ranks served that kernel at `XBLOCK` 8 with a single candidate, and warmup's long rung took 52.1–52.7 s (`records/20260924-inductor-autotune-asymmetry/`, `records/20260925-defaults-deterministic/`). The cause and the fix are in [validation](repeatability.md); the steps of the search (the probe methods, the Probe4 and Probe5 launches, the deep traces) are in the [changelog](../CHANGELOG.md) of 1.10.0 to 1.12.2.
 
 ## Measurements on 1.10.2
 

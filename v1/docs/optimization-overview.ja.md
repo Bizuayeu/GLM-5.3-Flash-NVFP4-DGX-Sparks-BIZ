@@ -30,7 +30,7 @@ flowchart LR
 
 | 施策 | 仕組み | 状態 | 既定 | 正典 |
 |---|---|---|---|---|
-| P19 APC | 通常計算由来の状態だけを共有cacheに登録し、同一prefixのprefillを省略する | 実測した直列・長文prefix再利用の用途で受入（実験用）。cold要求は小幅に遅い | on（`cache.prefix_caching=true`） | [P19](benchmarks.ja.md#全モデルのprefix-caching独立評価p19)／[正しさの関門](validation.ja.md#prefix-cacheの正しさの関門) |
+| P19 APC | 通常計算由来の状態だけを共有cacheに登録し、同一prefixのprefillを省略する | 実測した直列・長文prefix再利用の用途で受入（実験用）。cold要求は小幅に遅い | on（`cache.prefix_caching=true`） | [P19](benchmarks.ja.md#全モデルのprefix-caching独立評価p19)／[正しさの関門](correctness-gates.ja.md#prefix-cacheの正しさの関門) |
 | checkpoint保持（`cache.prefix_cache_retention_interval`） | KDA checkpointをscheduler blockごとに保持し、途中編集・分岐後に復元できるHを伸ばす | 通常priming済み・直列の途中編集用途で採用。実測したarmは標準の間隔4,352。`dense`は実測した整列配置で同じ標準KDA maskになるが、最終併用の検収は別 | `dense`（キー省略時のruntime既定は0） | [保持A/B/A](benchmarks.ja.md#apcの履歴保持の基準検査)／[契約](launch-safety.ja.md#apcの履歴検証) |
 | P22 APC優先LPA | 復元したHの先を、残余R＝N−T−Hが閾値Bを超えるときだけ近似する。近似状態は要求内に閉じる | 完了（校正・限定品質・最終併用・held-out）。B=128は保守的な候補閾値で、普遍的な損益分岐定数ではない | APCはon、LPAはoff（有効化時に `lpa.break_even_tokens=128` を適用） | [設計](apc-lpa-design.ja.md)／[校正](benchmarks.ja.md#apc優先lpaの損益分岐計測p22) |
 | P25 page重複排除 | 既にcache済みのblockを持つhashで満杯のblockを登録せず、MTP下で再送した履歴が古い履歴を追い出さないようにする | 採用（1.9.0） | off。公開した任意設定ではon（`runtime.prefix_page_dedup`） | [1.9.0](benchmarks.ja.md#190での測定) |
@@ -91,7 +91,7 @@ flowchart LR
 | 用途 | 構成 | 根拠 | 注意 |
 |---|---|---|---|
 | 生成重視・直列（コード。配布既定） | 固定のcheckpoint、MTP k=3、unpack融合、非同期検査、FA2 prefill、APC、再現性のスイッチ、読み手のspin、1系列。effortを指定しない要求は `high` | [配布用の既定設定](server-configuration.ja.md#配布用の既定設定) | 通常運用として受入（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。固定の重みに対してlossless |
-| 日本語散文 | 公開した任意設定（NVFP4 BIZ AXL） | [公開した任意設定と配布既定の差](server-configuration.ja.md#公開した任意設定と配布既定の差)／[配信profile](benchmarks.ja.md#基準の2台の配信profileattentionと-lm_head-の再パック深さ3) | losslessではない。その費用はREADMEの比較にある（[確認した範囲](../README.ja.md#確認した範囲)）。prefix cacheの関門は判定不能だった（[関門](validation.ja.md#prefix-cacheの正しさの関門)） |
+| 日本語散文 | 公開した任意設定（NVFP4 BIZ AXL） | [公開した任意設定と配布既定の差](server-configuration.ja.md#公開した任意設定と配布既定の差)／[配信profile](benchmarks.ja.md#基準の2台の配信profileattentionと-lm_head-の再パック深さ3) | losslessではない。その費用はREADMEの比較にある（[確認した範囲](../README.ja.md#確認した範囲)）。prefix cacheの関門は判定不能だった（[関門](correctness-gates.ja.md#prefix-cacheの正しさの関門)） |
 | 長い入力のバッチprefill | MTP k=3＋unpack融合＋非同期検査＋LPA cut32／tail512、FA2 prefillはoff、APCは任意 | P18／P22最終併用 | LPAはバッチ用opt-inで近似、FA2 prefillと排他、共有prefixの再利用を失う |
 | prefix再利用重視 | APC＋LPA（P22、B=128）＋`dense`保持、MTPなし | 同一入力再利用・途中編集のA/B/A | 通常primingで共有cacheを育てる。cold処理は小幅悪化 |
 | throughput | 2系列：公開した任意設定のexample | [同時実行の範囲](validation.ja.md#同時実行の範囲) | 要求が重なると処理量が増える。completionは同時に走る要求に依る。LPAは1系列限定。3系列以上は3台が要る（次の行） |

@@ -14,7 +14,7 @@ schema_version = 1
 [runtime]
 canonical_moe_order = true # One token order inside each expert; needs an image with GLM53_MOE_ORDER_API=2 (1 only to recover a launched pair)
 # Without it identical requests do not repeat exactly: the align kernel orders an expert's tokens by
-# thread scheduling and the Marlin MoE result depends on it (docs/validation.md). false = comparison arm;
+# thread scheduling and the Marlin MoE result depends on it (docs/repeatability.md). false = comparison arm;
 # omitted = whatever the image defaults to. 同一要求の反復を一致させるexpert内token順の固定。
 # 新規起動には GLM53_MOE_ORDER_API=2 のimageが必要（1は起動済みの対の復旧だけ）。
 stable_indexer_topk = true # Indexer top-k ties go to the lower pool index; needs an image with GLM53_INDEXER_TOPK_API=1
@@ -23,7 +23,7 @@ stable_indexer_topk = true # Indexer top-k ties go to the lower pool index; need
 # indexerのtop-kで同点のpoolを低いindexに決める。同点があると同じ入力から違う候補集合が出て、completionが割れるため。
 inductor_deterministic = true # Inductor picks reduction configs without timing, the same on both ranks
 # The indexer's compiled key norm otherwise picks its config by timing on each rank, two picks differ in
-# bits, and a launch then computes in one of three numerical states (docs/validation.md). Also keeps the
+# bits, and a launch then computes in one of three numerical states (docs/repeatability.md). Also keeps the
 # mode on through the state restore of torch 2.12.1 and 2.13 (pytorch/pytorch#198563); compiles into its own cache.
 # false or omitted = the timed choice. indexerのkey正規化のconfigを計測なしで両rank同じに決める（起動ごとの数値状態の原因）。
 fa2_attention = true # NoPE attention calls of more than six query rows through FlashInfer FA2, the rest on the reference path

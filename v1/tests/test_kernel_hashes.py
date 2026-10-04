@@ -472,7 +472,7 @@ class DifferenceTests(unittest.TestCase):
 
     def test_the_kernel_shapes_are_the_served_indexers(self):
         # index_n_heads 32 x 128, kpool 4, 512 of 540 pools, a 64-pool block
-        # (config.json of the served checkpoint; docs/validation.md).
+        # (config.json of the served checkpoint; docs/repeatability.md).
         self.assertEqual(
             memory_probe.INDEXER_SHAPES,
             {

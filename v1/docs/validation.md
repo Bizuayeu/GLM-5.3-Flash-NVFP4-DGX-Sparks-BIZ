@@ -1,6 +1,14 @@
-# Validation
+# Validation scope and evidence
 
 [日本語](validation.ja.md)
+
+What the 1.x evidence shows and does not show, how a candidate is compared with an unchanged control, the open items, and the scope in which routine use is accepted. Checks with pages of their own:
+
+## Related checks
+
+- [Repeatability](repeatability.md): requantization checks on the fixture, the expert token order, indexer top-k ties and launch states.
+- [Output correctness gates](correctness-gates.md): the prefix-cache correctness gate and multibyte output.
+- [Component validation](component-validation.md#reproduce-the-single-gpu-fixture): reproducing the single-GPU fixture, CPU and component checks, the kpool tail ring repro.
 
 ## Evidence, not production qualification
 
@@ -38,56 +46,6 @@ Before judging a difference, measure the unchanged arm at least twice and preser
 
 `server agreement --reference` accepts one saved result, not two control records. Its `self_agreement` describes within-run repeats. For an unchanged-before / candidate / unchanged-after comparison, preserve all three records and inspect the control pair with the existing `agreement.compare_records` function; do not treat within-run stability as evidence of stability across launches. No second-reference CLI option is provided.
 
-## Reproduce the single-GPU fixture
-
-Use a Linux GB10 host and a verified checkpoint. Run from `v1/` of the checkout. The example uses the default Hugging Face cache; adjust the host mount if yours differs.
-
-~~~sh
-python -m glm53_setup build-reference
-mkdir -p ../state ../records/fixture-check ../state/fixture-cache
-IMAGE=$(python -c 'import json; print(json.load(open("config/runtime.lock.json"))["reference_candidate"]["tag"])')
-HF_CACHE=$HOME/.cache/huggingface
-REVISION=$(python -c 'from glm53_setup.config import REVISION; print(REVISION)')
-~~~
-
-Create a separate four-layer checkpoint, reading the original cache without modifying it. The fixture contains approximately 7.46 GiB of tensors.
-
-~~~sh
-docker run --name glm53-fixture-build --network none --memory 24g --memory-swap 24g -v "$HF_CACHE:/hf:ro" -v "$PWD/../state:/data" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-build --source "/hf/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/$REVISION" --output /data/four-layer
-~~~
-
-Use fresh output directories and container names for new experiments. Existing fixture output is never overwritten.
-
-~~~sh
-docker run --name glm53-fixture-check --gpus all --network none --memory 32g --memory-swap 32g --shm-size 2g -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo -e NVIDIA_TF32_OVERRIDE=0 -v "$PWD/../state/four-layer:/fixture:ro" -v "$PWD/../records/fixture-check:/out" -v "$PWD/../state/fixture-cache:/root/.cache" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-run --fixture /fixture --output /out --backend marlin --context 16384 --chunk 512
-python -m glm53_setup fixture-assess ../records/fixture-check
-~~~
-
-The 24/32 GiB budgets are test limits, not full-model requirements. Set an external experiment deadline and stop the specific test container if it is exceeded. Historical tests used 15 minutes. Containers and results are preserved.
-
-Use `--backend auto` or `--chunk 128` in a fresh run for diagnostic comparison. `passed=false` is not a passing numerical result even if all generations completed.
-
-## CPU and component checks
-
-~~~sh
-python -m unittest discover -s tests -t . -v
-python tools/check_publication.py
-~~~
-
-CPU checks cover CLI dispatch without GPU imports, checkout-relative assets, revision/launch guards, fixture selection and result assessment. CPU CI does not run GPU tests or download weights.
-
-The CLI also exposes `inspect-runtime`, `probe-attention` and `test-reference`; use their `--help` inside the reference image. These component checks cannot substitute for full-model qualification.
-
-### Kpool tail ring repro
-
-`glm53_setup/validation/kpool_ring_repro.py` runs the kpool decode kernel of the reference image on one GPU, without weights: a draft that completes a pool is rejected after the drafts behind it were stashed, and the pool the redo writes is compared byte for byte with the prefill writer's result on the true keys (the no-speculation reference). It is adapted from the regression test of vLLM pull request #58454. On an image that carries `patch_kpool_ring` the expected result is that the one-pool ring (4 slots, the unpatched layout) differs and the MTP-3 ring (8 slots) matches, with a control run matching on both; the command exits nonzero otherwise.
-
-~~~sh
-python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
-~~~
-
-Run on 2026-09-26 on one GB10 with the 1.19.0 candidate image (seed 1): the one-pool ring differed after the rejected draft, the eight-slot ring matched, and the control matched on both. Upstream's kernel tests from the same pull request passed there (33, one skipped). It checks the kernel only, not model output.
-
 ## Evaluations and open items
 
 [FreedomBench](freedombench.md) (the pinned English suite, the reviewed Japanese translation and the framing and evidence-placement extension), [HLE](hle.md) (two 100-question subsets on both profiles, not comparable with published HLE values) and the [harness acceptance matrix](harnesses.md) (per-case status and the accepted route) own their results; the basic API smoke below feeds the matrix's API group and closes no client case. The [NCCL diagnostic](nccl-validation.md) covers transport and synthetic data correctness on two and three ranks, not the full model. Do not turn a fixture, API smoke or collective result into evidence for a scope the acceptance in [SETUP step 6](../SETUP.md#6-qualify-the-full-model) does not declare.
@@ -96,14 +54,14 @@ Open, each with its owner:
 
 - FB-05's LPA part (approximation exercised, A/B/A) is not run while LPA stays off ([FreedomBench](freedombench.md)).
 - Images of 7,922 to 8,000 tokens are refused ([image input](vision.md#limits-and-open-items)).
-- In long context the published option answered with the record before the one asked; the cause is not isolated ([prefix-cache gate](#prefix-cache-correctness-gate)).
+- In long context the published option answered with the record before the one asked; the cause is not isolated ([prefix-cache gate](correctness-gates.md#prefix-cache-correctness-gate)).
 - On the model API the tool-eval-bench Safety Gate is not passed; through the optional [tool-argument gate](harnesses.md#tool-argument-gate) it is.
 - Sustained mixed load and batching combinations are unvalidated, and at TP=3 cancellation, tool calls and failure recovery were not run ([SETUP step 6](../SETUP.md#6-qualify-the-full-model)).
 - MTP depths, decode graphs, prefix caching and APC/LPA combinations have scoped evidence only ([speculative decoding](speculative-decoding.md), [optimization catalog](optimization-catalog.md), [prefix caching](benchmarks.md#independent-full-model-prefix-caching-p19), [P22 contract](apc-lpa-design.md)).
 
 ## Full-model scope
 
-**Status.** Routine use is **accepted** for both profiles on two hosts at TP=2 and on three hosts at TP=3, each with the settings in [server configuration](server-configuration.md) and within the [concurrency scope](#concurrency-scope). [SETUP step 6](../SETUP.md#6-qualify-the-full-model) is the record of that acceptance, its dates and extents, and of where each item's evidence is; if this page or the README ever differs from it, step 6 holds. Outside that scope (other hardware, more sequences than step 6 states, video input, unsupported request settings) nothing is qualified. The subsections after the concurrency scope record how the evidence was gathered.
+**Status.** Routine use is **accepted** for both profiles on two hosts at TP=2 and on three hosts at TP=3, each with the settings in [server configuration](server-configuration.md) and within the [concurrency scope](#concurrency-scope). [SETUP step 6](../SETUP.md#6-qualify-the-full-model) is the record of that acceptance, its dates and extents, and of where each item's evidence is; if this page or the README ever differs from it, step 6 holds. Outside that scope (other hardware, more sequences than step 6 states, video input, unsupported request settings) nothing is qualified. The subsection after the concurrency scope records how the evidence was gathered; the other checks are listed under [related checks](#related-checks).
 
 ### Concurrency scope
 
@@ -115,7 +73,7 @@ Open, each with its owner:
 
 **Evidence for the two-sequence profile.** On one launch on 2026-09-23, two ~200K passphrase requests sent together were both answered correctly without preemption, two tool-call requests together both returned the right call, and an image and a prose request together both answered ([measurements on 1.10.2](benchmarks.md#measurements-on-1102), with the times, decode speeds and memory). Three launches that day (numerical states 2, 1 and 2) each passed the routine after a switch — weight digest equal on both ranks to the first launch's, decode check, request traces, and on the third the kernel hashes — the sparkDash and tool-eval runs of [1.10.4](benchmarks.md#measurements-on-1104) ran on the second, and the three switches completed without recovery. [SETUP step 6](../SETUP.md#6-qualify-the-full-model) lists the items. Not measured: two requests at the 262,144-token boundary together. Cancellation is harness case [H-06](harnesses.md#acceptance-matrix-and-status), and a new launch is checked, not assumed, as on the defaults.
 
-**Evidence for TP=3.** On 2026-09-29 and 10-01 launches of both profiles on three hosts passed the decode check (one completion per task within a launch, and a second launch of the distributed defaults on the same runtime cache repeating the first bit for bit), teacher-forced NLL, a ~200K passphrase, [image input](vision.md#three-hosts-at-tp3) and the [Japanese/Korean check](#multibyte-output); the weight digest per rank was taken on the distributed defaults. Teacher-forced NLL against TP=2 is accepted by comparing the two records position by position, not by a fixed margin on the mean: argmax agreement of at least 0.93 and a mean move of the actual token's log-probability within 1.5 times that between TP=2 launches of the same weights that differ only in numerical state. Both profiles meet it. The decode-check hashes of a TP=3 launch are valid only with each host's runtime cache ([launch safety](launch-safety.md#three-nodes)). Figures in [measurements on 1.24.0](benchmarks.md#measurements-on-1240).
+**Evidence for TP=3.** On 2026-09-29 and 10-01 launches of both profiles on three hosts passed the decode check (one completion per task within a launch, and a second launch of the distributed defaults on the same runtime cache repeating the first bit for bit), teacher-forced NLL, a ~200K passphrase, [image input](vision.md#three-hosts-at-tp3) and the [Japanese/Korean check](correctness-gates.md#multibyte-output); the weight digest per rank was taken on the distributed defaults. Teacher-forced NLL against TP=2 is accepted by comparing the two records position by position, not by a fixed margin on the mean: argmax agreement of at least 0.93 and a mean move of the actual token's log-probability within 1.5 times that between TP=2 launches of the same weights that differ only in numerical state. Both profiles meet it. The decode-check hashes of a TP=3 launch are valid only with each host's runtime cache ([launch safety](launch-safety.md#three-nodes)). Figures in [measurements on 1.24.0](benchmarks.md#measurements-on-1240).
 
 **Repeatability with two sequences.** A request alone repeats bit for bit. A request that shares steps with another can get a different completion, because the pinned backend has no batch-invariant mode ([evidence table](#evidence-not-production-qualification)) and what shares a call changes a request's result: the NVFP4 Marlin MoE splits along K by the number of expert blocks, a step shared with a prefill runs the prefill-sized kernels, and at MTP depth 3 a partner makes decode steps eight rows, more than the six that the attention keeps off FA2, so they go through FA2 instead of the reference computation ([server configuration](server-configuration.md#attention-cache-and-checkpoint)). The attention is not the main cause: forced onto the reference computation for every call, it left most two-sequence differences in place, and the lead suspects are the MoE and the prefill-sized kernels of a step shared with a prefill ([reachability in serving](benchmarks.md#reachability-in-serving-2026-09-26)). This holds on both weights, and a pair still repeats when it is sent in the same order ([measurements on 1.14.0](benchmarks.md#measurements-on-1140)). This is declared behaviour, not an accepted defect. **For completions that repeat under any load, serve `max_num_seqs = 1`**: requests sent together then queue and each gets its lone completion; the throughput two sequences gain when requests overlap is in [measurements on 1.14.0](benchmarks.md#measurements-on-1140).
 
@@ -128,36 +86,3 @@ The full model passed basic served-ID, English/Japanese final-answer, OpenAI SSE
 [Official vLLM synthetic benchmarks](benchmarks.md) completed all planned measured requests. MTP passed the same benchmark and API cases at k=1 and k=3 before it entered the template, with a separate metadata view that keeps the original checkpoint and excludes its BF16 MTP layer from global NVFP4; depths one to five and the choice of three are in [speculative decoding](speculative-decoding.md). None of these checks establishes application quality on its own; routine use within the declared scope rests on the acceptance recorded in [SETUP step 6](../SETUP.md#6-qualify-the-full-model).
 
 The 1.25.0 image adds the samplers' vocabulary bound (vLLM #50843), which leaves a row of finite logits untouched. On 2026-10-02 both profiles gave the decode-check completions of 1.24.0 on it bit for bit, and the published option's `server agreement` matched its reference record exactly (argmax agreement 1.0, no log-probability movement).
-
-### Prefix-cache correctness gate
-
-On 2026-10-02 [`server prefix-gate`](server-configuration.md#commands) ran on the reference pair with the 1.25.0 image, both profiles at TP=2, each at both lengths. The distributed defaults passed both: six of six cold and warm, every warm request restoring 9,216 cached tokens of a 14,014-token prompt and 92,160 of 98,982. The published option was inconclusive (`cold_incorrect`) at both lengths: five of six cold and warm, the miss the same task with the same wrong answer in both phases. Each missed task was sent again alone under a fresh salt (one request, 0 cached tokens) to the pair then serving the option (1.24.0 checkout, image `99e6cf7a…`, the same request body) and returned the same wrong code, so the miss is not a cache defect; prefix caching stays on in serving.
-
-**Off-by-one retrieval in long context, measured on the published option only.** Each wrong answer was the code of the record immediately before the one asked: asked for Record 03008 in the 98,982-token log, it answered `LPDHS`, the code of Record 03007; asked for Record 00374 in the 14,013-token log, `GYCUK`, that of Record 00373. The other record asked in the same task was right both times. The distributed defaults answered all six tasks right on the same logs and tasks at both lengths. The cause is not isolated: the option differs from the defaults in its W4A16 attention projections and `lm_head`, and also in other profile settings (two sequences, 6 GiB of KV, page dedup). The attention requantization is the most likely cause only as a hypothesis.
-
-The gate sends its six requests in parallel under one salt, so in the cold phase only the first to arrive computes the prefix uncached and the others may read what it wrote; the single requests above are the uncached evidence.
-
-### Multibyte output
-
-ModelOpt NVFP4 checkpoints whose gate and up projections carry different global scales were reported to garble multibyte text ([vLLM #54150](https://github.com/vllm-project/vllm/issues/54150)). The pinned NVIDIA checkpoint is not affected: no full-model log shows the `w1_weight_scale_2 must match` warning, and in the four-layer fixture layer 3's gate and up scales match for all 288 experts. Another launcher for this model reads the garbling differently: tonyd2wild's checkpoint guard (commit `abb38bb`, 2026-09-24, no code adopted) refuses ModelOpt builds that quantize attention, naming those as the builds that corrupt. BIZ AXL quantizes the attention projections (W4A16, repacked here rather than by ModelOpt), so it has the form that guard refuses.
-
-`server mojibake` on rank 0 monitors this. It asks for Japanese and Korean answers of at least 400 characters, three times each, at temperature 0 or sampled (`--temperature`, `--top-p`), and counts U+FFFD, lone surrogates and control characters other than line breaks and tabs in both the answer and the reasoning; a short, off-language, empty, malformed or failed answer is inconclusive, never a pass, and the full answers stay in `records/<stamp>-mojibake-r0/result.json`. No run has found such a character:
-
-| Date | Profile | Sampling | Answers |
-|---|---|---|---|
-| 2026-09-17 | Distributed defaults, TP=2 (1.3.1) | Temperature 0 | Six: 852–1,024 characters, 93–95% in the target script, all finished with `stop`; the reasoning field was empty at that profile's low effort, so reasoning text was not exercised |
-| 2026-09-21, 09-25 | Published option, TP=2 (on 09-25 the two-sequence profile) | Temperature 0 | Six each; on 09-25 1,154 Japanese and 1,309 Korean characters, 93–94% in the target script, all finished with `stop` |
-| 2026-09-29, 10-01 | Distributed defaults, then the published option, TP=3 | Temperature 0 | Six each |
-| 2026-10-02 | Both profiles, TP=2 (1.25.0) | Temperature 1.0, top_p 0.95, seeds 42 to 47 | Six each |
-
-Answers at temperature 0 do not decide between the two readings above; the sampled answers did not find the garbling either.
-
-### Repeatability
-
-**Requantization checks on the fixture.** `quant-error`, `agreement-fixture` and `agreement-compare` compare a requantized copy of the four-layer fixture with the original: the error of every NVFP4 tensor that replaced a BF16 one (all other tensors byte-identical), and teacher-forced full-vocabulary KL, argmax agreement and the Jaccard of layer 3's sparse-MLA candidate sets at 93 positions of an 8,192-token prompt. The fixture is not a language model (teacher-forced top-1 is 1–3%), so only movement against the original is read, against the original's own restart-to-restart difference: two starts of the unmodified four-layer fixture differed in every candidate set (mean Jaccard 0.986) while repeats inside one process were bit-identical, and the eight-layer fixture took a different state on each of three starts and was not bit-identical within a process either (argmax agreement 0.99–1.00, KL up to 0.03), on one GPU with no MTP and no prefix cache. The served model shows the same more strongly ([`server agreement`](server-configuration.md#commands)), so the variation grows with depth and is not a product of multi-host serving, MTP or prefix caching.
-
-**Expert token order.** `python -m glm53_setup.validation.run_repeat_trace` names the source on the fixture: the first module whose output differs between two passes is always the routed experts of some MoE layer, with everything before it, the router included, bit-identical. The pinned vLLM's `moe_align_block_size` assigns each expert's token slots with an atomic add from many CUDA threads (with more than 64 experts its deterministic small-batch path is never taken), so the Marlin MoE kernel gets the tokens in a different order on every call, and its result depends on a row's position: 1 to 37 of about a million output elements move by 1e-4 to 1.5e-2, and later routers amplify that. Fixing the order inside each expert (`--canonical-align`) made every pass bit-identical on all five texts and changed no result beyond that noise; with five MoE layers it left prefill of 2,048 tokens unchanged and slowed 128 decoded tokens by about 1% (3.090 and 3.098 s plain, 3.122 and 3.132 s fixed). `runtime.canonical_moe_order` ([server configuration](server-configuration.md#distributed-defaults)) installs it, on by default. On the reference pair (TP=2, MTP k=3, image `e7a2a606…`, one restart per arm) the switch made `server agreement` repeat bit for bit — argmax agreement 1.0, no log-probability movement and NLL equal to four decimals between two runs — where the switch off agreed on 0.926–0.977 of positions; decode was not slower (30.81/31.27/31.06 tok/s against 31.02/25.80/31.17), and the mean MTP acceptance length rose from 3.09 to 3.35. Upstream tracks the order as vLLM issue #52525. Its pull request #48032 (deterministic route alignment, head `a718a4b`) was applied to the pinned source and run on the eight-layer fixture on GB10 on 2026-10-02: it repeated as the local order does (no differing pass in ten comparisons over five texts, against ten of ten without either), wrote the same order as the local one in all 120 checked calls, and cost no measurable decode time on 128 tokens (−0.1 to +0.1%, where the local order cost +1.0 to +1.4%).
-
-**Indexer top-k ties.** A second source of forks survived the expert order fix: the kpool indexer selects 512 pools per query row, and the pinned vLLM's `persistent_topk` (decode) and `top_k_per_row_prefill` return a different set of pools for the same input when pools tie across the 512th rank. With MTP depth 4 on the reference pair, nine repeats of one prose request split (the tokens parted at position 320); a trace inside the serving workers named the same first differing call every time, and in one forking launch the two pools the kernel exchanged between requests had bit-identical scores in a row where 513 of 540 pools reached the 512th value. On one GB10 the decode kernel gave three sets in 1,200 identical calls and the prefill kernel four in 18,000 rows; on the four-layer MTP fixture 17 of 48 identical requests differed first at the same indexer call, 0 of 36 with ties settled by the lower pool index. The same setting gave 0 of 12 in one launch and 12 of 24 in another, so not seeing the fork is no evidence of its absence. `runtime.stable_indexer_topk` ([server configuration](server-configuration.md#distributed-defaults)) installs that tie rule. On the reference pair (image `1b7dc6fa…`, depth 4) prose, count and code then repeated nine of nine with zero log-probability movement in each of three launches; decode was 24.68 tok/s on prose and 45.99 on count against 24.28 and 45.13 before, prefill 1,248.1 against 1,255.5 tok/s on 38,962 tokens, and the 199,652-token passphrase request was answered correctly in 169.1 s against 164.3 s. vLLM pull request #55122 (a deterministic `persistent_topk`) argues performance, with determinism as a side benefit, from a census that found no tie on its own traffic; the ties here were reproduced in the kernel and in a real request, so the rule stays until that kernel is measured on the fixture.
-
-**Launch states.** Without `runtime.inductor_deterministic`, the pair computed in one of three numerical states across launches (eleven, three and two of sixteen checked launches), each repeating bit for bit within itself. The first differing call was the replicated kpool indexer of layer 19 on one rank, whose key differed in low bits: the key is normalised by an Inductor-compiled reduction with three candidate configs (`XBLOCK` 1, 8 and 32), of which 1 sums a row in a different order and differs from the others in 2 of 2,048 rows, and each rank chose by timing at every launch; when the ranks chose from different classes, completions forked where pools tie. `runtime.inductor_deterministic` ([server configuration](server-configuration.md#repeatability-switches)) removes the timing: with it, three launches of each profile computed the same key at every call and gave the same completions, with decode inside the earlier spread. Every launch's state and decode numbers are in [measurements on 1.9.0](benchmarks.md#measurements-on-190), and the steps of the search in the [changelog](../CHANGELOG.md) of 1.10.0 to 1.12.2. The replicated computation is reported to vLLM as [vllm-project/vllm#58636](https://github.com/vllm-project/vllm/issues/58636). Its proposed fix, [vllm-project/vllm#58979](https://github.com/vllm-project/vllm/pull/58979) (the key normalised by the model's eager fp32 `LayerNorm` instead of a compiled leaf), was measured on the pair on 2026-09-28 with `runtime.inductor_deterministic` off: both ranks handed the indexer the same key and got the same candidate set at all 858 traced calls, and the completions repeated across three eager launches and one with decode CUDA graphs, with decode within the spread. The profiles keep `runtime.inductor_deterministic` until a pinned image carries such a fix.

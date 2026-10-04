@@ -29,7 +29,7 @@ prefillと出力生成を含む、クライアント要求時間の中央値（�
 
 GPU部品の検査は、全FP8 byteコードと選定したFP32 scale（符号付きゼロを含む）でTorchのunpackと厳密に一致し、paddingと空候補を含むattention出力も一致しました。全モデルの1出力A/B/Aは、全ケースでtoken IDが一致しました。
 
-128出力のケースは、native／offの反復どうしでも変動しました。別の32出力logprob診断では、offと融合のどちらのrunでも、共通prefix上で候補確率の同点や変化が見つかりました。nativeの反復における共有tokenのlogprob差は約1.31に達しており、摂動が一様に微小であることの証拠にはなりません。このrunは全モデルの決定的な同値性を確かめていません（全モデルで同一要求がbit一致で反復するのは、後の[検証](validation.ja.md#再現性)の修正以降です）。言語品質の受け入れはこのrunの範囲外でした。このbaselineの課題は部品の厳密な算術一致の結果とは分けて扱い、そこから融合固有の劣化も本番検収も推定しません。
+128出力のケースは、native／offの反復どうしでも変動しました。別の32出力logprob診断では、offと融合のどちらのrunでも、共通prefix上で候補確率の同点や変化が見つかりました。nativeの反復における共有tokenのlogprob差は約1.31に達しており、摂動が一様に微小であることの証拠にはなりません。このrunは全モデルの決定的な同値性を確かめていません（全モデルで同一要求がbit一致で反復するのは、後の[検証](repeatability.ja.md)の修正以降です）。言語品質の受け入れはこのrunの範囲外でした。このbaselineの課題は部品の厳密な算術一致の結果とは分けて扱い、そこから融合固有の劣化も本番検収も推定しません。
 
 ## Indexerの観測
 
@@ -51,6 +51,56 @@ P16は2026-09-21にコストの門で中止しました（[indexerの再利用](
 [起動設定](server-configuration.ja.md)で `validation.component_worker=true` を指定し、LPA/MTPをoff、検証済みimageを使います。head側で `python -m glm53_setup.validation.run_components --config /path/to/profile.toml --corpus /path/to/documents.jsonl --output /new/record` を実行します。driverは全応答、実token数、A/B/Aの再現性、時間サンプル、rankごとの重なりを保存します。対応するprofiler traceと資源ログも残してください。
 
 併用した結果は[P18](benchmarks.ja.md#直列併用の評価p18)にあります。
+
+## GPU 1台のfixtureを再現する
+
+Linux版のGB10ホストと、検証済みのcheckpointを使います。checkoutの `v1/` から実行してください。例は既定のHugging Face cacheを前提とするため、環境が異なる場合はホスト側のmountを調整します。
+
+~~~sh
+python -m glm53_setup build-reference
+mkdir -p ../state ../records/fixture-check ../state/fixture-cache
+IMAGE=$(python -c 'import json; print(json.load(open("config/runtime.lock.json"))["reference_candidate"]["tag"])')
+HF_CACHE=$HOME/.cache/huggingface
+REVISION=$(python -c 'from glm53_setup.config import REVISION; print(REVISION)')
+~~~
+
+元のcacheを変更せずに読み取り、別の4層checkpointを作ります。fixtureにはおよそ7.46 GiB分のtensorが入ります。
+
+~~~sh
+docker run --name glm53-fixture-build --network none --memory 24g --memory-swap 24g -v "$HF_CACHE:/hf:ro" -v "$PWD/../state:/data" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-build --source "/hf/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/$REVISION" --output /data/four-layer
+~~~
+
+新しい実験では、出力ディレクトリとcontainer名を新規に用意します。既存のfixture出力を上書きすることはありません。
+
+~~~sh
+docker run --name glm53-fixture-check --gpus all --network none --memory 32g --memory-swap 32g --shm-size 2g -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo -e NVIDIA_TF32_OVERRIDE=0 -v "$PWD/../state/four-layer:/fixture:ro" -v "$PWD/../records/fixture-check:/out" -v "$PWD/../state/fixture-cache:/root/.cache" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-run --fixture /fixture --output /out --backend marlin --context 16384 --chunk 512
+python -m glm53_setup fixture-assess ../records/fixture-check
+~~~
+
+24／32 GiBの予算は試験用の上限であり、フルモデルの必要量ではありません。実験には外部で期限を設け、超過した場合は該当する試験containerを停止します。過去の試験では15分を使いました。containerと結果は保持します。
+
+診断のために比較する場合は、新しいrunで `--backend auto` または `--chunk 128` を使います。生成がすべて完了していても、`passed=false` は数値上の合格ではありません。
+
+## CPUと部品の検査
+
+~~~sh
+python -m unittest discover -s tests -t . -v
+python tools/check_publication.py
+~~~
+
+CPU側の検査は、GPU importなしのCLI振り分け、checkout基準の資材、revision・起動のガード、fixtureの選択、結果の判定を対象とします。CPUのCIはGPU試験を実行せず、重みもダウンロードしません。
+
+CLIは `inspect-runtime`・`probe-attention`・`test-reference` も提供します。reference imageの中で、それぞれの `--help` を参照してください。これらの部品検査は、フルモデルの検収の代わりにはなりません。
+
+### kpool tail ringの再現
+
+`glm53_setup/validation/kpool_ring_repro.py` は、参照imageのkpool decode kernelをGPU 1台で重みなしに動かします。poolを完成させるdraftを、その後ろのdraftがstashされた後で棄却し、やり直しが書くpoolを、正しいkeyに対するprefill側の書き込み結果（投機なしの基準）とbyte単位で比べます。vLLMのpull request #58454の回帰テストを元にしています。`patch_kpool_ring` を持つimageでの期待は、1 pool分のring（4 slot、patch前の配置）が一致せず、MTP 3のring（8 slot）が一致し、対照runはどちらでも一致することです。そうでなければ0以外で終了します。
+
+~~~sh
+python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
+~~~
+
+2026-09-26に1.19.0候補のimageとGB10 1台で実行しました（seed 1）。1 pool分のringは棄却されたdraftの後で一致せず、8 slotのringは一致し、対照はどちらでも一致しました。同じpull requestの上流のkernelテストも通りました（33件、skip 1件）。確かめるのはkernelだけで、モデルの出力ではありません。
 
 ## Decode Graphのfixture独立評価
 

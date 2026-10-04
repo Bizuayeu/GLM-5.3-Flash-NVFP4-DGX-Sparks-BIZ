@@ -101,7 +101,7 @@ python tools/check_publication.py
 
 **重みの読み込み：imageのclone patchを使い、vLLMを自分で起動するときも `--safetensors-load-strategy eager` や `enable_multithread_load` は渡しません。** shardを丸ごとメモリに持ち、2026-09-26にeagerで片方のrankがメモリを使い切り、hostが約15分応答しなくなりました。転送速度と、imageが各tensorをcloneする理由は[起動検査](docs/operations.ja.md#フルモデルの起動検査)（`GLM53_LOAD_CLONE`）にあります。
 
-最初のホストで[単体GPU fixture手順](docs/validation.ja.md#gpu-1台のfixtureを再現する)を実施します。資源上限、精度、出力、判定を一緒に保存してください。fixture合格は一部カーネルと状態挙動の確認であり、フルモデル品質・複数rankでの合格ではありません。他方の準備後にも適切な部品検査を行います。
+最初のホストで[単体GPU fixture手順](docs/component-validation.ja.md#gpu-1台のfixtureを再現する)を実施します。資源上限、精度、出力、判定を一緒に保存してください。fixture合格は一部カーネルと状態挙動の確認であり、フルモデル品質・複数rankでの合格ではありません。他方の準備後にも適切な部品検査を行います。
 
 **通過条件:** ベース検査、参照イメージID、fixture判定、残る数値上の制約を記録済み。
 
@@ -171,7 +171,7 @@ python -m glm53_setup server preflight --rank 0
 | 層、メモリ、保護、KV、OOMなし | [1.24.0での測定](docs/benchmarks.ja.md#1240での測定)：両profileを全rankでロードし、rankあたりの重み、長さごとの起動行のKV、読み込み中と最長の要求の間の各ホストの最小空きを記録 |
 | 短文・長文、context境界、繰り返し要求、キャンセル | [1.24.0での測定](docs/benchmarks.ja.md#1240での測定)：両profileで約200Kの合言葉。公開した任意設定で約300K・500K・1M tokenのpromptの3位置の合言葉。配布既定で約200Kの要求2本と3本の同時がすべて正答（rankあたりKV 24 GiBで測定。12本のprofileの30 GiBではない）。decode検査の各題は起動内でbit一致で反復し、配布既定の2回目の起動は同じホストごとのruntime cacheで1回目を再現した（[起動の安全](docs/launch-safety.ja.md#3ノード)）。キャンセルはTP=3では未実施 |
 | ツール利用 | TP=3では未実施。根拠は上のTP=2の記録（重みとchat templateは同じ） |
-| 精度・backend、品質、throughput | 教師強制NLLをTP=2と位置ごとに比べ[検証](docs/validation.ja.md#フルモデルの範囲)の許容内、両profileのdecode（[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)）。両profileで画像入力（[画像入力](docs/vision.ja.md#3台のtp3)）と日本語・韓国語の検査（[マルチバイト出力](docs/validation.ja.md#マルチバイト出力)） |
+| 精度・backend、品質、throughput | 教師強制NLLをTP=2と位置ごとに比べ[検証](docs/validation.ja.md#フルモデルの範囲)の許容内、両profileのdecode（[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)）。両profileで画像入力（[画像入力](docs/vision.ja.md#3台のtp3)）と日本語・韓国語の検査（[マルチバイト出力](docs/correctness-gates.ja.md#マルチバイト出力)） |
 | 制御された停止・再起動と復旧 | 2026-09-29と10-01の対からリングへの移動とその戻しが完了し、各起動のあとにdecode検査を実施。`cluster switch` はrank数が変わる切替を拒むため、移動は先に全rankを止める（[起動の安全](docs/launch-safety.ja.md#3ノード)）。3 rankの障害復旧のドリルは未実施 |
 
 **3台のTP=3の判定:** スイッチなしのQSFPリングでつないだ3台のGB10について、2026-10-01より両profileで通常運用としての受け入れが成立。配布既定では約200Kの要求3本の同時まで、公開した任意設定では1要求ずつcheckpointの1,048,576 tokenまで。対象外：配布既定の262,144 token超、長い要求の4本以上の同時、TP=3で測っていないキャンセル・ツール利用・障害復旧。

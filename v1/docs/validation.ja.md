@@ -1,6 +1,14 @@
-# 検証範囲
+# 検証範囲と証拠
 
 [English](validation.md)
+
+1.xの証拠が示すことと示さないこと、候補と無改変対照の比べ方、未解決の事項、通常運用を受け入れた範囲を扱います。独立したページを持つ検査：
+
+## 関連する検査
+
+- [再現性](repeatability.ja.md)：fixtureでの再量子化検査、expert内のtoken順序、indexerのtop-kの同点、起動状態。
+- [出力の正しさの関門](correctness-gates.ja.md)：prefix cacheの正しさの関門とマルチバイト出力。
+- [部品検証](component-validation.ja.md#gpu-1台のfixtureを再現する)：GPU 1台のfixtureの再現、CPUと部品の検査、kpool tail ringの再現。
 
 ## 証拠であり、本番認定ではない
 
@@ -38,56 +46,6 @@ vLLMは[既定での再現性を保証していません](https://github.com/vll
 
 `server agreement --reference` が受け取る参照結果は1本で、対照2本には対応しません。`self_agreement` は起動内の反復を測ります。無改変→候補→無改変の比較では3本を保存し、既存の `agreement.compare_records` 関数で対照同士も確認してください。起動内の安定を起動間の安定と読み替えません。2本目の参照を受けるCLIオプションは設けていません。
 
-## GPU 1台のfixtureを再現する
-
-Linux版のGB10ホストと、検証済みのcheckpointを使います。checkoutの `v1/` から実行してください。例は既定のHugging Face cacheを前提とするため、環境が異なる場合はホスト側のmountを調整します。
-
-~~~sh
-python -m glm53_setup build-reference
-mkdir -p ../state ../records/fixture-check ../state/fixture-cache
-IMAGE=$(python -c 'import json; print(json.load(open("config/runtime.lock.json"))["reference_candidate"]["tag"])')
-HF_CACHE=$HOME/.cache/huggingface
-REVISION=$(python -c 'from glm53_setup.config import REVISION; print(REVISION)')
-~~~
-
-元のcacheを変更せずに読み取り、別の4層checkpointを作ります。fixtureにはおよそ7.46 GiB分のtensorが入ります。
-
-~~~sh
-docker run --name glm53-fixture-build --network none --memory 24g --memory-swap 24g -v "$HF_CACHE:/hf:ro" -v "$PWD/../state:/data" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-build --source "/hf/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/$REVISION" --output /data/four-layer
-~~~
-
-新しい実験では、出力ディレクトリとcontainer名を新規に用意します。既存のfixture出力を上書きすることはありません。
-
-~~~sh
-docker run --name glm53-fixture-check --gpus all --network none --memory 32g --memory-swap 32g --shm-size 2g -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo -e NVIDIA_TF32_OVERRIDE=0 -v "$PWD/../state/four-layer:/fixture:ro" -v "$PWD/../records/fixture-check:/out" -v "$PWD/../state/fixture-cache:/root/.cache" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-run --fixture /fixture --output /out --backend marlin --context 16384 --chunk 512
-python -m glm53_setup fixture-assess ../records/fixture-check
-~~~
-
-24／32 GiBの予算は試験用の上限であり、フルモデルの必要量ではありません。実験には外部で期限を設け、超過した場合は該当する試験containerを停止します。過去の試験では15分を使いました。containerと結果は保持します。
-
-診断のために比較する場合は、新しいrunで `--backend auto` または `--chunk 128` を使います。生成がすべて完了していても、`passed=false` は数値上の合格ではありません。
-
-## CPUと部品の検査
-
-~~~sh
-python -m unittest discover -s tests -t . -v
-python tools/check_publication.py
-~~~
-
-CPU側の検査は、GPU importなしのCLI振り分け、checkout基準の資材、revision・起動のガード、fixtureの選択、結果の判定を対象とします。CPUのCIはGPU試験を実行せず、重みもダウンロードしません。
-
-CLIは `inspect-runtime`・`probe-attention`・`test-reference` も提供します。reference imageの中で、それぞれの `--help` を参照してください。これらの部品検査は、フルモデルの検収の代わりにはなりません。
-
-### kpool tail ringの再現
-
-`glm53_setup/validation/kpool_ring_repro.py` は、参照imageのkpool decode kernelをGPU 1台で重みなしに動かします。poolを完成させるdraftを、その後ろのdraftがstashされた後で棄却し、やり直しが書くpoolを、正しいkeyに対するprefill側の書き込み結果（投機なしの基準）とbyte単位で比べます。vLLMのpull request #58454の回帰テストを元にしています。`patch_kpool_ring` を持つimageでの期待は、1 pool分のring（4 slot、patch前の配置）が一致せず、MTP 3のring（8 slot）が一致し、対照runはどちらでも一致することです。そうでなければ0以外で終了します。
-
-~~~sh
-python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
-~~~
-
-2026-09-26に1.19.0候補のimageとGB10 1台で実行しました（seed 1）。1 pool分のringは棄却されたdraftの後で一致せず、8 slotのringは一致し、対照はどちらでも一致しました。同じpull requestの上流のkernelテストも通りました（33件、skip 1件）。確かめるのはkernelだけで、モデルの出力ではありません。
-
 ## 評価と未解決の事項
 
 [FreedomBench](freedombench.ja.md)（固定した英語の設問、確認済みの日本語訳、言い回しと証拠配置の追加試験）、[HLE](hle.ja.md)（100問の部分集合二つを両profileで。公開されているHLEの値とは比べられない）、[ハーネス受け入れ一覧](harnesses.ja.md)（ケース別の状態と受け入れた経路）がそれぞれ結果の正典です。後述の基礎APIスモークは一覧のAPI群に反映され、クライアントのケースを終わらせません。[NCCL診断](nccl-validation.ja.md)の範囲は2 rankと3 rankでのtransportと合成データの正当性で、フルモデルではありません。fixture、APIスモーク、collectiveの結果を、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)の受け入れが宣言していない範囲の証拠に変えないでください。
@@ -96,14 +54,14 @@ python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
 
 - FB-05のLPAの部分（近似を実際に通すA/B/A）は、LPAがoffの間は未実施（[FreedomBench](freedombench.ja.md)）。
 - 7,922〜8,000 tokenの画像は拒否される（[画像入力](vision.ja.md#限界と未解決の事項)）。
-- 長いcontextで、公開した任意設定は問われた記録の直前の記録で答えた。原因は切り分けていない（[prefix cacheの関門](#prefix-cacheの正しさの関門)）。
+- 長いcontextで、公開した任意設定は問われた記録の直前の記録で答えた。原因は切り分けていない（[prefix cacheの関門](correctness-gates.ja.md#prefix-cacheの正しさの関門)）。
 - モデルのAPIではtool-eval-benchのSafety Gateを通らない。任意の[tool引数ゲート](harnesses.ja.md#tool引数ゲート)越しでは通る。
 - 持続的な混在負荷とbatchingの組合せは未検証。TP=3ではキャンセル、ツール利用、障害からの復旧を実施していない（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。
 - MTPの深さ、decodeのGraphs、prefix caching、APC／LPAの併用には限定した証拠しかない（[投機的デコーディング](speculative-decoding.ja.md)、[施策台帳](optimization-catalog.ja.md)、[prefix caching](benchmarks.ja.md#全モデルのprefix-caching独立評価p19)、[P22の契約](apc-lpa-design.ja.md)）。
 
 ## フルモデルの範囲
 
-**状態。** 2台のTP=2と3台のTP=3で、両profileが通常運用として**受け入れ済み**です。いずれも[起動設定](server-configuration.ja.md)の設定で、[同時実行の範囲](#同時実行の範囲)の内側です。その受け入れの日付と範囲、各項目の証拠の所在は[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)が記録で、本ページやREADMEが食い違ったら手順6が優先します。その範囲の外（他のハードウェア、手順6の範囲を超える同時数、動画入力、未対応の要求設定）は何も検収していません。同時実行の範囲に続く小節は、証拠をどう集めたかの記録です。
+**状態。** 2台のTP=2と3台のTP=3で、両profileが通常運用として**受け入れ済み**です。いずれも[起動設定](server-configuration.ja.md)の設定で、[同時実行の範囲](#同時実行の範囲)の内側です。その受け入れの日付と範囲、各項目の証拠の所在は[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)が記録で、本ページやREADMEが食い違ったら手順6が優先します。その範囲の外（他のハードウェア、手順6の範囲を超える同時数、動画入力、未対応の要求設定）は何も検収していません。同時実行の範囲に続く小節は、証拠をどう集めたかの記録です。他の検査は[関連する検査](#関連する検査)にあります。
 
 ### 同時実行の範囲
 
@@ -115,7 +73,7 @@ python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
 
 **同時2系列profileの証拠。** 2026-09-23の1起動で、約200Kの合言葉要求2本を同時に送って両方正答・preemptionなし、tool呼び出し2本の同時で両方が正しい呼び出し、画像1本と散文1本の同時で両方回答しました（[1.10.2での測定](benchmarks.ja.md#1102での測定)。時間・decode速度・メモリもそこにあります）。同日の3起動（数値状態は2・1・2）がそれぞれ切替後の定型——両rankの重みのdigestが初回起動と一致、decode検査、要求のtrace、3起動目はkernel hashも——を通り、[1.10.4](benchmarks.ja.md#1104での測定)のsparkDashとtool-evalは2起動目で走り、3回の切替はいずれも復旧なしで完了しました。項目は[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)にあります。未測定：境界262,144 tokenの要求2本の同時。キャンセルはハーネスのケース[H-06](harnesses.ja.md#受け入れ試験一覧と実施状態)で、新しい起動は配布既定と同じく仮定せず検査します。
 
-**TP=3の証拠。** 2026-09-29と10-01に、3台での両profileの起動が、decode検査（起動内で課題ごとに1種類、配布既定の同じruntime cacheでの2回目の起動は1回目とbit単位で一致）、教師強制のNLL、約200Kの合言葉、[画像入力](vision.ja.md#3台のtp3)、[日本語・韓国語の検査](#マルチバイト出力)を通りました。rankごとの重みのdigestは配布既定で取りました。TP=2に対する教師強制のNLLは、平均の差の固定幅ではなく、二つの記録を位置ごとに比べて受け入れます：argmax一致0.93以上、実際のtokenのlog確率の動きの平均が、数値状態だけが違う同じ重みのTP=2の起動同士の1.5倍以内。両profileとも満たしました。TP=3の起動のdecode検査のhashは、各ホストのruntime cacheと組のときだけ有効です（[起動の安全](launch-safety.ja.md#3ノード)）。数値は[1.24.0での測定](benchmarks.ja.md#1240での測定)。
+**TP=3の証拠。** 2026-09-29と10-01に、3台での両profileの起動が、decode検査（起動内で課題ごとに1種類、配布既定の同じruntime cacheでの2回目の起動は1回目とbit単位で一致）、教師強制のNLL、約200Kの合言葉、[画像入力](vision.ja.md#3台のtp3)、[日本語・韓国語の検査](correctness-gates.ja.md#マルチバイト出力)を通りました。rankごとの重みのdigestは配布既定で取りました。TP=2に対する教師強制のNLLは、平均の差の固定幅ではなく、二つの記録を位置ごとに比べて受け入れます：argmax一致0.93以上、実際のtokenのlog確率の動きの平均が、数値状態だけが違う同じ重みのTP=2の起動同士の1.5倍以内。両profileとも満たしました。TP=3の起動のdecode検査のhashは、各ホストのruntime cacheと組のときだけ有効です（[起動の安全](launch-safety.ja.md#3ノード)）。数値は[1.24.0での測定](benchmarks.ja.md#1240での測定)。
 
 **同時2系列での反復性。** 単独の要求はbit一致で反復します。他の要求とstepを共有した要求は違うcompletionになりえます。固定したbackendにはbatch-invariant modeが無く（[証拠の表](#証拠であり本番認定ではない)）、呼び出しを共有するものが要求の結果を変えるためです：NVFP4のMarlin MoEはK方向をexpert block数で分け、prefillと共有したstepはprefill用のkernelを通り、MTPの深さ3では相方がいるとdecodeのstepが8行になり、6行を超えるのでattentionが参照計算の代わりにFA2を通ります（[起動設定](server-configuration.ja.md#attentionとcacheとcheckpoint)）。attentionは主因ではありません：すべての呼び出しを参照計算に切り替えても2系列の差の多くは残り、容疑者の先頭は、MoEと、prefillと共有したstepのprefill用のkernelです（[servingでの到達性](benchmarks.ja.md#servingでの到達性2026-09-26)）。どちらの重みでも同じで、同じ順に送った組は反復します（[1.14.0での測定](benchmarks.ja.md#1140での測定)）。これは宣言した挙動であって、受け入れた欠陥ではありません。**どんな負荷でも反復するcompletionが要る場合は `max_num_seqs = 1` で配信します**。同時に送った要求は待ち行列に入り、それぞれ単独のcompletionになります。要求が重なるときに2系列で増える処理量は[1.14.0での測定](benchmarks.ja.md#1140での測定)にあります。
 
@@ -128,36 +86,3 @@ reference imageは、2台のGB10ホストで45層の言語層すべてを、Marl
 [vLLM公式の合成ベンチマーク](benchmarks.ja.md)は、計画した計測要求をすべて完了しました。MTPはテンプレートに入る前に、k=1とk=3で同じベンチとAPIのケースに合格しました。別のメタデータviewは、元のcheckpointを保ったまま、そのBF16 MTP層を全体のNVFP4から除外します。深さ1〜5と3の選定は[投機的デコーディング](speculative-decoding.ja.md)にあります。これらの確認はどれも、単体ではアプリケーションの品質を示しません。宣言した範囲での通常運用は、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)に記録した受け入れに拠ります。
 
 1.25.0のimageには、samplerの語彙の範囲のガード（vLLM #50843）が入っています。有限のlogitsの行には何もしません。2026-10-02、このimageで両profileのdecodeの確認は1.24.0のcompletionとbit単位で同じになり、公開した任意設定の `server agreement` は基準の記録と完全に一致しました（argmaxの一致1.0、log確率の動きなし）。
-
-### prefix cacheの正しさの関門
-
-2026-10-02、参照機で1.25.0のimageを使い、TP=2の両profileで [`server prefix-gate`](server-configuration.ja.md#コマンド) を2つの長さで流しました。配布既定は両方とも合格です。coldもwarmも6問中6問正答で、warmの要求はどれも14,014 tokenのpromptのうち9,216 token、98,982 tokenのうち92,160 tokenをcacheから戻しました。公開した任意設定は両方の長さで判定不能（`cold_incorrect`）でした。coldもwarmも6問中5問正答で、外れはどちらの段でも同じ課題、同じ誤答です。外れた課題を、そのとき任意設定を配信していた対（1.24.0のcheckout、image `99e6cf7a…`、要求の本文は同じ）へ新しいsaltで1本だけ送り直す（要求1本、cached 0 token）と、同じ誤ったコードが返りました。cacheの不具合ではないので、配信のprefix cachingはonのままです。
-
-**長いcontextでの1つずれた読み取り。公開した任意設定だけで測った所見です。** 誤答はどれも、問われた記録の直前の記録のコードでした。98,982 tokenのログでRecord 03008を問うとRecord 03007のコード `LPDHS` を、14,013 tokenのログでRecord 00374を問うとRecord 00373の `GYCUK` を答えました。同じ課題で問うたもう一方の記録は、どちらも正答です。配布既定は同じログと課題で、両方の長さとも6問すべてに正答しました。原因は切り分けていません。任意設定はW4A16のattention射影と `lm_head` のほか、profileの他の設定（2系列、6 GiBのKV、pageの重複排除）でも配布既定と違います。attentionの再量子化が最も疑わしいというのは仮説にとどまります。
-
-関門は6本の要求を1つのsaltで並列に送るため、coldの段でもcacheを使わずにprefixを計算するのは最初に届いた1本だけで、残りはそれが書いたものを読むことがあります。cacheを使わない計算の証拠は、上の1本ずつの送り直しです。
-
-### マルチバイト出力
-
-gate射影とup射影のglobal scaleが食い違うModelOpt NVFP4 checkpointでは、多バイト文字が化けると報告されています（[vLLM #54150](https://github.com/vllm-project/vllm/issues/54150)）。固定したNVIDIAのcheckpointは該当しません。フルモデルのどのログにも `w1_weight_scale_2 must match` の警告は出ておらず、4層fixtureのlayer 3ではexpert 288個すべてでgateとupのscaleが一致しています。同じモデルの別のlauncherは、化けの原因を別に読んでいます。tonyd2wildのcheckpoint guard（commit `abb38bb`、2026-09-24、コードは採用しない）は、attentionを量子化したModelOptのbuildを化ける側として拒否します。BIZ AXLはattention射影を量子化している（W4A16、ModelOptではなく本リポジトリでのrepack）ので、そのguardが拒否する形に当たります。
-
-rank 0 の `server mojibake` で監視します。日本語と韓国語で400文字以上の回答を、temperature 0またはsampled（`--temperature`、`--top-p`）で3回ずつ求め、回答とreasoningの両方でU+FFFD・孤立サロゲート・改行とタブ以外の制御文字を数えます。短い回答、別の言語の回答、空の回答、形の壊れた応答、失敗した要求は判定不能とし、合格にはしません。回答の全文は `records/<stamp>-mojibake-r0/result.json` に残ります。該当文字はどの実行でも見つかっていません。
-
-| 日付 | profile | sampling | 回答 |
-|---|---|---|---|
-| 2026-09-17 | 配布既定、TP=2（1.3.1） | temperature 0 | 6本：852〜1,024文字、対象言語の文字が93〜95%、すべて `stop` で終了。reasoningはそのprofileのlow effortで空だったため、reasoningの文字列は検査できていない |
-| 2026-09-21、09-25 | 公開した任意設定、TP=2（09-25は2系列profile） | temperature 0 | 各6本。09-25は日本語1,154文字・韓国語1,309文字、対象言語の文字が93〜94%、すべて `stop` で終了 |
-| 2026-09-29、10-01 | 配布既定、次に公開した任意設定、TP=3 | temperature 0 | 各6本 |
-| 2026-10-02 | 両profile、TP=2（1.25.0） | temperature 1.0、top_p 0.95、seed 42〜47 | 各6本 |
-
-temperature 0の回答では、上の二つの読みのどちらが正しいかは決まりません。sampledの回答でも化けは見つかりませんでした。
-
-### 再現性
-
-**fixtureでの再量子化検査。** `quant-error`・`agreement-fixture`・`agreement-compare` で、4層fixtureを再量子化した複製を元と比べます：BF16から置き換わった各NVFP4テンソルの誤差（他のテンソルはbyte一致）と、8,192 token promptの93位置での教師強制の全語彙KL・argmax一致・layer 3のsparse-MLA候補集合のJaccardです。fixtureは言語モデルではない（教師強制top-1は1〜3%）ので、読むのは元からの移動だけで、元自身の再起動間の差を物差しにします。無改変の4層fixtureの2回の起動では候補集合がすべて違い（Jaccard平均0.986）、同一プロセス内の反復はbit一致でした。8層fixtureは3回の起動がそれぞれ違う状態になり、同一プロセス内でもbit一致しませんでした（argmax一致0.99〜1.00、KLは最大0.03）。GPU 1枚・MTPなし・prefix cacheなしです。配信中のモデルは同じ挙動をより強く示す（[`server agreement`](server-configuration.ja.md#コマンド)）ので、この揺れは層数とともに大きくなるもので、複数ホスト構成・MTP・prefix cacheが作っているものではありません。
-
-**expert内のtoken順序。** fixtureでは `python -m glm53_setup.validation.run_repeat_trace` が出どころを名指しします。2回のpassで最初に出力がずれるmoduleは、常にどこかのMoE層のrouted expertsで、その手前はrouterを含めてすべてbit一致です。固定版vLLMの `moe_align_block_size` は多数のCUDAスレッドからatomic addでexpertごとのtokenのスロットを割り当てる（expertが64個を超えると決定的な小規模経路は使われない）ので、MarlinのMoE kernelには呼ぶたびに違う順でtokenが渡り、kernelの結果は行の位置に依存します。約100万要素の出力のうち1〜37要素が1e-4〜1.5e-2動き、後段のrouterがそれを増幅します。expert内の並び順を固定する（`--canonical-align`）と、5文すべてで全passがbit一致になり、その揺れを超えて結果を変えることはありませんでした。MoE 5層では2,048 tokenのprefillは変わらず、128 tokenのdecodeは約1%遅くなりました（無改変3.090 sと3.098 s、固定3.122 sと3.132 s）。`runtime.canonical_moe_order`（[起動設定](server-configuration.ja.md#配布用の既定設定)）がこれを入れ、既定で有効です。参照機（TP=2、MTP k=3、image `e7a2a606…`、armごとに1回起動）では、固定を入れると `server agreement` がbit一致で反復し——argmax一致1.0、log確率の移動0、2回の実行でNLLが小数4桁まで同一——固定を切ると一致は0.926〜0.977でした。decodeは遅くなっておらず（固定あり30.81／31.27／31.06 tok/s、なし31.02／25.80／31.17）、MTPの平均採択長は3.09から3.35に上がりました。上流ではこの順序をvLLM issue #52525として追跡しています。そのpull request #48032（決定的なroute alignment、head `a718a4b`）を固定版のsourceに当て、2026-10-02にGB10の8層fixtureで流しました：手元の固定と同じく反復し（5文の10回の比較で食い違うpassなし。どちらもなしでは10回中10回）、確かめた120回の呼び出しすべてで手元の固定と同じ順を書き、128 tokenのdecodeの所要は測れるほど増えませんでした（−0.1〜+0.1%。手元の固定は+1.0〜+1.4%）。
-
-**indexerのtop-kの同点。** expert内の順序を固定した後も、割れの出所がもう一つ残っていました：kpool indexerはquery行ごとに512 poolを選びますが、固定しているvLLMの `persistent_topk`（decode）と `top_k_per_row_prefill` は、512位の境界にpoolの同点があると、同じ入力から違う集合を返します。基準の2台でMTPの深さを4にすると、同じprose要求の9回の反復が割れ（tokenは位置320で分かれる）、稼働中のworkerの中のtraceは毎回同じ呼び出しを最初の食い違いとして名指しし、割れる起動の一つでは、540 poolの行で513個が512位の値に届き、kernelが要求の間で入れ替えた二つのpoolのscoreがbit単位で同じでした。GB10 1台では、decodeのkernelが同一の呼び出し1,200回に3通り、prefillのkernelが18,000行に4通りの集合を返しました。4層のMTP fixtureでは、同一要求48本のうち17本が同じindexerの呼び出しで最初に食い違い、同点を低いpool indexに決めると36本中0本でした。同じ設定でも、ある起動では12本中0本、別の起動では24本中12本でした。割れが見えないことは、割れが無いことの証拠になりません。`runtime.stable_indexer_topk`（[サーバー設定](server-configuration.ja.md#配布用の既定設定)）がこの同点の規則を入れます。基準の2台（image `1b7dc6fa…`、深さ4）では、prose・count・codeが3起動のそれぞれで9回中9回、log確率の移動0で反復しました。decodeはproseで24.68 tok/s、countで45.99（修正前は24.28と45.13）、prefillは38,962 tokenで1,248.1 tok/s（修正前1,255.5）、199,652 tokenの合言葉要求は169.1 sで正答（修正前164.3 s）。vLLM pull request #55122（決定的な `persistent_topk`）は、自身のトラフィックの調査で同点が見つからなかったことから、性能を主張し決定性は副次と位置づけています。ここでの同点はkernelでも実際の要求でも再現したので、そのkernelをfixtureで測るまで規則を維持します。
-
-**起動状態。** `runtime.inductor_deterministic` がなければ、対は起動を跨ぐと三つの数値状態のどれかで計算していました（状態を確かめた16起動で11・3・2）。それぞれの状態の中ではbit一致で反復します。最初に違う呼び出しは、片方のrankのlayer 19の複製されたkpool indexerで、そのkeyが下位bitで違っていました：keyはInductorがcompileしたreductionで正規化され、その候補configは三つ（`XBLOCK` 1・8・32）で、1は行の足し算の順が違って他と2,048行中2行が違い、各rankは起動のたびに計測で選んでいました。両rankが別のclassを引くと、poolが同点になる所でcompletionが分かれました。`runtime.inductor_deterministic`（[サーバー設定](server-configuration.ja.md#再現性のスイッチ)）はこの計測をなくします：keyを付けた各profileの3起動は、すべての呼び出しで同じkeyを計算して同じcompletionを返し、decodeは以前の幅の中でした。各起動の状態とdecodeの数値は[1.9.0での測定](benchmarks.ja.md#190での測定)に、探索の段階は1.10.0〜1.12.2の[CHANGELOG](../CHANGELOG.ja.md)にあります。この複製された計算はvLLMに [vllm-project/vllm#58636](https://github.com/vllm-project/vllm/issues/58636) で報告しました。修正案の [vllm-project/vllm#58979](https://github.com/vllm-project/vllm/pull/58979)（keyの正規化を、compileしたleafではなくモデルのeagerなfp32の `LayerNorm` で行う）を、2026-09-28に `runtime.inductor_deterministic` を外した対で測りました：traceした858回の呼び出しすべてで両rankがindexerへ同じkeyを渡して同じ候補集合を得、completionはeagerの3起動とdecodeをCUDA graphにした1起動で同じで、decodeは幅に収まりました。そうした修正を載せた固定imageができるまで、profileは `runtime.inductor_deterministic` を保ちます。

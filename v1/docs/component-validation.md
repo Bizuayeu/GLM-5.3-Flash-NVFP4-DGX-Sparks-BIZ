@@ -29,7 +29,7 @@ Paired traces of the same 64-token input with 1/33 outputs show **1,743→1,710 
 
 GPU component checks matched Torch unpack exactly across all FP8 byte codes and selected FP32 scales, including signed zero, and matched attention output with padding and empty candidates. All full-target one-output A/B/A cases had equal token IDs.
 
-The 128-output cases varied even between native/off repetitions. A separate 32-output logprob diagnostic found ties and changes in candidate probabilities on common prefixes in both off and fused runs. Shared-token logprob differences reached approximately 1.31 in the native repetitions; these are not evidence of uniformly tiny perturbations. This run did not establish full-target deterministic equivalence (identical requests on the full model repeat bit for bit only since the later fixes in [validation](validation.md#repeatability)), and language-quality acceptance was outside its scope. Keep this baseline issue separate from the exact component arithmetic result; do not infer either fusion-specific damage or production qualification from it.
+The 128-output cases varied even between native/off repetitions. A separate 32-output logprob diagnostic found ties and changes in candidate probabilities on common prefixes in both off and fused runs. Shared-token logprob differences reached approximately 1.31 in the native repetitions; these are not evidence of uniformly tiny perturbations. This run did not establish full-target deterministic equivalence (identical requests on the full model repeat bit for bit only since the later fixes in [validation](repeatability.md)), and language-quality acceptance was outside its scope. Keep this baseline issue separate from the exact component arithmetic result; do not infer either fusion-specific damage or production qualification from it.
 
 ## Indexer observation
 
@@ -51,6 +51,56 @@ P16 stopped at the cost gate on 2026-09-21 ([indexer reuse](indexer-reuse.md)); 
 Use `validation.component_worker=true` with LPA/MTP off and the verified image in the [server configuration](server-configuration.md). On the head, run `python -m glm53_setup.validation.run_components --config /path/to/profile.toml --corpus /path/to/documents.jsonl --output /new/record`. The driver stores all responses, actual token counts, A/B/A repeatability, timing samples and per-rank overlap. Retain the corresponding profiler traces and resource logs.
 
 Integrated results: [P18](benchmarks.md#serial-integration-of-mtp-lpa-fused-unpack-and-async-checks-p18).
+
+## Reproduce the single-GPU fixture
+
+Use a Linux GB10 host and a verified checkpoint. Run from `v1/` of the checkout. The example uses the default Hugging Face cache; adjust the host mount if yours differs.
+
+~~~sh
+python -m glm53_setup build-reference
+mkdir -p ../state ../records/fixture-check ../state/fixture-cache
+IMAGE=$(python -c 'import json; print(json.load(open("config/runtime.lock.json"))["reference_candidate"]["tag"])')
+HF_CACHE=$HOME/.cache/huggingface
+REVISION=$(python -c 'from glm53_setup.config import REVISION; print(REVISION)')
+~~~
+
+Create a separate four-layer checkpoint, reading the original cache without modifying it. The fixture contains approximately 7.46 GiB of tensors.
+
+~~~sh
+docker run --name glm53-fixture-build --network none --memory 24g --memory-swap 24g -v "$HF_CACHE:/hf:ro" -v "$PWD/../state:/data" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-build --source "/hf/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/$REVISION" --output /data/four-layer
+~~~
+
+Use fresh output directories and container names for new experiments. Existing fixture output is never overwritten.
+
+~~~sh
+docker run --name glm53-fixture-check --gpus all --network none --memory 32g --memory-swap 32g --shm-size 2g -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo -e NVIDIA_TF32_OVERRIDE=0 -v "$PWD/../state/four-layer:/fixture:ro" -v "$PWD/../records/fixture-check:/out" -v "$PWD/../state/fixture-cache:/root/.cache" --entrypoint python3 "$IMAGE" -m glm53_setup fixture-run --fixture /fixture --output /out --backend marlin --context 16384 --chunk 512
+python -m glm53_setup fixture-assess ../records/fixture-check
+~~~
+
+The 24/32 GiB budgets are test limits, not full-model requirements. Set an external experiment deadline and stop the specific test container if it is exceeded. Historical tests used 15 minutes. Containers and results are preserved.
+
+Use `--backend auto` or `--chunk 128` in a fresh run for diagnostic comparison. `passed=false` is not a passing numerical result even if all generations completed.
+
+## CPU and component checks
+
+~~~sh
+python -m unittest discover -s tests -t . -v
+python tools/check_publication.py
+~~~
+
+CPU checks cover CLI dispatch without GPU imports, checkout-relative assets, revision/launch guards, fixture selection and result assessment. CPU CI does not run GPU tests or download weights.
+
+The CLI also exposes `inspect-runtime`, `probe-attention` and `test-reference`; use their `--help` inside the reference image. These component checks cannot substitute for full-model qualification.
+
+### Kpool tail ring repro
+
+`glm53_setup/validation/kpool_ring_repro.py` runs the kpool decode kernel of the reference image on one GPU, without weights: a draft that completes a pool is rejected after the drafts behind it were stashed, and the pool the redo writes is compared byte for byte with the prefill writer's result on the true keys (the no-speculation reference). It is adapted from the regression test of vLLM pull request #58454. On an image that carries `patch_kpool_ring` the expected result is that the one-pool ring (4 slots, the unpatched layout) differs and the MTP-3 ring (8 slots) matches, with a control run matching on both; the command exits nonzero otherwise.
+
+~~~sh
+python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
+~~~
+
+Run on 2026-09-26 on one GB10 with the 1.19.0 candidate image (seed 1): the one-pool ring differed after the rejected draft, the eight-slot ring matched, and the control matched on both. Upstream's kernel tests from the same pull request passed there (33, one skipped). It checks the kernel only, not model output.
 
 ## Independent decode Graph fixture
 

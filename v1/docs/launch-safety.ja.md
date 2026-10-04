@@ -60,7 +60,7 @@ Nノードの起動は、rankの大きい方から順に起こし、headを最�
 
 ### 切替の後のdecode検査
 
-新しい起動は仮定せずに確かめます。`runtime.inductor_deterministic` がなければ、対の起動が三つの数値状態のどれかに落ちていました（[1.9.0での測定](benchmarks.ja.md#新imageの6起動5回は同じcompletion1回は違うcompletion)。原因と修正は[検証](validation.ja.md#再現性)）。このkeyがその原因を取り除き、新しい原因が出ればこの定型がそれを示します。切替のたびに、rank 0で `tools/decode_check.py` を課題ごとに `TOKENS_OUT` 付きで走らせ、次の切替が消す前に全rankのcontainer logを保存します：
+新しい起動は仮定せずに確かめます。`runtime.inductor_deterministic` がなければ、対の起動が三つの数値状態のどれかに落ちていました（[1.9.0での測定](benchmarks.ja.md#新imageの6起動5回は同じcompletion1回は違うcompletion)。原因と修正は[検証](repeatability.ja.md)）。このkeyがその原因を取り除き、新しい原因が出ればこの定型がそれを示します。切替のたびに、rank 0で `tools/decode_check.py` を課題ごとに `TOKENS_OUT` 付きで走らせ、次の切替が消す前に全rankのcontainer logを保存します：
 
 ```sh
 for kind in prose count code; do

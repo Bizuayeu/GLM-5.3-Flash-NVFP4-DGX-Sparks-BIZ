@@ -42,8 +42,10 @@ The 2.x line (TensorFold) keeps its own pages in `v2/`, each an English/Japanese
 
 | Document | Role | EN | JA |
 |---|---|---|---|
-| Validation | Evidence versus production qualification, single-GPU fixture, evaluations and open items, full-model scope and repeatability | [EN](validation.md) | [JA](validation.ja.md) |
-| Component validation | CUDA/indexer components, Graph fixture, PP/EP/APC fixtures, history fixtures | [EN](component-validation.md) | [JA](component-validation.ja.md) |
+| Validation | Evidence versus production qualification, comparing a candidate with a control, evaluations and open items, full-model scope (concurrency, loading/API/benchmark checks) | [EN](validation.md) | [JA](validation.ja.md) |
+| Repeatability | Why completions repeat or fork: fixture requantization checks, expert token order, indexer top-k ties, launch states | [EN](repeatability.md) | [JA](repeatability.ja.md) |
+| Output correctness gates | The prefix-cache correctness gate and multibyte output | [EN](correctness-gates.md) | [JA](correctness-gates.ja.md) |
+| Component validation | Single-GPU fixture reproduction, CPU checks and the kpool ring repro, CUDA/indexer components, Graph fixture, PP/EP/APC fixtures, history fixtures | [EN](component-validation.md) | [JA](component-validation.ja.md) |
 | Benchmarks | Benchmark method, the independent full-model runs of each initiative, and the measurements of each release (TP=3 from 1.24.0) | [EN](benchmarks.md) | [JA](benchmarks.ja.md) |
 | Image input | Vision at 256K: settings, how they were chosen, measurements, limits | [EN](vision.md) | [JA](vision.ja.md) |
 | FreedomBench | Political-context evaluation: the closure on the serving profile, earlier runs, the Japanese translation and the framing extension, and what was not run | [EN](freedombench.md) | [JA](freedombench.ja.md) |
@@ -75,7 +77,7 @@ The 2.x line (TensorFold) keeps its own pages in `v2/`, each an English/Japanese
 | MTP speculative configuration (the launcher builds it from `mtp.*`; the files show it for a manual reproduction) | [examples/speculative.mtp1.json](../examples/speculative.mtp1.json), [speculative.mtp3.json](../examples/speculative.mtp3.json) |
 | FreedomBench item and answer pins | [config/freedombench.lock.json](../config/freedombench.lock.json); the reviewed Japanese translation in [config/freedombench-ja.lock.json](../config/freedombench-ja.lock.json) |
 | Initiative IDs, adoption decisions, reevaluation criteria | [Optimization catalog](optimization-catalog.md) |
-| Measured numbers and their conditions | [Benchmarks](benchmarks.md), [image input](vision.md), [speculative decoding](speculative-decoding.md), [LPA](lpa.md), [component validation](component-validation.md), [candidate order](candidate-order.md), [indexer reuse](indexer-reuse.md), [NCCL validation](nccl-validation.md), [FreedomBench](freedombench.md), [HLE](hle.md), [validation](validation.md) (the prefix-cache gate, multibyte output, repeatability) |
+| Measured numbers and their conditions | [Benchmarks](benchmarks.md), [image input](vision.md), [speculative decoding](speculative-decoding.md), [LPA](lpa.md), [component validation](component-validation.md), [candidate order](candidate-order.md), [indexer reuse](indexer-reuse.md), [NCCL validation](nccl-validation.md), [FreedomBench](freedombench.md), [HLE](hle.md), [output correctness gates](correctness-gates.md) (the prefix-cache gate, multibyte output), [repeatability](repeatability.md) |
 | APC/LPA shared-state contract (N, H, T, R, B) | [APC-first LPA design](apc-lpa-design.md) |
 | Client authentication, allocator, rails, switch and recovery contracts | [Launch contracts](launch-safety.md) |
 | Launch order, rank-count refusal and the per-host runtime cache at three nodes | [Launch contracts](launch-safety.md#three-nodes) |

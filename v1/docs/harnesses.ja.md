@@ -140,7 +140,7 @@ Get-NetTCPConnection -ErrorAction SilentlyContinue |
 | ID | 対象 | 操作と合格条件 | 状態 |
 |---|---|---|---|
 | API-01 | 基礎API | `/v1/models`のserved IDと選択先が一致。短い日本語・英語の要求がローカルモデルから正常応答する | PASS（`api-acceptance-low-local`） |
-| API-02 | 基礎API | Chat Completionsの通常応答とSSE。終端・UTF-8・reasoning／最終回答の区別が壊れない。日本語・韓国語の長い出力は[`server mojibake`](validation.ja.md#マルチバイト出力)で別に監視 | PASS（同run。chatは`reasoning_effort=low`） |
+| API-02 | 基礎API | Chat Completionsの通常応答とSSE。終端・UTF-8・reasoning／最終回答の区別が壊れない。日本語・韓国語の長い出力は[`server mojibake`](correctness-gates.ja.md#マルチバイト出力)で別に監視 | PASS（同run。chatは`reasoning_effort=low`） |
 | API-03 | 基礎API | 無害なツールの要求→JSON引数検証→結果返送→最終回答。複数往復でID対応を維持する | PASS（同run） |
 | API-04 | Anthropic互換API | Messagesの通常応答・SSE・tool_use/tool_result・count_tokensを検査。応答形式・終端・usageを確認する | PARTIAL：Messagesの通常応答とcount_tokensはモデル既定effortで合格。SSE、tool_use/tool_result、異常系は追わない |
 | ZC-01 | ZCode | Custom Providerへ登録したモデルが選べ、実際のendpointとmodel IDがローカル設定に一致する | DesktopはBLOCKED（[feedback #270](https://github.com/zai-org/feedback/issues/270)）：GUIは未実行、同梱CLIは`@zcode/tui`不在で対話起動に失敗、headlessの`--prompt`はローカルserved IDへ届く（`20260914-zcode-exists-guard`）。npm CLI：トンネル先のprovider、served IDの選択、日本語の往復、headless promptへのローカルモデル応答を確認 |

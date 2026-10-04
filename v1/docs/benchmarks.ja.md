@@ -511,7 +511,7 @@ runtimeが報告したKV収容容量は301,645 tokenです。同じ固定LLM-jp 
 
 ### 同一要求が反復する
 
-固定の2,048 tokenのpromptに続く512 tokenを、temperature 0で同じ要求として9回送りました。三つのprompt（数え上げ・散文・コード）のどれでもcompletionは1種類で、位置ごとのlog確率の移動は0でした。`server agreement` は4文を教師強制で2回読み、argmaxの一致は1.0、NLLは小数4桁まで同じでした（日本語1.5963、英語2.0241、コード0.9479、数学0.5931）。1.5.0では、同じ検査の一致は位置の0.926〜0.977でした。[何を直し、どう見つけたか](validation.ja.md#再現性)。
+固定の2,048 tokenのpromptに続く512 tokenを、temperature 0で同じ要求として9回送りました。三つのprompt（数え上げ・散文・コード）のどれでもcompletionは1種類で、位置ごとのlog確率の移動は0でした。`server agreement` は4文を教師強制で2回読み、argmaxの一致は1.0、NLLは小数4桁まで同じでした（日本語1.5963、英語2.0241、コード0.9479、数学0.5931）。1.5.0では、同じ検査の一致は位置の0.926〜0.977でした。[何を直し、どう見つけたか](repeatability.ja.md)。
 
 ### 1.6.0でのprefillとdecode
 
@@ -563,7 +563,7 @@ prefillは1.5.0の2.2倍で、FA2経路によるものです。decodeは速く�
 
 ### route gに至るまで（2026-09-18〜20）
 
-**最初の読み（2026-09-18）。** 同一の実行の間で11%動く物差しの上で、decodeは26.96 tok/s（無改変24.91と26.21、幅24.35〜34.44）、MTPの平均採択長は2.9から2.37に下がり、数学のNLLは約5%上、参照実行とのargmax一致は0.909（無改変同士は0.946〜0.962）でした。方式はload時FP8から、expertと同じMarlinの算術になるtenhksparkのroute gに変えていました。P23はこの時点でいったん閉じ、同一要求が反復するようになってから再開しました。4層fixtureでは詰め直した33テンソルの相対誤差は0.091〜0.095、layer 3の候補集合は無改変fixtureに対してJaccard 0.950（8層fixtureの2つ目のMLA層で0.948）で、ずれはMLA層をまたいで積み上がりません（[再量子化検査](validation.ja.md#再現性)）。
+**最初の読み（2026-09-18）。** 同一の実行の間で11%動く物差しの上で、decodeは26.96 tok/s（無改変24.91と26.21、幅24.35〜34.44）、MTPの平均採択長は2.9から2.37に下がり、数学のNLLは約5%上、参照実行とのargmax一致は0.909（無改変同士は0.946〜0.962）でした。方式はload時FP8から、expertと同じMarlinの算術になるtenhksparkのroute gに変えていました。P23はこの時点でいったん閉じ、同一要求が反復するようになってから再開しました。4層fixtureでは詰め直した33テンソルの相対誤差は0.091〜0.095、layer 3の候補集合は無改変fixtureに対してJaccard 0.950（8層fixtureの2つ目のMLA層で0.948）で、ずれはMLA層をまたいで積み上がりません（[再量子化検査](repeatability.ja.md)）。
 
 **route gのoff／on／off**（expert内の順序の固定の後、FA2 prefill）：9標本のdecodeは数え上げで32.87→42.39 tok/s（+29%）、散文で20.82→25.31（+22%）、コードで27.62→34.93（+27%）、採択長は不変で、無改変の2回の起動は互いに1%以内でした。重みはrankあたり4.0 GiB小さく、headの空きは最小9.52 GiB。NLLは日本語4.0%・コード5.9%・数学4.3%上がり、英語1.1%下がりました。
 
@@ -691,7 +691,7 @@ KDAの状態checkpoint（dense retention）がKV予算の大半を占め、100K�
 | `runtime.inductor_deterministic` 付きの同時2系列AXL profileの3起動（2026-09-25） | 3／0／0、同じcompletion | 46.05〜46.27／27.95〜28.44／38.39〜38.80 |
 | 同じkey付きの配布既定の3起動（2026-09-25） | 3起動とも同じcompletion | 32.80〜32.84／20.76〜20.82／27.53〜27.64（配布既定の公表値は32.01／20.67／26.68） |
 
-indexerのkey正規化のInductor configだけを指定すると、状態2（rank 0が8、rank 1が1）と状態1（両方8）を狙って作れた。keyを付けると両rankがこのkernelを `XBLOCK` 8・候補一つで動かし、warmupのlong段は52.1〜52.7 sだった（`records/20260924-inductor-autotune-asymmetry/`、`records/20260925-defaults-deterministic/`）。原因と修正は[検証](validation.ja.md#再現性)に、探索の手順（probeのmethod、Probe4・Probe5の起動、深いtrace）は[変更履歴](../CHANGELOG.ja.md)の1.10.0〜1.12.2にある。
+indexerのkey正規化のInductor configだけを指定すると、状態2（rank 0が8、rank 1が1）と状態1（両方8）を狙って作れた。keyを付けると両rankがこのkernelを `XBLOCK` 8・候補一つで動かし、warmupのlong段は52.1〜52.7 sだった（`records/20260924-inductor-autotune-asymmetry/`、`records/20260925-defaults-deterministic/`）。原因と修正は[検証](repeatability.ja.md)に、探索の手順（probeのmethod、Probe4・Probe5の起動、深いtrace）は[変更履歴](../CHANGELOG.ja.md)の1.10.0〜1.12.2にある。
 
 ## 1.10.2での測定
 
