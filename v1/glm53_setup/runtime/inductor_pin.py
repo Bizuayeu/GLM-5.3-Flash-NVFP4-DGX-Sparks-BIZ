@@ -34,6 +34,10 @@ def pin(module):
 class PinAfterImport(importlib.abc.MetaPathFinder):
     """Finds nothing itself; for the target it wraps the real loader to pin after execution."""
 
+    # A twin of shm_spin.SetAfterImport, kept on purpose: this file is mounted into images
+    # that carry no shared helper, so it may import nothing they lack
+    # (tests/test_contracts.py, MountedRuntimeTests).
+
     def __init__(self, target):
         self.target = target
 

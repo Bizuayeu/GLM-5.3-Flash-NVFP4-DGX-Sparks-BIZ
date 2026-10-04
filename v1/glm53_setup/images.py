@@ -8,6 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import host
 from .config import RECORDS, ROOT, load_lock
 from .io import write_json
 
@@ -59,13 +60,8 @@ def run(record: Path):
             )
         status["status"] = "probing"
         save()
-        inspect = subprocess.run(
-            ["docker", "image", "inspect", image],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        (record / "image-inspect.json").write_text(inspect.stdout, encoding="utf-8")
+        inspect = host.run("docker", "image", "inspect", image)
+        (record / "image-inspect.json").write_text(inspect, encoding="utf-8")
         # Keep the diagnostic container as evidence; no automatic deletion.
         name = "glm53-probe-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
         status["probe_container"] = name
