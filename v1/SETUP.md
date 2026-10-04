@@ -55,7 +55,7 @@ ibdev2netdev
 
 If a diagnostic is missing, record that fact and install only the required vendor-supported package within the deployment authorization. Do not blanket-upgrade the OS, driver or firmware as a diagnostic step. Compare both inventories; do not assume their interface names, HCA names or GID indices match.
 
-**Kernel:** if `uname -r` shows `7.0.0-1019-nvidia`, or pending updates would install it, choose between keeping `6.17.0-1032-nvidia` and booting with `kho=off` as described in [host kernel and multi-node RoCE](docs/operations.md#host-kernel-and-multi-node-roce), before step 5. With that kernel's defaults, two-host RoCE can fail with `ibv_reg_mr_iova2 ... Cannot allocate memory`.
+**Kernel:** if `uname -r` shows `7.0.0-1019-nvidia`, or pending updates would install it, choose between keeping `6.17.0-1032-nvidia` and booting with `kho=off` as described in [host kernel and multi-node RoCE](docs/operations.md#host-kernel-and-multi-node-roce), before step 5.
 
 **Checkpoint:** both hosts accessible; resource and storage budget recorded; kernel and boot parameters recorded; cable status known. Without the cable, continue steps 2–4 when their prerequisites hold and leave step 5 pending.
 
@@ -182,7 +182,7 @@ Anything outside these scopes — more sequences than stated, video input, other
 
 Start rank 1 first and then rank 0 with `server start`, as described in [server configuration](docs/server-configuration.md#commands). Record both image IDs, source/model revisions, arguments, settings and start logs. Check the API through loopback or a reviewed SSH tunnel, then repeat text and harmless tool acceptance tests through the actual client.
 
-Run the [harness acceptance matrix](docs/harnesses.md) for **the accepted route, the npm ZCode CLI**. The official ZCode Desktop stays BLOCKED and Claude Code is skipped by decision (2026-09-22, both recorded in that document), so neither is a required target. Basic API success alone does not close a client case. Keep client versions, non-secret settings and separate case results. Review [artifact-specific licensing](docs/licensing.md) before distributing a deployment.
+Run the [harness acceptance matrix](docs/harnesses.md) for **the accepted route, the npm ZCode CLI**; the other routes are not required targets ([decision](docs/harnesses.md#acceptance-matrix-and-status)). Basic API success alone does not close a client case. Keep client versions, non-secret settings and separate case results. Review [artifact-specific licensing](docs/licensing.md) before distributing a deployment.
 
 Keep this service on a trusted network. The host-network containers expose distributed control ports to reachable peers; loopback API binding alone does not protect rendezvous. Public exposure, authentication/TLS, firewall policy and business availability requirements need their own deployment design. The “BIZ” suffix in the project name states a business-use intent; it is not a production certification or a support commitment.
 

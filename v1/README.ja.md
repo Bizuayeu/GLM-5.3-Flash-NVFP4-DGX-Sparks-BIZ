@@ -40,8 +40,8 @@ NVFP4は取得する重みの形式です。検証済みの参照構成はMarlin
 - ツール用にPython 3.11以上。CPU検査はWindows・Linuxで実行可能。
 - GPU検証にはLinux ARM64、NVIDIA GPU対応Docker、GB10。
 - 検証済みのQSFP/RoCE接続を持つ2台（TP=2）、またはスイッチなしのQSFPリングでつないだ3台（TP=3。[3台のTP=3](SETUP.ja.md#3台のtp3)）。
-- ホストカーネル：実測は `6.17.0-1032-nvidia`。現在の DGX OS の更新で入る `7.0.0-1019-nvidia` は、既定設定のままだと2台間のRoCEが失敗することがあるため、旧カーネルを使い続けるか `kho=off` で起動する。[ホストカーネルと複数ノードRoCE](docs/operations.ja.md#ホストカーネルと複数ノードroce)を参照。
-- 各配置先に約205 GBの重み、加えてイメージ・cache・任意のfixtureを保存できる容量。全checkpointは128 GBの1台には収まりません。
+- ホストカーネル：現在の DGX OS の更新では2台間のRoCEが失敗することがあるため、更新の前に[ホストカーネルと複数ノードRoCE](docs/operations.ja.md#ホストカーネルと複数ノードroce)を参照。
+- 各配置先に重み（[容量](#導入するものと対応機体)）、加えてイメージ・cache・任意のfixtureを保存できる容量。全checkpointは128 GBの1台には収まりません。
 
 ## checkoutから準備する
 
@@ -74,7 +74,7 @@ python -m glm53_setup build-reference
 
 [GPU 1台のfixture手順](docs/validation.ja.md#gpu-1台のfixtureを再現する)で、実行完了・再現性・数値差を分けて確認できます。
 
-通常運用の受け入れはコマンドではなく記録です。範囲と各項目の証拠の所在は[セットアップ手順6](SETUP.ja.md#6-フルモデルの検証)が示します。`server preflight` は起動前に各ホストで資材・fabric・image・GPUの専有・メモリを検査しますが、品質も可用性も保証しません（[起動検査](docs/operations.ja.md#フルモデルの起動検査)）。
+通常運用の受け入れはコマンドではなく記録です。範囲と各項目の証拠の所在は[セットアップ手順6](SETUP.ja.md#6-フルモデルの検証)が示します。`server preflight` が起動前に検査するものと保証しないものは[起動検査](docs/operations.ja.md#フルモデルの起動検査)にあります。
 
 ## 確認した範囲
 
@@ -127,10 +127,10 @@ MTPのdecodeの速さは、文がどれだけ予測しやすいかで決まり�
 | 全モデル | temperature 0での同一要求 | `max_num_seqs = 1` の配信では、同じ起動の中でbit一致で反復し、1.12.0からは起動を跨いでも同じ（どのテンプレートでもonの[再現性のスイッチ](docs/server-configuration.ja.md#再現性のスイッチ)による）。切替後の起動は今も毎回確かめる（重みのdigest、decode検査、kernel hash）。同時2系列以上が処理中の間は反復を主張しない（[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)）。[それぞれの原因を見つけた経緯](docs/validation.ja.md#再現性) |
 | 全モデル | 256Kでの画像入力（Vision） | 合成画像1枚に正答、テキスト・ツールの回帰は合格、動画は拒否。1.19.0では両profileで回帰7項が合格し、1枚7,776 tokenまでの大きな画像と8枚までの画像にも順番どおり正答。ハーネス画面への直接添付は未確認。[実測と限界](docs/vision.ja.md) |
 | 全モデル | 日本語・韓国語の長い出力 | 852〜1,024文字の回答6件で化け文字なし。sampledの回答12件（両profile、1.25.0）とTP=3の両profileも同じ。reasoningの文字列は未検査。[検査と限界](docs/validation.ja.md#マルチバイト出力) |
-| 同時実行 | 同時2系列以上 | 配布既定では**非対応**（`max_num_seqs = 1`。要求は順番待ち）。公開した任意設定の例はrankあたり6 GiBから同時2系列を配信し、[SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で**通常運用として受け入れ済み**。この範囲では反復を主張しない（他の要求とstepを共有した要求は違うcompletionになりうる）。反復が要るなら `max_num_seqs = 1` で配信する。それを超える同時数はrankを増やす：TP=3は上の行。[同時実行の範囲](docs/validation.ja.md#同時実行の範囲) |
+| 同時実行 | 同時2系列以上 | 配布既定では**非対応**（`max_num_seqs = 1`。要求は順番待ち）。公開した任意設定の例はrankあたり6 GiBから同時2系列を配信し、[SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で**通常運用として受け入れ済み**。この範囲では反復を主張しない。それを超える同時数はrankを増やす：TP=3は上の行。[同時実行の範囲](docs/validation.ja.md#同時実行の範囲) |
 | 評価 | FreedomBench：英語原版、日本語訳（FB-04）、言い回しと証拠配置（FB-05） | 英語原版と日本語訳は両profileで実施。FB-05は公開した任意設定で実施。そのLPAの部分は未実施。[結果と限界](docs/freedombench.ja.md) |
 | 評価 | HLE、テキストと画像の100問の部分集合を両profileで、予算を限って | 2026-09-28〜10-03に実施。公開されたHLEの値とは比べられない。[結果と限界](docs/hle.ja.md) |
-| ハーネス | ZCode／Claude Codeの連携 | 基礎API群は合格。共通群H-01〜H-11は、受け入れた経路であるnpm版ZCode CLI 3.14.1・262,144 tokenで全件PASS（2026-09-28）。公式ZCode Desktopは**BLOCKED**、Claude Codeは**判断で見送り**。理由とケース別の状態は[受け入れ試験一覧](docs/harnesses.ja.md#受け入れ試験一覧と実施状態) |
+| ハーネス | ZCode／Claude Codeの連携 | 基礎API群と共通群のHケースは、受け入れた経路であるnpm版ZCode CLIで合格。他の経路とケース別の状態は[受け入れ試験一覧](docs/harnesses.ja.md#受け入れ試験一覧と実施状態) |
 | テンプレートで有効 | prefillのFA2（`runtime.fa2_attention`） | 採用。prefillは1.5.0の2.2倍、1系列のdecodeは参照経路のまま、LPAとは排他。[測定](docs/benchmarks.ja.md#160での測定) |
 | テンプレートで有効 | BF16 draftのMTP k=3 | 10入力で、再量子化したcheckpointでは深さ1〜5を、固定のcheckpointでは1・3・4を測定。k=3を両方に採用。[投機デコード](docs/speculative-decoding.ja.md#両方のcheckpointで深さ32026-09-21) |
 | テンプレートで有効 | Prefix caching（APC） | 実測した直列の長文prefix再利用の実験用途で受入。[実測](docs/benchmarks.ja.md#全モデルのprefix-caching独立評価p19)。cold／warmの正しさの関門は配布既定で合格、任意設定でもcacheの不具合は見つからなかった。[関門](docs/validation.ja.md#prefix-cacheの正しさの関門) |

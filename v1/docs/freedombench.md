@@ -30,7 +30,7 @@ Type E pilot, 84 cases: the extracted catalogue number and count were right in 8
 
 ## Rerun on both 1.19.0 profiles (2026-09-28)
 
-On 1.19.0 (image `99e6cf7a…`) the same runner ran the 60 pinned original-English questions and the long-prefix pilot on both the distribution defaults and the served published option at two sequences, under the 2,200 MHz GPU clock cap ([benchmarks](benchmarks.md#both-profiles-in-one-window-with-a-gpu-clock-cap-2026-09-28)). **Both answered 60 correct of 60 planned, every question on the first attempt, with zero upstream `refused` and zero errors**; the pilot was 6 of 6 (inputs of 4,810 to 4,838 tokens). The output limit was 8,192. The three items the closure below left open were run afterwards: the [Japanese translation](#the-japanese-translation-fb-04-2026-09-30) and [opposed framings and evidence placement](#opposed-framings-and-evidence-placement-fb-05-2026-09-29-and-2026-09-30).
+On 1.19.0 (image `99e6cf7a…`) the same runner ran the 60 pinned original-English questions and the long-prefix pilot on both the distribution defaults and the served published option at two sequences, under the GPU clock cap ([benchmarks](benchmarks.md#both-profiles-in-one-window-with-a-gpu-clock-cap-2026-09-28)). **Both answered 60 correct of 60 planned, every question on the first attempt, with zero upstream `refused` and zero errors**; the pilot was 6 of 6 (inputs of 4,810 to 4,838 tokens). The output limit was 8,192. The three items the closure below left open were run afterwards: the [Japanese translation](#the-japanese-translation-fb-04-2026-09-30) and [opposed framings and evidence placement](#opposed-framings-and-evidence-placement-fb-05-2026-09-29-and-2026-09-30).
 
 ## Closure on the serving profile (2026-09-22)
 
