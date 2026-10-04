@@ -6,6 +6,15 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.0.1 — 2026-10-04
+
+### Documentation
+
+- [README](README.ja.md)に、初めて読む人が要る節を足しました。既存の節は変えていません：受け入れの範囲を書いた要約、必要な環境、TP=2のはじめ方（`curl` の要求と、エンジンに認証が無いことの注意。rank 0とtool引数ゲートはloopbackだけで待ち受けます）、rank・cluster・containerのファイルの設定を一つにまとめた表、受け入れで使ったAPIと確かめていない経路、リポジトリの構成、ライセンスの早見表、免責事項、Next Action、ローカルデータ。英語版の見出しはtitle caseにしました。
+- [TensorFoldの他のレシピ](README.ja.md#tensorfoldの他のレシピ)：GLM-5.3-FlashをTensorFoldで配信する公開レシピのリンクと、この系列が取り込んだものの正典になる表です。上流のTensorFold、MiaAI-LabのTensorFold版（patch 0038に倣ったFP8 latent KV、patch 0066と同じ規則のTP=3の分け方、上流のpull request #301）、jakejharris/jspark3 v2.0.1（何も取り込んでいません）。1.x系のレシピの表は、MiaAI-LabのTensorFold版についてここを指します（1.28.2）。
+
+image・台本・配信の既定は変わっていないので、2.0.0のimageと受け入れはそのまま有効です。
+
 ## 2.0.0 — 2026-10-04
 
 2.x系の最初のリリースです。1.x系と同じ固定のcheckpoint（`nvidia/GLM-5.3-Flash-NVFP4` の `423acf37583782c51c142d145aef733d72943d93`）を、vLLMに代えて[TensorFold](https://github.com/ashhart/TensorFold)で、2台のTP=2または3台のTP=3で配信します。1.x系は[`v1/`](../v1/README.ja.md)で続きます。

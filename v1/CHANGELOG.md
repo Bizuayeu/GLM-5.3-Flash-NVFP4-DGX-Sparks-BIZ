@@ -2,6 +2,12 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.28.2 — 2026-10-04
+
+### Documentation
+
+- [README](README.md#other-glm-53-flash-recipes-for-dgx-spark-systems): the row for MiaAI-Lab's TensorFold recipe points to [2.x's table of recipes on TensorFold](../v2/README.md#other-recipes-on-tensorfold) (2.0.1), which now owns its link and what the 2.x line took from it; 1.x took nothing from it.
+
 ## 1.28.1 — 2026-10-04
 
 ### Fixed

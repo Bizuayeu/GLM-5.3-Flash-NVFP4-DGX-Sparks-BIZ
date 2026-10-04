@@ -1,6 +1,6 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
-**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.28.1」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
+**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.28.2」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
 
 **BIZ**は保守者の印（Bizuayeu）であり、意図を示す語です。商用利用できるライセンス、資産の固定、検査結果の記録、戻せる運用を整えた**業務利用向けの構成**という意味です。意味しないことは[免責事項](#免責事項)にあります。
 
@@ -185,7 +185,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 | [amasu/glm53-flash-cluster](https://github.com/amasu/glm53-flash-cluster)（kingjones30のレシピを保持） | Apache-2.0／MIT | **コードを改変して採用：** NoPEゼロ埋めpatchの構造とレシピ |
 | [tenhkspark/glm53-flash-nvfp4-2node](https://github.com/tenhkspark/glm53-flash-nvfp4-2node)と[GLM-5.3-Flash-NVFP4-h checkpoint](https://huggingface.co/tenhkspark/GLM-5.3-Flash-NVFP4-h)（旧名Wabi） | Apache-2.0（コード）、MIT（重み） | コードも重みも採用しない。BF16のattention射影をW4A16 NVFP4へ再量子化する方式をP23として評価し、上の公開した任意設定（attentionと `lm_head`）へ育てた。測定は[施策台帳](docs/optimization-catalog.ja.md) |
 | [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks) | AGPL-3.0 | コードは採用しない。機構と測定：warmup ladder とその出力の関門（#268）、停滞検知、KV容量の読み取り、NCCLチャネル設定、起動安全の要件、RoCE GID のずれ（#277）、現場の手順記録。1 rank 22ヘッドではKDAの `f_b`/`g_b` を量子化するとMarlinを通らないという注記（公開した任意設定がTP=3でこれに当たり、本stackは入力を先に写す） |
-| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | コードは採用しない。EXL3 checkpointを独自のpatchつきの[TensorFold](https://github.com/ashhart/TensorFold)で配信する（FP8のlatent KV cacheや3台用のengine＝patch 0066〜0068など）。このモデルをTensorFoldで配信する場合の参照で、本版はTensorFoldを使わない |
+| MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold | — | TensorFoldの他のレシピとともに[2.x系の表](../v2/README.ja.md#tensorfoldの他のレシピ)に載せており、リンクと2.x系が取り込んだものはそちらが正典です。1.x系は何も取り込んでいません |
 | [sfxnz/GLM-5.3-Flash-NVFP4-vLLM-2x-DGX-Spark](https://github.com/sfxnz/GLM-5.3-Flash-NVFP4-vLLM-2x-DGX-Spark) | MIT | コードは採用しない。SM90 attention経路と、PR #12（mergeされずにclose）で提案された他container検出の起動ガードを参照点として |
 | [drowzeys/keys-vLLm.0.27.1-GLM-5.3-Flash-NVFP4-NVFP4KV-1M-Context-Abliterated](https://github.com/drowzeys/keys-vLLm.0.27.1-GLM-5.3-Flash-NVFP4-NVFP4KV-1M-Context-Abliterated) | Apache-2.0 | コードは採用しない。zero-RoPE shimと `index_topk` 削減をattention検証の比較対象として |
 | [tonyd2wild/GLM-5.3-Flash-NVFP4-DFlash2-2x-DGX-Spark](https://github.com/tonyd2wild/GLM-5.3-Flash-NVFP4-DFlash2-2x-DGX-Spark) | なし | コードは採用しない。測定と現場報告：GB10のメモリ挙動、checksum中の電源断、平均採択長、同時実行の結果。2026-09-20のattention／MLP射影の量子化の記録は、P23と同じテンソル集合に独立に到達している（TP=4、品質は未測定、[施策台帳](docs/optimization-catalog.ja.md)）。2026-09-29からの既定はknapcioのstackをTP=2へ移したもの。issue #26 には、NVIDIAのcheckpointを三角形に配線した3台で動かした第三者のTP=3の測定があり、[施策台帳P28](docs/optimization-catalog.ja.md#性能施策一覧)の参照点とする |

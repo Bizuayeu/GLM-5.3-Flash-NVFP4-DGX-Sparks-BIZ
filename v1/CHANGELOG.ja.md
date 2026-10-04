@@ -4,6 +4,12 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.28.2 — 2026-10-04
+
+### Documentation
+
+- [README](README.ja.md#dgx-spark向けの他のglm-53-flashレシピ)：MiaAI-LabのTensorFold版の行は、[2.x系のTensorFoldのレシピの表](../v2/README.ja.md#tensorfoldの他のレシピ)（2.0.1）を指すようにしました。リンクと2.x系が取り込んだものはそちらが正典です。1.x系は何も取り込んでいません。
+
 ## 1.28.1 — 2026-10-04
 
 ### Fixed
