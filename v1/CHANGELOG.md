@@ -2,6 +2,21 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.1 — 2026-10-04
+
+### Added
+
+- The publication audit accepts a PNG or WebP inside an `assets/` directory when its bytes carry that format's signature, within the existing 2,000,000-byte limit; any other binary file is refused as before. The repository README and 2.x's README show banners.
+
+### Documentation
+
+- What both lines share, the meaning of BIZ and its disclaimer, the licensing table and the local-data note, is said once, in the [repository README](../README.md); this line's README points there and keeps its own disclaimer items.
+- Validation is split by topic: [validation](docs/validation.md) keeps the scope and evidence of the acceptance, the fixture and component checks join [component validation](docs/component-validation.md), and [repeatability](docs/repeatability.md) and the [output correctness gates](docs/correctness-gates.md) are pages of their own. Headings keep their names, so anchors carry over to the new pages.
+- Each fact is stated by the document the [document map](docs/README.md) names as its owner and pointed to elsewhere: the acceptance verdicts (SETUP step 6), why two sequences do not repeat, how the repeatability switches work, harness status, the prefix-cache gate, the host kernel, the clock cap, what preflight checks and which image carries each patch marker. The key reference in [server configuration](docs/server-configuration.md) says what each key does, the [catalog](docs/optimization-catalog.md) records decisions and the [overview](docs/optimization-overview.md) points to it; measurements they retold moved to their owners. Version history leaves the document bodies for this changelog.
+- Corrections: under the GPU clock cap decode on the published option was 1–2% faster, where [operations](docs/operations.md#gpu-clock-cap) said it did not change; the headline's NLL row names its texts (`server agreement`'s four); validation and benchmarks name both lead suspects for two-sequence differences; the English and Japanese pages of NCCL validation, server configuration and benchmarks agree again.
+- `mtp.disable_eagle_block_drop` stays an opt-in that no template sets, because vLLM calls the setting experimental for the draft's acceptance and the key does not combine with LPA; [Next Action](README.md#next-action) waits for vLLM to make it the default or drop the warning.
+- The [document map](docs/README.md) lists the English/Japanese pairs of the whole repository, the repository README's and 2.x's included; the [licensing guide](docs/licensing.md) covers 2.x's engine and image; [CONTRIBUTING](../CONTRIBUTING.md) names each line's validation page.
+
 ## 1.29.0 — 2026-10-04
 
 ### Fixed

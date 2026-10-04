@@ -4,6 +4,20 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.3 — 2026-10-04
+
+### Added
+
+- [`host/`](host/README.md): the hosts' thermal tools this line was measured with, which lived only in the maintainer's records: the GPU clock-cap unit, the telemetry logger with its unit and installer, `cool-gate` (waits for a host to cool between long requests) and `thermal-watch` (stops the engine after two readings in a row at or above 94 °C). The installer takes the service user as an argument; `thermal-watch` was verified with this line's engine only. Their CPU tests are in `tests/`, and CI runs them.
+
+### Documentation
+
+- The comparison with 1.x cites 1.x's published TP=3 decode check, 51.00 / 30.10 / 39.48 tok/s; 49.59 / 28.32 / 38.33 came from a run with a prefill cap of 512 that no template sets. The 1.x tool-argument gate result is TP=2's, the rows that compare runs of other lengths give 1.x's lengths, and the NLL row names its set.
+- What both lines share moved to the [repository README](../README.md). The facts 1.x owns (the clock cap, the checkpoint size per host, the host kernel, the download, the decode check, the repeatability switches) are pointed to instead of restated; [validation](docs/validation.md) keeps the reference values and states the decode check's prompt as `decode_check.py` does.
+- The example cluster files name the default clone directory as `CHECKOUT`.
+
+The image, the scripts and the serving defaults are unchanged, so 2.0.0's image and acceptance stand.
+
 ## 2.0.2 — 2026-10-04
 
 ### Documentation

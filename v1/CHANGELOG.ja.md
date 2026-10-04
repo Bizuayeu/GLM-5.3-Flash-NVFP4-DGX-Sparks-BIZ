@@ -4,6 +4,21 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.1 — 2026-10-04
+
+### Added
+
+- 公開監査は、`assets/` の中のPNGとWebPを、ファイルの先頭がその形式の署名と一致するときに限り、既存の2,000,000バイトの上限の内で受け付けます。それ以外のバイナリは従来どおり拒みます。リポジトリのREADMEと2.x系のREADMEにバナーを載せました。
+
+### Documentation
+
+- 両系列に共通すること（BIZの意味とその免責、ライセンスの早見表、ローカルデータの注意）は[リポジトリのREADME](../README.ja.md)に一度だけ書き、この系列のREADMEはそこを指して、自分の免責事項だけを持ちます。
+- 検証の文書を話題ごとに分けました。[検証](docs/validation.ja.md)は受け入れの範囲と証拠を持ち、fixtureと部品の検査は[部品の検証](docs/component-validation.ja.md)へ、[再現性](docs/repeatability.ja.md)と[出力の正しさの関門](docs/correctness-gates.ja.md)はそれぞれの文書になりました。見出しの文言は変えていないので、アンカーは新しい文書でも同じ名前です。
+- 事実は[文書一覧](docs/README.ja.md)が持ち主とする文書に書き、他の文書はそこを指すようにしました：受け入れの判定（SETUP手順6）、2系列が反復しない理由、再現性スイッチの仕組み、ハーネスの状態、prefix cacheの関門、ホストのカーネル、クロックの上限、preflightが確かめること、どのimageがどのパッチの目印を持つか。[起動設定](docs/server-configuration.ja.md)のkey referenceは各keyの効果を述べ、[施策台帳](docs/optimization-catalog.ja.md)は判断を記録し、[概要](docs/optimization-overview.ja.md)は台帳を指します。そこで語り直していた測定は持ち主へ移しました。版の履歴は本文から外し、この変更履歴に任せます。
+- 訂正：GPUクロックの上限の下では、公開した任意設定のdecodeは1〜2%速くなっていました（[運用手順](docs/operations.ja.md#gpuクロックの上限)は変わらないと書いていた）。主要な測定値のNLLの行は採点したテキスト（`server agreement`の4本）を名乗ります。検証とbenchmarksは2系列の差の容疑者を両方挙げます。NCCLの検証・起動設定・benchmarksの英日が再び一致しました。
+- `mtp.disable_eagle_block_drop` は、vLLMがdraftの受理率について実験的とし、LPAと両立しないため、どのテンプレートにも入れないopt-inのままとします。[Next Action](README.ja.md#next-action)は、vLLMがこの設定を既定にするか警告を外すのを待ちます。
+- [文書一覧](docs/README.ja.md)はリポジトリ全体の英日の対（リポジトリのREADMEと2.x系を含む）を挙げ、[ライセンス整理](docs/licensing.ja.md)は2.x系のエンジンとimageを扱い、[開発への参加](../CONTRIBUTING.ja.md)は系列ごとの検証の文書を挙げます。
+
 ## 1.29.0 — 2026-10-04
 
 ### Fixed
