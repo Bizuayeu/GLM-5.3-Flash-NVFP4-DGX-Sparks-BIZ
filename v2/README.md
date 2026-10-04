@@ -23,6 +23,7 @@
 | Reply limit when a request names none | 32,768 tokens (`--max-tokens`) | same |
 | NCCL | two rails per link, from each rank's file | two rails, four channels, subnet-aware routing |
 | Prefill exchange between ranks | the engine's default, `split` | same |
+| Prefill pause for heat | between chunks, every rank together, while any rank's hottest ACPI zone is above 92 °C, until all are at or below 88 °C (`TF_GLM_HEAT_HIGH`/`TF_GLM_HEAT_LOW`) | same |
 | Kept prompts of other conversations | the engine's defaults: 8 entries, 3 GiB | same |
 
 **Why 300,000 at TP=2.** With `--context 0` the pair took a window of 567,255 tokens and left nothing for other conversations' kept prompts, which matter for chat and agents that resend a long history. By the engine's own memory geometry, 300,000 tokens free about 3.3 GiB per rank against 567,255, enough for the default 3 GiB of kept prompts. 1.x serves 262,144; this window is not matched to it. Pass another `--context` to `serve.sh` to choose differently (the last flag wins); the most the pair holds is about 567K.
