@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Wait until this host has cooled down, reading the gb10-telemetry log.
+
+On the reference hosts a GB10 powered off on the second back-to-back long prefill after
+about an hour of long-input load. A run calls this gate before each long request: it
+returns once the hottest ACPI zone is at or below --band, or after --cap seconds.
+The defaults come from the reference hosts' records: 60 C sits just above the idle band
+measured there (the start temperature barely moved the peak of a run), and 600 s is
+longer than the slowest return to that band they measured. A caller may pass its own.
+
+    cool-gate [--band C] [--cap SECONDS] [--label TEXT]
+
+Reads /var/log/gb10-telemetry, or GB10_TELEMETRY_DIR when set. Prints one JSON line
+(waited seconds, the temperatures at the start and the end, why it returned).
+Exit 0 when cool or at the cap; exit 2 when the telemetry is missing or stale (the run
+must not go on unrecorded).
+"""
+
+import argparse
+import glob
+import json
+import os
+import socket
+import sys
+import time
+
+LOG_DIR = os.environ.get("GB10_TELEMETRY_DIR", "/var/log/gb10-telemetry")
+# The logger writes every 2 s and systemd restarts it after 5 s
+# (gb10-telemetry.service RestartSec=5); 30 s without a line is more than a restart,
+# so the record has stopped.
+# cc-defer: provisional; revisit if a normal restart of the logger ever trips it
+STALE_SECONDS = 30
+
+
+def last_row():
+    files = sorted(glob.glob(os.path.join(LOG_DIR, "*.jsonl")))
+    if not files:
+        return None
+    with open(files[-1], "rb") as f:
+        f.seek(0, os.SEEK_END)
+        f.seek(max(0, f.tell() - 4096))
+        lines = f.read().decode(errors="replace").strip().splitlines()
+    for line in reversed(lines):
+        try:
+            return json.loads(line)
+        except ValueError:
+            continue
+    return None
+
+
+def view(row):
+    zones = [t for t in row.get("acpi_c") or [] if t is not None]
+    return {
+        "epoch": row["epoch"],
+        "acpi_max_c": max(zones) if zones else None,
+        "gpu_c": row.get("gpu_c"),
+        "power_w": row.get("power_w"),
+        "clock_mhz": row.get("clock_mhz"),
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--band", type=float, default=60.0)
+    parser.add_argument("--cap", type=float, default=600.0)
+    parser.add_argument("--label", default="")
+    args = parser.parse_args(argv)
+    began = time.time()
+    first = None
+    while True:
+        row = last_row()
+        now = time.time()
+        if row is None or now - row["epoch"] > STALE_SECONDS:
+            result = {
+                "gate": args.label,
+                "host": socket.gethostname(),
+                "result": "telemetry stale",
+                "last": row and view(row),
+                "waited_s": round(now - began, 1),
+            }
+            print(json.dumps(result), flush=True)
+            return 2
+        v = view(row)
+        first = first or v
+        cool = v["acpi_max_c"] is not None and v["acpi_max_c"] <= args.band
+        if cool or now - began >= args.cap:
+            result = {
+                "gate": args.label,
+                "host": socket.gethostname(),
+                "result": "cool" if cool else "cap",
+                "band_c": args.band,
+                "cap_s": args.cap,
+                "waited_s": round(now - began, 1),
+                "start": first,
+                "end": v,
+            }
+            print(json.dumps(result), flush=True)
+            return 0
+        time.sleep(2)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

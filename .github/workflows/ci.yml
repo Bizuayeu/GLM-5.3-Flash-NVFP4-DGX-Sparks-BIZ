@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        # The 1.x line; v2/ gets its own steps once it has code.
+        # The 1.x line; the 2.x steps below name v2/.
         working-directory: v1
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -29,3 +29,10 @@ jobs:
       - run: ruff check glm53_setup tests tools
       - run: ruff format --check glm53_setup tests tools
       - run: python tools/check_publication.py
+      # 2.x's host tools have no extension, so ruff is given them by name.
+      - run: python -m unittest discover -s tests -t . -v
+        working-directory: v2
+      - run: ruff check host/gb10-telemetry host/cool-gate host/thermal-watch tests
+        working-directory: v2
+      - run: ruff format --check host/gb10-telemetry host/cool-gate host/thermal-watch tests
+        working-directory: v2

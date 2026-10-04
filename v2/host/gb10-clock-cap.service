@@ -1,0 +1,13 @@
+# The cap's rationale and measured cost: v1/docs/operations.md#gpu-clock-cap in this repository.
+[Unit]
+Description=GB10 GPU clock cap against the hard power-off under sustained load
+After=nvidia-persistenced.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nvidia-smi -lgc 300,2200
+ExecStop=/usr/bin/nvidia-smi -rgc
+
+[Install]
+WantedBy=multi-user.target

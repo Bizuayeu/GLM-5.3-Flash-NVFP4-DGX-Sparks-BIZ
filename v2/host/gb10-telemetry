@@ -1,0 +1,111 @@
+#!/usr/bin/python3
+"""GB10 telemetry: one JSON line every 2 s, fsynced per line.
+
+A GB10 hard power-off leaves no log (the page cache and journald lose the last
+tens of seconds), so this writes and fsyncs each sample: ACPI zone temperatures,
+the GPU temperature, power, graphics clock, utilization and clock event reasons
+from one long-running nvidia-smi, the load average and MemAvailable.
+One file per UTC day in /var/log/gb10-telemetry, or in GB10_TELEMETRY_DIR when set.
+"""
+
+import datetime
+import glob
+import json
+import os
+import subprocess
+import time
+
+OUT = os.environ.get("GB10_TELEMETRY_DIR", "/var/log/gb10-telemetry")
+KEEP_DAYS = 14  # cc-defer: provisional retention; revisit when the disk or the investigations need another length
+FIELDS = (
+    "temperature.gpu,power.draw,clocks.gr,utilization.gpu,clocks_event_reasons.active"
+)
+ZONES = sorted(
+    glob.glob("/sys/class/thermal/thermal_zone*/temp"),
+    key=lambda p: int(p.split("zone")[1].split("/")[0]),
+)
+
+
+def number(text):
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def mem_available_gib():
+    with open("/proc/meminfo") as f:
+        for line in f:
+            if line.startswith("MemAvailable:"):
+                return round(int(line.split()[1]) / 1048576, 3)
+    return None
+
+
+def acpi_c():
+    values = []
+    for path in ZONES:
+        try:
+            with open(path) as f:
+                values.append(round(int(f.read()) / 1000, 1))
+        except OSError:
+            values.append(None)
+    return values
+
+
+def prune(today):
+    for path in glob.glob(os.path.join(OUT, "*.jsonl")):
+        day = os.path.basename(path)[:10]
+        try:
+            age = (today - datetime.date.fromisoformat(day)).days
+        except ValueError:
+            continue
+        if age > KEEP_DAYS:
+            os.remove(path)
+
+
+def main():
+    os.makedirs(OUT, exist_ok=True)
+    smi = subprocess.Popen(
+        [
+            "/usr/bin/nvidia-smi",
+            "--query-gpu=" + FIELDS,
+            "--format=csv,noheader,nounits",
+            "-lms",
+            "2000",
+        ],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    day, stream = None, None
+    for line in smi.stdout:
+        parts = [x.strip() for x in line.split(",")]
+        if len(parts) != 5:
+            continue
+        now = time.time()
+        today = datetime.datetime.fromtimestamp(now, datetime.timezone.utc).date()
+        if today != day:
+            if stream:
+                stream.close()
+            day = today
+            # Open across samples until the UTC day changes, so no context manager.
+            stream = open(os.path.join(OUT, f"{day.isoformat()}.jsonl"), "a")  # noqa: SIM115
+            prune(today)
+        record = {
+            "epoch": round(now, 3),
+            "acpi_c": acpi_c(),
+            "gpu_c": number(parts[0]),
+            "power_w": number(parts[1]),
+            "clock_mhz": number(parts[2]),
+            "util_pct": number(parts[3]),
+            "event_reasons": parts[4],
+            "load1": os.getloadavg()[0],
+            "mem_available_gib": mem_available_gib(),
+        }
+        stream.write(json.dumps(record) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    raise SystemExit(f"nvidia-smi ended with {smi.wait()}")
+
+
+if __name__ == "__main__":
+    main()

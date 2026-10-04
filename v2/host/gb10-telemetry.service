@@ -1,0 +1,14 @@
+[Unit]
+Description=GB10 telemetry (temperatures, GPU power and clock every 2 s, fsynced)
+After=nvidia-persistenced.service
+
+[Service]
+ExecStart=/usr/local/sbin/gb10-telemetry
+# install.sh replaces @SERVICE_USER@ with the user it installs for.
+User=@SERVICE_USER@
+Restart=always
+RestartSec=5
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

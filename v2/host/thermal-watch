@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Stop the engine before this GB10 host gets hot enough to power off.
+
+    thermal-watch LOG [--container NAME] [--process PATTERN] [--threshold C] [--readings N]
+
+Run on the host while the engine serves. Every 2 s it appends the hottest ACPI zone,
+the GPU temperature, power and clock of the latest gb10-telemetry row to LOG (read from
+/var/log/gb10-telemetry, or GB10_TELEMETRY_DIR when set). --readings readings in a row
+at or above --threshold stop the engine. The engine runs as root inside its container,
+so it is found and stopped through `docker exec`: a pkill from the host user fails on
+it. Ends when the stop file (LOG with .stop in place of its suffix) exists or the
+engine is gone. Verified with the 2.x engine: container glm53-tf, `tensorfold serve`.
+"""
+
+import argparse
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+LOG_DIR = os.environ.get("GB10_TELEMETRY_DIR", "/var/log/gb10-telemetry")
+# The rule used on the reference hosts: two readings in a row at or above 94.0 C. In
+# their records 93.7 C is the highest reading that ended without a power-off.
+THRESHOLD_C = 94.0
+READINGS = 2
+
+
+def last_row():
+    files = sorted(glob.glob(os.path.join(LOG_DIR, "*.jsonl")))
+    if not files:
+        return None
+    with open(files[-1], "rb") as f:
+        f.seek(0, os.SEEK_END)
+        f.seek(max(0, f.tell() - 4096))
+        lines = f.read().decode(errors="replace").strip().splitlines()
+    for line in reversed(lines):
+        try:
+            return json.loads(line)
+        except ValueError:
+            continue
+    return None
+
+
+def hottest(row):
+    """The hottest ACPI zone of a telemetry row, or None without a reading."""
+    zones = [t for t in (row or {}).get("acpi_c") or [] if t is not None]
+    return max(zones) if zones else None
+
+
+def step(hot, acpi, threshold):
+    """The count of readings in a row at or above threshold, after this reading."""
+    return hot + 1 if acpi is not None and acpi >= threshold else 0
+
+
+def stop_file(log):
+    return os.path.splitext(log)[0] + ".stop"
+
+
+def engines(container, pattern):
+    """How many processes in the container match pattern (a regex, as for pkill -f).
+
+    0 when the container is gone.
+    """
+    ps = subprocess.run(
+        ["docker", "exec", container, "ps", "-eo", "args"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if ps.returncode != 0:
+        return 0
+    return sum(bool(re.search(pattern, line)) for line in ps.stdout.splitlines())
+
+
+def note(log, text):
+    with open(log, "a", encoding="utf-8") as f:
+        f.write(f"{time.strftime('%H:%M:%S')} {text}\n")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("log")
+    parser.add_argument("--container", default="glm53-tf")
+    parser.add_argument("--process", default="tensorfold serve")
+    parser.add_argument("--threshold", type=float, default=THRESHOLD_C)
+    parser.add_argument("--readings", type=int, default=READINGS)
+    args = parser.parse_args(argv)
+    hot = 0
+    while not os.path.exists(stop_file(args.log)) and engines(
+        args.container, args.process
+    ):
+        row = last_row()
+        acpi = hottest(row)
+        if row is None:
+            note(args.log, "no telemetry")
+        else:
+            shown = -1 if acpi is None else acpi
+            note(
+                args.log,
+                f"{row['epoch']:.0f} {shown} {row.get('gpu_c')} "
+                f"{row.get('power_w')} {row.get('clock_mhz')}",
+            )
+        hot = step(hot, acpi, args.threshold)
+        if hot >= args.readings:
+            note(args.log, f"ABORT acpi {acpi}")
+            subprocess.run(
+                ["docker", "exec", args.container, "pkill", "-f", args.process],
+                check=False,
+            )
+            break
+        time.sleep(2)
+    note(args.log, "end")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
