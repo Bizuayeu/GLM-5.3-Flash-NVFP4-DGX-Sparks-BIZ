@@ -57,7 +57,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ランチャーは形式の不正な指定、逆順や重複のある範囲を拒否します。
 各ホストの`server preflight`は、指定されたCPUが起動プロセスの利用可能な範囲に含まれるか確認します。
-起動後はDockerの`HostConfig.CpusetCpus`を読み戻し、設定と一致しなければ新しいコンテナを停止します。
+起動後、rankをstartedと記録する前にDockerの`HostConfig.CpusetCpus`を読み戻し、設定と一致しなければ新しいコンテナを停止します。
 この設定は配置を制御するもので、速度を保証するものではありません。
 全rankに設定してください。
 参照対（両ホストとも高性能コアは5〜9と15〜19）では、どちらか一方のrankが高効率コアにいるだけでdecodeが約3分の1になり、固定なしではスケジューラがたまたま両rankを高性能コアに置いていました。
@@ -167,7 +167,7 @@ workerのメソッドが例外を出すとHTTP 500が返り、その次の `/col
 
 `validation.expert_worker=true` は、実際のexpert配置・kernel・parameter情報を返す型付きRPC `expert_info` を有効にします。独立したeager TP2の基準／EP条件、最大2系列が対象で、他の観測worker・MTP/LPA/APC・PPとは併用しません。層のhash観測は明示的な `pipeline_observe` RPCで初めて開始するため、性能測定中はそのhookを入れません。
 
-`validation.component_worker=true` は、CUDAのA/Bとindexerの観測のための独立した観測workerを選びます（[機能の併用と制約](#lpaとmtp制約)）。
+`validation.component_worker=true` は、CUDAのA/Bとindexerの観測のための独立した観測workerを選びます（[機能の併用と制約](#機能の併用と制約)）。
 
 `resources.stall_seconds`（未指定は0＝無効、テンプレートは600）と `generation.warmup`／`generation.warmup_long_tokens`（未指定はfalse／0）は[監視・停滞検知・warmup](operations.ja.md#監視停滞検知warmup)で説明します。認証クライアント、`runtime.cuda_allocator_conf`、`nodes[].additional_rails`、切替は[起動契約](launch-safety.ja.md)にあります。
 
@@ -279,7 +279,7 @@ KVが不足すれば起動が拒否される場合があり、実行時は待ち
 
 imageが持つmarkerは `docker image inspect IMAGE --format '{{json .Config.Env}}'` で確かめられます。
 
-## LPAとMTP・制約
+## 機能の併用と制約
 
 `runtime.decode_graphs`（テンプレートは `false`、未指定はeager）がdecode Graphの唯一のスイッチです。`true` で `CompilationMode.NONE`・`FULL_DECODE_ONLY` を渡します。capture size は一つで、MTP有効時は `num_speculative_tokens + 1`（固定ランタイムはdecodeのsizeをこの倍数に切り上げ、`[1]` は拒否します）、無効時は `1` です。prefillはcompileしません。同時1シーケンスならMTP・prefix cacheと併用できます。expertのtoken順を固定した4層MTP fixtureで、eagerとgraphは全長さでtokenもlogprobも一致しました（[部品検証](component-validation.ja.md#decode-graphのfixture独立評価)）。LPAはeagerが必要で、複数系列のGraph設定は起動設定で拒否します。全モデルではGraphのdecodeがeagerより遅く、採用していません（[全モデルでのdecode Graphs](benchmarks.ja.md#全モデルでのdecode-graphs)）。以前の書き方 `runtime.enforce_eager`（`false`＝Graph）も読むので既存profileのfingerprintは変わりませんが、両方を書く場合は矛盾させないでください。
 

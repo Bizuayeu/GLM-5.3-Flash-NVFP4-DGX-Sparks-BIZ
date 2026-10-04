@@ -993,7 +993,7 @@ At 2048 the 199,652-token passphrase request of [200K real input on 1.3.1](#200k
 
 ### Release candidate measurements
 
-On 2026-09-14 (Asia/Tokyo), `release-200k-reserve 4` measured the combined profile on two GB10 hosts with image `sha256:f6fc154c5b5397e694fb20b9c150bced6b1a049dd5e4b1bf6a7ca642160def7a` and pinned vLLM `385dce36bcee42309924a5ece951a96db3dce7f2`. Settings: TP2/eager/one sequence, configured limit 204,800 tokens, chunk 512, FP8 KV 2.5 GiB per rank, MTP k=3, LPA cut 32 / tail 512 / B 128, APC, dense retention, fused unpack and async index checks. Host reserve 4 GiB; no time-based stop. This image includes canonical candidate ordering. A configured context limit is distinct from real-input capacity qualification.
+On 2026-09-14 (Asia/Tokyo), `release-200k-reserve4` measured the combined profile on two GB10 hosts with image `sha256:f6fc154c5b5397e694fb20b9c150bced6b1a049dd5e4b1bf6a7ca642160def7a` and pinned vLLM `385dce36bcee42309924a5ece951a96db3dce7f2`. Settings: TP2/eager/one sequence, configured limit 204,800 tokens, chunk 512, FP8 KV 2.5 GiB per rank, MTP k=3, LPA cut 32 / tail 512 / B 128, APC, dense retention, fused unpack and async index checks. Host reserve 4 GiB; no time-based stop. This image includes canonical candidate ordering. A configured context limit is distinct from real-input capacity qualification.
 
 #### sparkDash
 
