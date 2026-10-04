@@ -1,6 +1,6 @@
 # 利用・改造・配布のライセンス整理
 
-[English](licensing.md) · [出所・通知の一覧](../../THIRD_PARTY_NOTICES.md)
+[English](licensing.md) · [出所・通知の一覧](../THIRD_PARTY_NOTICES.md)
 
 本書は両方の配信系列を扱います。**本リポジトリの独自コード・文書はApache-2.0で、商用利用、改造、有償・無償の再配布が可能です。重み・コンテナ・ハーネスには、それぞれ別の条件が適用されます。** 以下は実務用の要約であり、許諾の正典は各ライセンス原文と利用する版です。
 
@@ -16,7 +16,7 @@
 | CUDA等を含む完成Dockerイメージ（2.x系のものはNVIDIAのPyTorch containerの上に作り、NVIDIAの条件に従う） | 各同梱物の条件に従う | SDK等の変更許諾までApache扱いしない | **全体を一括して許可済みとは扱わない** | 実イメージの構成物・版・配布可能部分・通知を確認 |
 | ZCode／Claude Code本体 | 各サービス・製品の契約に従う | 本リポジトリから改造権は付与されない | 本リポジトリから再配布権は付与されない | 公式配布元から別途導入。本体やログイン情報は同梱しない |
 
-根拠: [Apache原文・第2〜4、6〜9条](../../LICENSE)、MIT原文（[kingjones](../../LICENSES/kingjones-MIT.txt)、[knapcio](../../LICENSES/knapcio-MIT.txt)、[HLE](../../LICENSES/hle-MIT.txt)）、[NVIDIA固定モデルカード](https://huggingface.co/nvidia/GLM-5.3-Flash-NVFP4/blob/423acf37583782c51c142d145aef733d72943d93/README.md)。
+根拠: [Apache原文・第2〜4、6〜9条](../LICENSE)、MIT原文（[kingjones](../LICENSES/kingjones-MIT.txt)、[knapcio](../LICENSES/knapcio-MIT.txt)、[HLE](../LICENSES/hle-MIT.txt)）、[NVIDIA固定モデルカード](https://huggingface.co/nvidia/GLM-5.3-Flash-NVFP4/blob/423acf37583782c51c142d145aef733d72943d93/README.md)。
 
 ## MITとApache-2.0の違い
 
@@ -38,7 +38,7 @@
 
 ## 重みのMIT通知
 
-固定NVIDIA snapshotには独立したLICENSEファイルがなく、READMEにMIT表記と商用利用可の説明があります。上流Z.AIモデルの[固定版LICENSE](https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/LICENSE)を[原文で保持](../../LICENSES/ZAI-GLM-MIT.txt)しています。これはNVIDIA snapshotに入っていたファイルと偽って扱うものではありません。
+固定NVIDIA snapshotには独立したLICENSEファイルがなく、READMEにMIT表記と商用利用可の説明があります。上流Z.AIモデルの[固定版LICENSE](https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/LICENSE)を[原文で保持](../LICENSES/ZAI-GLM-MIT.txt)しています。これはNVIDIA snapshotに入っていたファイルと偽って扱うものではありません。
 
 重みを再配布する場合は、モデルカードと上流MIT通知を配布物に添え、元モデル・量子化元・revisionを示してください。追加学習や変換に別のコード・データを用いた場合、その条件も別途適用されます。通知用ファイルは配布用の外側に添え、公式checksum対象のHugging Face snapshotへ追加して検証条件を壊さないでください。MITは、生成物の著作権帰属、第三者権利の非侵害、入力データの利用権を保証しません。
 
@@ -46,9 +46,9 @@
 
 ## LPA projector
 
-独立してfitした[LPA cut32補助重み](lpa.ja.md#学習済みprojectorの取得)を、保守者が許諾できる権利の範囲で**Apache-2.0**により提供します。ReleaseにはLICENSE、NOTICE、教師モデルの来歴、学習データの帰属表示を添付します。NVIDIAのcheckpointや学習データを再許諾するものではありません。
+独立してfitした[LPA cut32補助重み](../v1/docs/lpa.ja.md#学習済みprojectorの取得)を、保守者が許諾できる権利の範囲で**Apache-2.0**により提供します。ReleaseにはLICENSE、NOTICE、教師モデルの来歴、学習データの帰属表示を添付します。NVIDIAのcheckpointや学習データを再許諾するものではありません。
 
-[projector lock](../config/lpa-projector.lock.json)には、使用したLLM-jp Corpus v3のsubsetを記録しています。日本語・英語WikipediaはCC-BY-SA-3.0表記、C++はリポジトリ別のMIT・Apache・BSD・ISC表記で絞っています。LLM-jp由来であることが、各原文を一律Apache-2.0にするわけではありません。コーパス本文と教師活性の採取物は補助重みに同梱しません。
+[projector lock](../v1/config/lpa-projector.lock.json)には、使用したLLM-jp Corpus v3のsubsetを記録しています。日本語・英語WikipediaはCC-BY-SA-3.0表記、C++はリポジトリ別のMIT・Apache・BSD・ISC表記で絞っています。LLM-jp由来であることが、各原文を一律Apache-2.0にするわけではありません。コーパス本文と教師活性の採取物は補助重みに同梱しません。
 
 Apacheで許諾する対象は補助重みであり、モデルが再現する可能性のある第三者の創作的表現まで含めません。学習や成果物にその表現の許諾が必要かは、個別の事実に依存する別の論点です。[Creative Commonsの説明](https://creativecommons.org/using-cc-licensed-works-for-ai-training-2/)も、著作権の例外とライセンス条件が働く利用を区別しています。今回のライセンス選択は、条件が一切適用されないという法的判定ではありません。
 
@@ -67,4 +67,4 @@ ZCodeは[独自の利用規約](https://zcode.z.ai/en/terms)、Claude Codeは[�
 - [ ] イメージを配る場合は実際の同梱物と再配布条件を確認した。2.x系のimageは `/opt/tensorfold` のエンジンの表示と `/opt/glm53-tf/` の本プロジェクトの表示を保持した。
 - [ ] ハーネス本体・鍵・認証情報・私的ログを誤って同梱していない。
 
-ハーネスの接続方式と技術的な合格条件は[連携・受け入れ試験](harnesses.ja.md)に分けて記載します。
+ハーネスの接続方式と技術的な合格条件は[連携・受け入れ試験](../v1/docs/harnesses.ja.md)に分けて記載します。

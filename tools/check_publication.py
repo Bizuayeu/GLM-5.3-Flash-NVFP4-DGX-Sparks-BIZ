@@ -173,7 +173,8 @@ def citation_problems(name, readme, version):
     return []
 
 
-# The document map lists every public page of its language; an unlisted page is lost.
+# A document map lists every public page of its directory's docs/ in its language;
+# an unlisted page is lost. The repository's map and 1.x's both follow it.
 MAPS = {"docs/README.md": False, "docs/README.ja.md": True}
 
 
@@ -421,6 +422,12 @@ def problems(root, files, plans=False):
     found += anchor_problems(
         {name: (root / name).read_text(encoding="utf-8") for name in documents}
     )
+    for map_name in MAPS:
+        # The repository's own map, under the same rule as 1.x's in v1/docs/.
+        if map_name in files:
+            found += map_problems(
+                map_name, (root / map_name).read_text(encoding="utf-8"), documents
+            )
     if plans:
         found += plan_link_problems(root)
     for line in LINES:

@@ -55,7 +55,7 @@ ibdev2netdev
 
 If a diagnostic is missing, record that fact and install only the required vendor-supported package within the deployment authorization. Do not blanket-upgrade the OS, driver or firmware as a diagnostic step. Compare both inventories; do not assume their interface names, HCA names or GID indices match.
 
-**Kernel:** if `uname -r` shows `7.0.0-1019-nvidia`, or pending updates would install it, choose between keeping `6.17.0-1032-nvidia` and booting with `kho=off` as described in [host kernel and multi-node RoCE](docs/operations.md#host-kernel-and-multi-node-roce), before step 5.
+**Kernel:** if `uname -r` shows `7.0.0-1019-nvidia`, or pending updates would install it, choose between keeping `6.17.0-1032-nvidia` and booting with `kho=off` as described in [host kernel and multi-node RoCE](../docs/hosts.md#host-kernel-and-multi-node-roce), before step 5.
 
 **Checkpoint:** both hosts accessible; resource and storage budget recorded; kernel and boot parameters recorded; cable status known. Without the cable, continue steps 2–4 when their prerequisites hold and leave step 5 pending.
 
@@ -106,13 +106,13 @@ Run the [single-GPU fixture procedure](docs/component-validation.md#reproduce-th
 
 ## 5. Connect and qualify the fabric — cable required
 
-Follow the [QSFP and NetworkManager hands-on guide](docs/qsfp-network.md), starting with management SSH, cable/interface identification and one-host-at-a-time configuration.
+Follow the [QSFP and NetworkManager hands-on guide](../docs/qsfp-network.md), starting with management SSH, cable/interface identification and one-host-at-a-time configuration.
 
 Have a person physically connect the supported cable. Follow the vendor's networking procedure while preserving management access. Record existing network configuration before a change and its restoration procedure. Do not assign an illustrative subnet until checking existing routes on both hosts.
 
 Inventory the live Ethernet interface, HCA and RoCEv2 GID mapped to each local IPv4. Configure [per-host site settings](docs/operations.md#network-and-site-configuration). Treat every example value as a placeholder. MTU changes must work end-to-end; do not blindly set 9000. Test both directions and distinguish SSH/IP connectivity from RDMA transport.
 
-Before full weights are loaded, follow the [two-rank NCCL diagnostic](docs/nccl-validation.md). Save the command, tool version, rank placement, transport log, payload sizes, data checks and measured bandwidth. Confirm the intended RDMA interfaces and passing data checks. **This release has no production bandwidth threshold; the full model's routine-use acceptance rests on the evidence recorded in [step 6](#6-qualify-the-full-model), not on a number measured here.** Agree on the performance criterion and document it before accepting performance; a ping or an unexamined bandwidth number cannot close it.
+Before full weights are loaded, follow the [two-rank NCCL diagnostic](../docs/nccl-validation.md). Save the command, tool version, rank placement, transport log, payload sizes, data checks and measured bandwidth. Confirm the intended RDMA interfaces and passing data checks. **This release has no production bandwidth threshold; the full model's routine-use acceptance rests on the evidence recorded in [step 6](#6-qualify-the-full-model), not on a number measured here.** Agree on the performance criterion and document it before accepting performance; a ping or an unexamined bandwidth number cannot close it.
 
 **Checkpoint:** correct two-rank collective data and intended transport demonstrated, or explicitly pending/failed with evidence.
 
@@ -181,7 +181,7 @@ Anything outside these scopes — more sequences than stated, video input, other
 
 Start rank 1 first and then rank 0 with `server start`, as described in [server configuration](docs/server-configuration.md#commands). Record both image IDs, source/model revisions, arguments, settings and start logs. Check the API through loopback or a reviewed SSH tunnel, then repeat text and harmless tool acceptance tests through the actual client.
 
-Run the [harness acceptance matrix](docs/harnesses.md) for **the accepted route, the npm ZCode CLI**; the other routes are not required targets ([decision](docs/harnesses.md#acceptance-matrix-and-status)). Basic API success alone does not close a client case. Keep client versions, non-secret settings and separate case results. Review [artifact-specific licensing](docs/licensing.md) before distributing a deployment.
+Run the [harness acceptance matrix](docs/harnesses.md) for **the accepted route, the npm ZCode CLI**; the other routes are not required targets ([decision](docs/harnesses.md#acceptance-matrix-and-status)). Basic API success alone does not close a client case. Keep client versions, non-secret settings and separate case results. Review [artifact-specific licensing](../docs/licensing.md) before distributing a deployment.
 
 Keep this service on a trusted network. The host-network containers expose distributed control ports to reachable peers; loopback API binding alone does not protect rendezvous. Public exposure, authentication/TLS, firewall policy and business availability requirements need their own deployment design. The “BIZ” suffix in the project name states a business-use intent; it is not a production certification or a support commitment.
 
@@ -189,7 +189,7 @@ Keep this service on a trusted network. The host-network containers expose distr
 
 Three GB10 hosts cabled as a switchless QSFP ring serve TP=3 ([measurements on 1.24.0](docs/benchmarks.md#measurements-on-1240)). The steps above apply on all three hosts, with these additions:
 
-- **Network (step 5).** Set up each of the three links as its own pair, then give each host one stable /32 on a dummy interface with static routes to the other two over the direct links ([QSFP network, section 8](docs/qsfp-network.md#8-three-hosts-in-a-ring)). Probe the three ranks together and each link alone ([NCCL diagnostics](docs/nccl-validation.md#three-hosts-in-a-ring)).
+- **Network (step 5).** Set up each of the three links as its own pair, then give each host one stable /32 on a dummy interface with static routes to the other two over the direct links ([QSFP network, section 8](../docs/qsfp-network.md#8-three-hosts-in-a-ring)). Probe the three ranks together and each link alone ([NCCL diagnostics](../docs/nccl-validation.md#three-hosts-in-a-ring)).
 - **Profile.** Start from [`examples/server.tp3.example.toml`](examples/server.tp3.example.toml): every node lists its links and sets `host_address` and `host_interface` ([server configuration](docs/server-configuration.md)). The image is the same reference image; the launcher sets the padding knob for three nodes. The template serves one 262,144-token sequence; `max_model_len` may go to the checkpoint's 1,048,576, with the KV each length and sequence count needs in [server configuration](docs/server-configuration.md#three-nodes) and the measured capacity in [measurements on 1.24.0](docs/benchmarks.md#measurements-on-1240).
 - **Launch and switch.** Ranks start from the highest, the head last. Moving between the pair and the ring means stopping every rank first: `cluster switch` refuses a change of rank count ([launch safety](docs/launch-safety.md#three-nodes)).
 - **Acceptance (step 6).** The same checks, with the TP=3 decode-check hashes kept with each host's runtime cache ([launch safety](docs/launch-safety.md#three-nodes)) and teacher-forced NLL compared with a TP=2 record position by position ([validation](docs/validation.md#full-model-scope)). Step 6 records the reference ring's evidence.

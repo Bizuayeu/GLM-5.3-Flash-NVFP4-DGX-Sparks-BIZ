@@ -81,7 +81,7 @@ projector_sha256 = "<config/lpa-projector.lock.json の sha256>"
 
 凍結した教師のAttention入力にridge回帰で合わせた、対角scale・共有低rank基底・層別の残差写像です。cut層は自身の入力を使い、学習した写像は33〜44層を担当します。重みファイルに含むのは学習済みtensorとscalarメタデータで、コーパス本文・教師活性の採取物・認証情報・実機設定は含みません。配布前にメタデータ、tensor形状、有限値、SHA-256を検査し、下記の実測に使用したprojectorとバイト一致を確認しました。
 
-学習元はlockに記載した固定LLM-jp Corpus v3の日本語・英語Wikipediaと、許容ライセンスで絞ったC++です。学習splitのみでfitし、validationで候補を選び、test文書は分離しています。上限付きの標本取得のため、元shard全体のchecksumは未検証です。学習データのライセンス・帰属は[projectorのライセンス](licensing.ja.md#lpa-projector)と分けて保持し、データ本体の再許諾・同梱は行いません。下記の小規模な評価は、一般品質、記憶再現の不存在、他のcheckpoint・精度への適合を証明するものではありません。
+学習元はlockに記載した固定LLM-jp Corpus v3の日本語・英語Wikipediaと、許容ライセンスで絞ったC++です。学習splitのみでfitし、validationで候補を選び、test文書は分離しています。上限付きの標本取得のため、元shard全体のchecksumは未検証です。学習データのライセンス・帰属は[projectorのライセンス](../../docs/licensing.ja.md#lpa-projector)と分けて保持し、データ本体の再許諾・同梱は行いません。下記の小規模な評価は、一般品質、記憶再現の不存在、他のcheckpoint・精度への適合を証明するものではありません。
 
 ## 部品の再現
 

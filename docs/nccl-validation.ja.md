@@ -1,14 +1,14 @@
 # NCCL通信検証
 
-[English](nccl-validation.md) · [QSFP準備](qsfp-network.ja.md) · [検証範囲](validation.ja.md)
+[English](nccl-validation.md) · [QSFP準備](qsfp-network.ja.md) · [検証範囲](../v1/docs/validation.ja.md)
 
-[同梱の診断ツール](../tools/nccl_probe.py)は、2または3 rank（`--world-size`、既定は2）で、rankごとに異なる値を持つテンソルを通信し、FP32・BF16のAllReduceを1 KiB／1 MiB／16 MiB／256 MiBで検査します。加えてFP32のAllGather・ReduceScatter・Broadcastも確認します。モデル重みはロードせず、フルモデルの合格証跡は生成しません。
+[同梱の診断ツール](../host/nccl_probe.py)は、2または3 rank（`--world-size`、既定は2）で、rankごとに異なる値を持つテンソルを通信し、FP32・BF16のAllReduceを1 KiB／1 MiB／16 MiB／256 MiBで検査します。加えてFP32のAllGather・ReduceScatter・Broadcastも確認します。モデル重みはロードせず、フルモデルの合格証跡は生成しません。必要なのはNCCLつきのPyTorchだけで、下の参照の結果は1.x系のimageで実行したものです。
 
 ## 2台で実行する
 
 まず両機で固定IPv4・HCA・RoCEv2 GID・peer宛経路を確認します。Dockerコンテナだけでなく**ホストのプロセスと進行中の転送**も確認します。帯域を単独で測ったと言う前に、許可された競合作業を止めてもらうか終わるのを待ちます。無関係な転送を自動で止めることはしません。
 
-両機で同じレビュー済みのソースと固定ベースイメージを使います。新しいコンテナ名と出力先を選びます。各機のLinux checkoutで、次の例示値を実測値へ置き換えます（rank 1は自機のinterface／HCA／IPを使い、`HEAD_IP`はrank 0のアドレスのまま）。
+両機で同じレビュー済みのソースと固定ベースイメージを使います。新しいコンテナ名と出力先を選びます。各機のLinux checkoutのルートで、次の例示値を実測値へ置き換えます（rank 1は自機のinterface／HCA／IPを使い、`HEAD_IP`はrank 0のアドレスのまま）。
 
 ```sh
 RANK=0
@@ -17,14 +17,14 @@ HCA='REPLACE_WITH_OBSERVED_HCA'
 GID='REPLACE_WITH_OBSERVED_INDEX'
 HEAD_IP='10.53.0.1'
 RUN_ID='REPLACE_WITH_UNIQUE_RUN_ID'
-IMAGE=$(python -c 'from glm53_setup.config import load_lock; print(load_lock()["image"])')
-mkdir -p "../records/$RUN_ID"
+IMAGE=$(cd v1 && python -c 'from glm53_setup.config import load_lock; print(load_lock()["image"])')
+mkdir -p "records/$RUN_ID"
 ```
 
 rank 0の29653番ポートが未使用か確認します。rank 1、続けてrank 0を速やかに起動します（待ち合わせのタイムアウトは90秒）。試験全体には外部から5分の期限を設け、超えたら今回の試験コンテナだけを両機で停止し、ログを保存します。
 
 ```sh
-docker run --name "glm53-nccl-$RUN_ID-rank$RANK"   --gpus all --network host --memory 16g --memory-swap 16g --shm-size 1g   --cap-add IPC_LOCK --ulimit memlock=-1:-1   --device /dev/infiniband:/dev/infiniband   -e NCCL_NET=IB -e NCCL_IB_DISABLE=0   -e "NCCL_IB_HCA==$HCA" -e "NCCL_IB_GID_INDEX=$GID"   -e NCCL_IB_ROCE_VERSION_NUM=2 -e NCCL_IB_ADDR_FAMILY=AF_INET   -e NCCL_SOCKET_FAMILY=AF_INET -e "NCCL_SOCKET_IFNAME==$FABRIC_IF"   -e "GLOO_SOCKET_IFNAME=$FABRIC_IF"   -e NCCL_DEBUG=INFO -e NCCL_DEBUG_SUBSYS=INIT,NET,GRAPH   -v "$PWD/tools/nccl_probe.py:/probe.py:ro"   -v "$PWD/../records/$RUN_ID:/out"   --entrypoint python3 "$IMAGE" /probe.py   --rank "$RANK" --head "$HEAD_IP" --port 29653   --output "/out/rank$RANK.json" >"../records/$RUN_ID/nccl.log" 2>&1
+docker run --name "glm53-nccl-$RUN_ID-rank$RANK"   --gpus all --network host --memory 16g --memory-swap 16g --shm-size 1g   --cap-add IPC_LOCK --ulimit memlock=-1:-1   --device /dev/infiniband:/dev/infiniband   -e NCCL_NET=IB -e NCCL_IB_DISABLE=0   -e "NCCL_IB_HCA==$HCA" -e "NCCL_IB_GID_INDEX=$GID"   -e NCCL_IB_ROCE_VERSION_NUM=2 -e NCCL_IB_ADDR_FAMILY=AF_INET   -e NCCL_SOCKET_FAMILY=AF_INET -e "NCCL_SOCKET_IFNAME==$FABRIC_IF"   -e "GLOO_SOCKET_IFNAME=$FABRIC_IF"   -e NCCL_DEBUG=INFO -e NCCL_DEBUG_SUBSYS=INIT,NET,GRAPH   -v "$PWD/host/nccl_probe.py:/probe.py:ro"   -v "$PWD/records/$RUN_ID:/out"   --entrypoint python3 "$IMAGE" /probe.py   --rank "$RANK" --head "$HEAD_IP" --port 29653   --output "/out/rank$RANK.json" >"records/$RUN_ID/nccl.log" 2>&1
 ```
 
 Docker引数の`NCCL_IB_HCA==...`と`NCCL_SOCKET_IFNAME==...`は誤記ではありません。環境変数の値を`=名前`として渡し、前方一致ではなく対象deviceへ完全一致させます。[NCCL公式仕様](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html)を参照してください。分散用ポートは信頼できるfabric内に閉じます。
@@ -43,19 +43,19 @@ NVIDIAの[Spark移植ガイド](https://docs.nvidia.com/dgx/dgx-spark-porting-gu
 
 ## 3台のリング
 
-リング（[ネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）では、まず3台すべてで`--world-size 3`を指定し、起動と同じfabric環境、`--head`にheadのアドレスを与えて1回実行します。rank 2と1をrank 0より先に起動します。続いて各リンクを`--world-size 2`で単独に検査します。`server plan`は各rankのリンクを`link_probes`に出し、組のhead、診断でのrank、そのリンクだけを指定する環境変数を示します。3ノード以上ではランチャーが`NCCL_IB_SUBNET_AWARE_ROUTING=1`を設定し、NCCLは各peerへそのサブネットに届くリンクで送ります。
+リング（[ネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）では、まず3台すべてで`--world-size 3`を指定し、起動と同じfabric環境、`--head`にheadのアドレスを与えて1回実行します。rank 2と1をrank 0より先に起動します。続いて各リンクを`--world-size 2`で単独に検査します。1.x系の`server plan`は各rankのリンクを`link_probes`に出し、組のhead、診断でのrank、そのリンクだけを指定する環境変数を示します。3ノード以上では1.x系のランチャーが`NCCL_IB_SUBNET_AWARE_ROUTING=1`を設定し（2.x系はTP=3のrankのファイルが同じ設定を持ちます）、NCCLは各peerへそのサブネットに届くリンクで送ります。
 
 合格条件は上と同じで、全rankに適用します。参照の結果（GB10 3台、NCCL実ランタイム2.30.7、2026-09-29）：3 rankで11項目すべて合格。NCCLは各機の2つのHCAを1つの仮想NICにまとめ、0→1→2のringを組み、全チャネルが`NET/IB`で、socketへのfallbackはありませんでした。AllReduceのbus bandwidthはFP32で16 MiB 7.87 GB/s、256 MiB 7.01 GB/s、BF16で8.56と6.94 GB/sです。これはbus bandwidthであり、診断ツールの1 rankあたり`payload_GB_per_s`ではありません。GPUDirect RDMAはpairと同じく無効のままでした。
 
 ## GID indexが動く
 
-`server preflight` は、IPv4対応のRoCE v2 GIDが設定したindexにないレールを拒否し、その項目がいまどこにあるかを `gid_hints` に `fixes` とともに並べます。リンクが落ちて戻ると項目が動くことがあります。MiaAI-Labのレシピ #277 が報告しているほか、参照対でも2026-09-27にheadの電源断の後、peerのrail 0がindex 3から4に動きました。interfaceに2つ目のIPv6 link-localアドレスが付いても動きます。NetworkManagerの `ipv6.addr-gen-mode` の既定 `stable-privacy` がkernelのものとは別にもう1つ足し、そのGIDの項目が先に並ぶので、IPv4の項目が後ろのindexへずれます（MiaAI-Labのレシピ #291 は2と3が5と6になったと報告しています）。レールが2本のnodeでは、HCAごとに別のindexになりえますが、NCCLはrankごとに1つしか取りません。`gid_hints` は、レールのnet deviceに異なるlink-localのGIDが2つあり、IPv4のRoCE v2の項目が別のindexにあるとき、これを `likely_cause: nm_stable_privacy` と示します。link-localが1つなら原因は示しません。
+1.x系の `server preflight` は、IPv4対応のRoCE v2 GIDが設定したindexにないレールを拒否し、その項目がいまどこにあるかを `gid_hints` に `fixes` とともに並べます。リンクが落ちて戻ると項目が動くことがあります。MiaAI-Labのレシピ #277 が報告しているほか、参照対でも2026-09-27にheadの電源断の後、peerのrail 0がindex 3から4に動きました。interfaceに2つ目のIPv6 link-localアドレスが付いても動きます。NetworkManagerの `ipv6.addr-gen-mode` の既定 `stable-privacy` がkernelのものとは別にもう1つ足し、そのGIDの項目が先に並ぶので、IPv4の項目が後ろのindexへずれます（MiaAI-Labのレシピ #291 は2と3が5と6になったと報告しています）。レールが2本のnodeでは、HCAごとに別のindexになりえますが、NCCLはrankごとに1つしか取りません。`gid_hints` は、レールのnet deviceに異なるlink-localのGIDが2つあり、IPv4のRoCE v2の項目が別のindexにあるとき、これを `likely_cause: nm_stable_privacy` と示します。link-localが1つなら原因は示しません。
 
-確かめるには、`ip -o addr show dev <interface>` に `inet6 fe80::` が2つ並び、`nmcli -g ipv6.addr-gen-mode connection show <connection>` が `eui64` 以外を返すことを見ます。レシピの直し方は2つで、どちらもrootで行います。接続の `ipv6.addr-gen-mode` を `eui64` にして接続を有効にし直すか、HCAの `mlx5_core` のPCI functionをrebindしてGIDの表を作り直します。リンクが落ちて動いた場合は、そのnodeの全レールが揃っていればその `gid_index` を直し、そうでなければホスト側でindexを戻します（再起動か、rootでinterfaceを落として上げ直す）。項目が設定したindexに戻るまで検査は拒否を続けます。参照ホストではどちらの直し方も必要になっていません。
+確かめるには、`ip -o addr show dev <interface>` に `inet6 fe80::` が2つ並び、`nmcli -g ipv6.addr-gen-mode connection show <connection>` が `eui64` 以外を返すことを見ます。レシピの直し方は2つで、どちらもrootで行います。接続の `ipv6.addr-gen-mode` を `eui64` にして接続を有効にし直すか、HCAの `mlx5_core` のPCI functionをrebindしてGIDの表を作り直します。リンクが落ちて動いた場合は、そのnodeの全レールが揃っていれば1.x系のserver profileでその `gid_index` を直し、そうでなければホスト側でindexを戻します（再起動か、rootでinterfaceを落として上げ直す）。項目が設定したindexに戻るまで検査は拒否を続けます。参照ホストではどちらの直し方も必要になっていません。
 
 ## チャネル数
 
-NCCL 2.30.7に任せると、このpairでは64チャネルになります（2026-09-11と2026-09-17で同じ）。テンプレートは[`runtime.nccl_channels = 8`](server-configuration.ja.md)を設定します。その根拠となる測定は2026-09-17に、参照imageとランチャーと同じfabric環境変数で、`NCCL_MIN_NCHANNELS`/`NCCL_MAX_NCHANNELS` だけを変えて行いました。
+NCCL 2.30.7に任せると、このpairでは64チャネルになります（2026-09-11と2026-09-17で同じ）。1.x系のテンプレートは[`runtime.nccl_channels = 8`](../v1/docs/server-configuration.ja.md)を設定します。その根拠となる測定は2026-09-17に、参照imageとランチャーと同じfabric環境変数で、`NCCL_MIN_NCHANNELS`/`NCCL_MAX_NCHANNELS` だけを変えて行いました。
 
 **集団通信単体。** 2 rankのBF16 AllReduceを、順序を逆にして2周測り、サイズごとに7バッチの中央値を取りました。メモリはcommunicatorの初期化から全サイズを流し終えるまでの `MemAvailable` の減少です。モデルが使う大きさは、hidden size 4096・BF16（1 tokenあたり8,192バイト）で決まります。MTP k=3のdecode検証は32 KiB、下書き1回は8 KiB、512 tokenのprefillチャンクは4 MiBです。
 

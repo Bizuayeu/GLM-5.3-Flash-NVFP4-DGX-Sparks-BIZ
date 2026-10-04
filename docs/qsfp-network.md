@@ -1,6 +1,6 @@
 # QSFP direct-link hands-on — NetworkManager
 
-[日本語](qsfp-network.ja.md) · [Full setup](../SETUP.md)
+[日本語](qsfp-network.ja.md) · [Host preparation](hosts.md) · [1.x setup](../v1/SETUP.md) · [2.x setup](../v2/SETUP.md)
 
 Create a fixed IPv4 path between two hosts while retaining the management Wi-Fi default route. **Physical link, IP reachability, RoCE configuration and actual NCCL transport are separate checks. Completing this guide does not qualify TP=2.** For three hosts cabled as a ring (TP=3), set up each link this way, then follow [section 8](#8-three-hosts-in-a-ring).
 
@@ -125,7 +125,7 @@ Do not reuse that size for a different MTU without checking. Raising MTU to 9000
 
 Use `ibdev2netdev` to identify the HCA for the selected interface. Under `/sys/class/infiniband/<HCA>/ports/1/`, compare the same index in `gids/`, `gid_attrs/types/` and `gid_attrs/ndevs/`.
 
-Select an index whose type is RoCE v2, net device is the selected interface, and IPv4-mapped GID matches the local fixed IPv4. Measure the index on each host; do not assume the commonly seen value `3`. Pass these observations to [site configuration](operations.md#network-and-site-configuration). An ACTIVE link or an available GID does not prove NCCL used that transport.
+Select an index whose type is RoCE v2, net device is the selected interface, and IPv4-mapped GID matches the local fixed IPv4. Measure the index on each host; do not assume the commonly seen value `3`. Pass these observations to the line's settings: 1.x's [site configuration](../v1/docs/operations.md#network-and-site-configuration), 2.x's [rank files](../v2/SETUP.md#4-container-and-rank-file-on-each-host). An ACTIVE link or an available GID does not prove NCCL used that transport.
 
 ## 7. Persistence, recovery and completion
 
@@ -153,7 +153,7 @@ Record steps, operator, timestamps/timezone, results, evidence paths and next ac
 
 ## 8. Three hosts in a ring
 
-TP=3 cables three hosts as a switchless ring: each host's two QSFP ports go to the other two hosts, so every pair of hosts has one direct link. Set up each link with steps 2–6 as its own pair: one profile, one interface and one /30 per link (for example `10.53.1.0/30`, `10.53.2.0/30` and `10.53.3.0/30`). A host's two links must share one GID index, since NCCL takes one per rank; the reference ring uses index 3 on all six HCAs. Write every link under its node in `[[nodes]]` ([example](../examples/server.tp3.example.toml)); the launcher refuses a ring that misses a pair or whose two ends of a link do not name each other's addresses in one /30.
+TP=3 cables three hosts as a switchless ring: each host's two QSFP ports go to the other two hosts, so every pair of hosts has one direct link. Set up each link with steps 2–6 as its own pair: one profile, one interface and one /30 per link (for example `10.53.1.0/30`, `10.53.2.0/30` and `10.53.3.0/30`). A host's two links must share one GID index, since NCCL takes one per rank; the reference ring uses index 3 on all six HCAs. For 1.x, write every link under its node in `[[nodes]]` ([example](../v1/examples/server.tp3.example.toml)); the launcher refuses a ring that misses a pair or whose two ends of a link do not name each other's addresses in one /30.
 
 A /30 address reaches only the host at the other end of that link, but Gloo, TCPStore and the NCCL bootstrap connect every rank to the address each other rank advertises. So give each host one stable /32 on a dummy interface, with /32 static routes to the other two hosts' /32 over the direct links, saved in NetworkManager. On the first host of the example (its /32 `10.40.0.1`, its links ending at `10.53.1.2` and `10.53.2.2`):
 
@@ -173,8 +173,8 @@ ping -I 10.40.0.1 -c 4 -W 2 10.40.0.2
 ping -I 10.40.0.1 -c 4 -W 2 10.40.0.3
 ```
 
-The route must leave over the direct link to that host. On the reference ring the pings between the /32s took 0.47–1.05 ms (2026-09-29). Then set `host_address` (the /32) and `host_interface` (the dummy interface) on every node of the launch profile.
+The route must leave over the direct link to that host. On the reference ring the pings between the /32s took 0.47–1.05 ms (2026-09-29). Then, for 1.x, set `host_address` (the /32) and `host_interface` (the dummy interface) on every node of the launch profile.
 
-This keeps the control traffic off the management network. Before the /32s existed, the reference ring's management Wi-Fi carried it and was unstable (2.9 s round trips and lost packets); a Wi-Fi `host_interface` is accepted only as a test setting ([three nodes](server-configuration.md#three-nodes)).
+This keeps the control traffic off the management network. Before the /32s existed, the reference ring's management Wi-Fi carried it and was unstable (2.9 s round trips and lost packets); a Wi-Fi `host_interface` is accepted only as a test setting ([three nodes](../v1/docs/server-configuration.md#three-nodes)).
 
 **Rebooting one host of a ring.** outstandly's three-host recipe reports that while `/etc/nvidia/cx7-hotplug-enabled` is in place, rebooting one host can make a ConnectX port disappear from the PCI bus of the neighbor cabled to it; the recipe moves that file aside on every node and reboots all three together. This has not been reproduced on the reference ring. Before rebooting a single host, check whether the file exists on each host, and afterwards confirm on its neighbors that both ring interfaces and their HCAs are still listed (`ibdev2netdev`).

@@ -27,9 +27,9 @@
 - 両系列に共通すること（BIZの意味とその免責、ライセンスの早見表、ローカルデータの注意）は[リポジトリのREADME](../README.ja.md)に一度だけ書き、この系列のREADMEはそこを指して、自分の免責事項だけを持ちます。
 - 検証の文書を話題ごとに分けました。[検証](docs/validation.ja.md)は受け入れの範囲と証拠を持ち、fixtureと部品の検査は[部品の検証](docs/component-validation.ja.md)へ、[再現性](docs/repeatability.ja.md)と[出力の正しさの関門](docs/correctness-gates.ja.md)はそれぞれの文書になりました。見出しの文言は変えていないので、アンカーは新しい文書でも同じ名前です。
 - 事実は[文書一覧](docs/README.ja.md)が持ち主とする文書に書き、他の文書はそこを指すようにしました：受け入れの判定（SETUP手順6）、2系列が反復しない理由、再現性スイッチの仕組み、ハーネスの状態、prefix cacheの関門、ホストのカーネル、クロックの上限、preflightが確かめること、どのimageがどのパッチの目印を持つか。[起動設定](docs/server-configuration.ja.md)のkey referenceは各keyの効果を述べ、[施策台帳](docs/optimization-catalog.ja.md)は判断を記録し、[概要](docs/optimization-overview.ja.md)は台帳を指します。そこで語り直していた測定は持ち主へ移しました。版の履歴は本文から外し、この変更履歴に任せます。
-- 訂正：GPUクロックの上限の下では、公開した任意設定のdecodeは1〜2%速くなっていました（[運用手順](docs/operations.ja.md#gpuクロックの上限)は変わらないと書いていた）。主要な測定値のNLLの行は採点したテキスト（`server agreement`の4本）を名乗ります。検証とbenchmarksは2系列の差の容疑者を両方挙げます。NCCLの検証・起動設定・benchmarksの英日が再び一致しました。
+- 訂正：GPUクロックの上限の下では、公開した任意設定のdecodeは1〜2%速くなっていました（[運用手順](../docs/hosts.ja.md#gpuクロックの上限)は変わらないと書いていた）。主要な測定値のNLLの行は採点したテキスト（`server agreement`の4本）を名乗ります。検証とbenchmarksは2系列の差の容疑者を両方挙げます。NCCLの検証・起動設定・benchmarksの英日が再び一致しました。
 - `mtp.disable_eagle_block_drop` は、vLLMがdraftの受理率について実験的とし、LPAと両立しないため、どのテンプレートにも入れないopt-inのままとします。[Next Action](README.ja.md#next-action)は、vLLMがこの設定を既定にするか警告を外すのを待ちます。
-- [文書一覧](docs/README.ja.md)はリポジトリ全体の英日の対（リポジトリのREADMEと2.x系を含む）を挙げ、[ライセンス整理](docs/licensing.ja.md)は2.x系のエンジンとimageを扱い、[開発への参加](../CONTRIBUTING.ja.md)は系列ごとの検証の文書を挙げます。
+- [文書一覧](docs/README.ja.md)はリポジトリ全体の英日の対（リポジトリのREADMEと2.x系を含む）を挙げ、[ライセンス整理](../docs/licensing.ja.md)は2.x系のエンジンとimageを扱い、[開発への参加](../CONTRIBUTING.ja.md)は系列ごとの検証の文書を挙げます。
 
 ## 1.29.0 — 2026-10-04
 
@@ -139,7 +139,7 @@
 - [HLE](docs/hle.ja.md)：テキストと画像の100問の部分集合を両profileで（2026-09-28〜10-03）、16,384 tokenの予算と2つのjudgeで。公開されたHLEの値と比べられない理由も書きました。[FreedomBench](docs/freedombench.ja.md)：日本語訳は両profileで60問中60問、言い回しと証拠配置の追加試験（FB-05）は公開した任意設定で実施。そのLPAの部分は未実施のままです。
 - [SETUP手順6](SETUP.ja.md#6-フルモデルの検証)が、3台のTP=3の2026-10-01からの受け入れを、専用の証拠表と判定で記録します：両profile、配布既定で約200Kの要求を同時3本まで、公開した任意設定で1本ずつ1,048,576 tokenまで。キャンセル、ツール利用、障害からの復旧はTP=3では未実施です。すでにTP=3を受け入れ済みと書いていたREADMEと検証範囲は、そこを指します。
 - [検証範囲](docs/validation.ja.md#フルモデルの範囲)：範囲の節を構成に依らない形にし、TP=2とTP=3を並べました。「残る検収項目」は[評価と未解決の事項](docs/validation.ja.md#評価と未解決の事項)になり、未解決の一覧を持ちます。マルチバイト出力は方法と実施の表（TP=3を含む）に、再現性は解決済みの経緯を外して結論を残し、#48032のfixtureでの比較を記録します。[画像入力](docs/vision.ja.md#限界と未解決の事項)がencoder cacheの数値（#59539、#59565）とTP=3の画像の確認を持ちます。
-- 1.24.0の後の事実を持ち主一つに：起動順、rank数の変更の拒否、ホストごとのruntime cacheは[起動契約](docs/launch-safety.ja.md#3ノード)、リングのschemaと `host_address` は[起動設定](docs/server-configuration.ja.md#3ノード)、動くGID indexは[NCCL検証](docs/nccl-validation.ja.md#gid-indexが動く)、CX7のhotplugの罠は[QSFPの手順](docs/qsfp-network.ja.md#8-3台をリングにつなぐ)へ。TP=3の容量、prefillの上限の表、読み手のspinの数値、NCCLの帯域は持ち主に残し、他の文書はリンクします。指示は「両方」でなく「全rank・全ホスト」と書きます。
+- 1.24.0の後の事実を持ち主一つに：起動順、rank数の変更の拒否、ホストごとのruntime cacheは[起動契約](docs/launch-safety.ja.md#3ノード)、リングのschemaと `host_address` は[起動設定](docs/server-configuration.ja.md#3ノード)、動くGID indexは[NCCL検証](../docs/nccl-validation.ja.md#gid-indexが動く)、CX7のhotplugの罠は[QSFPの手順](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)へ。TP=3の容量、prefillの上限の表、読み手のspinの数値、NCCLの帯域は持ち主に残し、他の文書はリンクします。指示は「両方」でなく「全rank・全ホスト」と書きます。
 - [ベンチマーク](docs/benchmarks.ja.md)は中身どおりの題（TP=3を含む）になり、版の表に1.25.0を足し、版の節の外にある実施の索引を加えました。施策台帳にしか無かった実測はベンチマークか[部品検証](docs/component-validation.ja.md)へ移し（P06、P10、P24、P26、P27）、台帳は採否とリンクを持ちます。RecoverSSMは[施策台帳P30](docs/optimization-catalog.ja.md#性能施策一覧)になり、P28は完了を一度だけ書きます。[全体像](docs/optimization-overview.ja.md)の問答はTP=3に合わせ、次の候補の一覧は台帳を指します。[性能調査](docs/performance-investigation.ja.md)は今も使う手順だけを残します。
 - READMEはTP=3の受け入れと状態を書き、状態表にFreedomBenchとHLEを加え、数値の持ち主が他にあるところは状態とリンクだけにしました。[文書一覧](docs/README.ja.md)は各文書の範囲を書き直し、3ノードの起動規則と動くGID indexの持ち主の行を加えました。
 
@@ -165,7 +165,7 @@
 
 - READMEのNext Action：#59539向けに画像のencoder cacheをtoken数の上限ちょうどに合わせる [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565) は、mergeされたらsource-pinned patchとして取り込み、そのとき[画像入力](docs/vision.ja.md)の画像の大きさの上限も見直します。2026-10-02に参照対で検証しました：cacheは7,921から8,000 tokenになり、断られていた7,931〜8,000 tokenの画像に答え、decode検査のcompletionは変わりませんでした。#52525向けにMarlin MoEのrouteの整列を決定的にする [vLLM #48032](https://github.com/vllm-project/vllm/pull/48032) は、固定に入ったら手元のexpert内のtoken順の置き換えとして検討します。8層fixtureでは手元の順と同じく反復で変わらず、順はslot単位で一致し、手元の順が約1%足すdecodeの時間を測れるほどには足しませんでした。
 - [施策台帳P13](docs/optimization-catalog.ja.md#性能施策一覧)：RecoverSSMを先送りにしました。同時数の目標は記録済みの起動行で満たしているので、効果は主にメモリの節約です（MTP k=3で要求あたりのKDAの上乗せが16 blockから7 blockへ）。Kimi-K3の算術をそのまま移すとdecodeの出力が変わります。行には見直す条件と、そのときの形を書きました。
-- [運用](docs/operations.ja.md#gpuクロックの上限)：1.26.0の読み手のspinを、GPUクロックの上限の隣に。headで何が変わるか、vLLMの1秒に戻す方法。
+- [運用](../docs/hosts.ja.md#gpuクロックの上限)：1.26.0の読み手のspinを、GPUクロックの上限の隣に。headで何が変わるか、vLLMの1秒に戻す方法。
 
 ## 1.26.0 — 2026-10-02
 
@@ -186,7 +186,7 @@
 - `server prefix-gate` は、prefix cacheのhitがcoldの計算と同じ状態を戻すかを確かめます（[起動設定](docs/server-configuration.ja.md#コマンド)）。seedで正答が決まる合成ログ1本に課題6本を、新しい `cache_salt` で投げ（cold）、同じsaltでもう一度投げます（warm）。ログの長さは `/tokenize` で数えてprompt 99,000 token以下、`--prefix-length short` で14,025 token以下です。coldで正しくwarmで誤った課題があれば不合格（`prefix_cache_corruption`）で、warmの回答がcached tokenを持たない、coldの回答が誤る、要求が失敗するときは判定不能とし、合格にはしません。記録の書式・課題・解析はknapcioの `bench/prefix_scan.py`（MIT。NOTICE、THIRD_PARTY_NOTICES、`LICENSES/knapcio-MIT.txt`）からの翻案です。稼働中のheadへのクライアントで、新しいimageは要りません。
 - `server mojibake --temperature T --top-p P` はsampledの回答で化け文字を数えます。i回目はprofileの `runtime.seed` にiを足したseedで引き、`--repeats` で言語ごとの回答数を決めます（既定3）。これらを付けなければ検査はtemperature 0のままで、記録も変わりません。
 - 任意の `runtime.shm_spin_seconds`（0.002〜1）は、vLLMの共有メモリのbroadcastのreaderが眠る前にspinする時間を決めます。固定のvLLMでは1秒に固定され、届く設定がありません。ランチャーはcheckoutから `glm53_setup/runtime/shm_spin.py` と `.pth` のhookをmountするので、新しいimageは要りません。未指定なら何もmountも設定もせず、TP=2とTP=3の起動は1.24.0とbyte単位で同じです（TP=2に加えてTP=3の起動のgoldenを置きました）。
-- RoCEのGID検査に落ちたとき、`gid_hints` の各項目に `fixes` を付け、レールのnet deviceに異なるIPv6 link-localのGIDが2つあり、IPv4のRoCE v2の項目が別のindexにあるときは `likely_cause: nm_stable_privacy` と示します。NetworkManagerの既定の `stable-privacy` のアドレスがIPv4の項目をずらすためです（MiaAI-Labのレシピ #291）。検査は拒否したままです（[NCCL検証](docs/nccl-validation.ja.md#gid-indexが動く)）。
+- RoCEのGID検査に落ちたとき、`gid_hints` の各項目に `fixes` を付け、レールのnet deviceに異なるIPv6 link-localのGIDが2つあり、IPv4のRoCE v2の項目が別のindexにあるときは `likely_cause: nm_stable_privacy` と示します。NetworkManagerの既定の `stable-privacy` のアドレスがIPv4の項目をずらすためです（MiaAI-Labのレシピ #291）。検査は拒否したままです（[NCCL検証](../docs/nccl-validation.ja.md#gid-indexが動く)）。
 - `build-reference` は、ビルドしたimageの層数（`RootFS.Layers`）、overlay2の約125層という上限、残りの余裕を記録の `image-layers.json` に書き、123層を超えると警告します（MiaAI-Labのレシピ #301〜#304、moby#46740）。
 
 ### Fixed
@@ -195,13 +195,13 @@
 
 ### Documentation
 
-- [運用](docs/operations.ja.md)：imageの複製の箇所にoverlay2の層数の上限を、outstandlyが報告するCX7のhotplugの罠（リングの1台を再起動すると、隣のホストのPCI busからConnectXのポートが消えうる）を加えました。[NCCL検証](docs/nccl-validation.ja.md#gid-indexが動く)：GID indexが動く原因としてのstable-privacyと2つの直し方。[起動の安全](docs/launch-safety.ja.md#全レール検査と両rankの切替)からそこを指します。[イメージの契約](docs/server-configuration.ja.md#現行イメージの契約)に `GLM53_SAMPLER_VOCAB_BOUND=1` を加え、[構成](docs/architecture.ja.md)に新しいmoduleを、READMEと[ライセンス](docs/licensing.ja.md)にknapcioからの翻案を載せ、READMEのNext Actionに#50843のpatchを外すきっかけとUTF-8のガードを計画するきっかけを足しました。
+- [運用](docs/operations.ja.md)：imageの複製の箇所にoverlay2の層数の上限を、outstandlyが報告するCX7のhotplugの罠（リングの1台を再起動すると、隣のホストのPCI busからConnectXのポートが消えうる）を加えました。[NCCL検証](../docs/nccl-validation.ja.md#gid-indexが動く)：GID indexが動く原因としてのstable-privacyと2つの直し方。[起動の安全](docs/launch-safety.ja.md#全レール検査と両rankの切替)からそこを指します。[イメージの契約](docs/server-configuration.ja.md#現行イメージの契約)に `GLM53_SAMPLER_VOCAB_BOUND=1` を加え、[構成](docs/architecture.ja.md)に新しいmoduleを、READMEと[ライセンス](../docs/licensing.ja.md)にknapcioからの翻案を載せ、READMEのNext Actionに#50843のpatchを外すきっかけとUTF-8のガードを計画するきっかけを足しました。
 
 ## 1.24.0 — 2026-10-01
 
 ### Added
 
-- スイッチなしのQSFPリングでつないだ3台のGB10でのTP=3（[QSFPネットワーク](docs/qsfp-network.ja.md)、[起動設定](docs/server-configuration.ja.md)）。ヘッド（64）、routed・shared expertの幅（2,048）、語彙は3で割り切れないので、ランチャーが `GLM53_TP_PAD_MULTIPLE` を設定したときにimageが読み込み時に0で詰めます（ヘッド66、expert幅2,112、語彙は192の倍数。目印 `GLM53_TP_PAD_API=1`、`glm53_setup/runtime/patch_tp_padding.py`）。knobが無ければpatchは何も変えません。TP=2の起動引数は変わらず、knobなしの新しいimageは1.19.0と同じ重みをbyte単位で同じに読み込みました。ランチャーは2台以上の `[[nodes]]` を受けます。リングのノードは他のノードごとにリンクを1本書き（HCA、インタフェース、/30の両端のアドレス、GID index）、`host_address` と `host_interface` で各ホストに安定した/32を一つ持たせ、他のホストからは直結リンク越しの静的経路で届くようにします。これでGloo・TCPStore・NCCLのbootstrapは管理網を通りません。3台では `NCCL_IB_SUBNET_AWARE_ROUTING=1` を設定し、`tools/nccl_probe.py` は3 rankを受けます。派生checkpoint（公開した任意設定）は3台で起動でき、PP2・EP・LPAは2台だけのままです。
+- スイッチなしのQSFPリングでつないだ3台のGB10でのTP=3（[QSFPネットワーク](../docs/qsfp-network.ja.md)、[起動設定](docs/server-configuration.ja.md)）。ヘッド（64）、routed・shared expertの幅（2,048）、語彙は3で割り切れないので、ランチャーが `GLM53_TP_PAD_MULTIPLE` を設定したときにimageが読み込み時に0で詰めます（ヘッド66、expert幅2,112、語彙は192の倍数。目印 `GLM53_TP_PAD_API=1`、`glm53_setup/runtime/patch_tp_padding.py`）。knobが無ければpatchは何も変えません。TP=2の起動引数は変わらず、knobなしの新しいimageは1.19.0と同じ重みをbyte単位で同じに読み込みました。ランチャーは2台以上の `[[nodes]]` を受けます。リングのノードは他のノードごとにリンクを1本書き（HCA、インタフェース、/30の両端のアドレス、GID index）、`host_address` と `host_interface` で各ホストに安定した/32を一つ持たせ、他のホストからは直結リンク越しの静的経路で届くようにします。これでGloo・TCPStore・NCCLのbootstrapは管理網を通りません。3台では `NCCL_IB_SUBNET_AWARE_ROUTING=1` を設定し、`tools/nccl_probe.py` は3 rankを受けます。派生checkpoint（公開した任意設定）は3台で起動でき、PP2・EP・LPAは2台だけのままです。
 - 参照機のリングでの測定（2026-09-29と10-01、MTP k=3、各rank 30 GiBのKV）。配布既定：1 rankの重み66.8 GiB、KV 3,258,809 token（262,144 tokenの要求12本分）、decodeは数え上げ／散文／コードで41.04／26.47／34.99 tok/s（TP=2は32.59／21.12／28.21）、教師強制のNLLはTP=2と位置ごとに比べて、数値状態だけが違うTP=2の起動同士の差の範囲（argmax一致0.947）。公開した任意設定：1 rank 63.69 GiB、decode 51.00／30.10／39.48 tok/s、NLLはTP=2の公開した任意設定と比べて同じ範囲。`max_model_len` 524,288で、先頭・中央・末尾に合言葉を置いた499,622 tokenのpromptに3つとも正答（同じpromptの2回目はprefix cacheから99%）、1,048,576で1,038,423 tokenのpromptに3つとも正答（最初のtokenまで1,058 s）。TP=3の起動のdecode検査のhashは、各ホストのTritonのcacheが同じときだけ成り立ちます。新しいcacheは別のkernel設定を選び、別の数値状態になりうるためです。
 - 任意の `context.long_prefill_token_threshold` はvLLMの `--long-prefill-token-threshold` を渡し、要求ごとの1 stepのprefillの塊に上限を掛けます。TP=3の公開した任意設定で約200K tokenのprefillが走っている間、短い要求のdecodeは上限なしで1.18 tok/s、512／256で5.67／7.92 tok/s、長いprefillは1,326 tok/sから18／39%遅くなりました。未指定または0なら何も送りません。
 
@@ -211,7 +211,7 @@
 
 ### Documentation
 
-- TP=3を全体に反映しました：[QSFPネットワーク](docs/qsfp-network.ja.md#8-3台をリングにつなぐ)のリング（リンクごとに/30、ホストごとに/32と静的経路）、3 rankの[NCCL probe](docs/nccl-validation.ja.md#3台のリング)、起動の順とrank数が変わる切替の拒否（[起動の安全](docs/launch-safety.ja.md#3ノード)）、3ノードの設定・KV容量・prefillの上限（[起動設定](docs/server-configuration.ja.md)）、ホストごとのruntime cache（[運用](docs/operations.ja.md)）、[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)、[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)、SETUP、README。[施策台帳P28](docs/optimization-catalog.ja.md#性能施策一覧)は実施済みとし、見積もりを実測の容量に置き換えました。
+- TP=3を全体に反映しました：[QSFPネットワーク](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)のリング（リンクごとに/30、ホストごとに/32と静的経路）、3 rankの[NCCL probe](../docs/nccl-validation.ja.md#3台のリング)、起動の順とrank数が変わる切替の拒否（[起動の安全](docs/launch-safety.ja.md#3ノード)）、3ノードの設定・KV容量・prefillの上限（[起動設定](docs/server-configuration.ja.md)）、ホストごとのruntime cache（[運用](docs/operations.ja.md)）、[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)、[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)、SETUP、README。[施策台帳P28](docs/optimization-catalog.ja.md#性能施策一覧)は実施済みとし、見積もりを実測の容量に置き換えました。
 
 ## 1.23.1 — 2026-10-01
 
@@ -355,7 +355,7 @@
 ### Documentation
 
 - READMEの主要な測定値を、2026-09-28に1.19.0ですべて取り直しました。両profileを同じ枠で、配信中の公開した任意設定→配布既定→任意設定の同時1系列→戻す、の順に切り替え、同じdriverで測りました。行ごとに夜や版が混ざることはなくなり、全体の表はベンチマークにあります（[1.19.0での測定](docs/benchmarks.ja.md#1190での測定)）。両profileとも両rankを高性能コアに置きました。
-- この測定は、全ノードでGPUクロックを2,200 MHzに制限して取りました（`nvidia-smi -lgc 300,2200`）。GB10機は持続負荷の下で電源ごと落ちることが報告されており、参照対のheadも2026-09-27に、261Kのprefillを続けて流した最中に1度落ちました。運用手順に上限の節を足しました。同じprofileで上限なしと比べると、prefillは約2%遅く、長い入力は1〜5%長く、decode・NLL・completion・正答は変わりませんでした（[GPUクロックの上限](docs/operations.ja.md#gpuクロックの上限)）。上限はホスト側の設定で、ランチャーは入れません。
+- この測定は、全ノードでGPUクロックを2,200 MHzに制限して取りました（`nvidia-smi -lgc 300,2200`）。GB10機は持続負荷の下で電源ごと落ちることが報告されており、参照対のheadも2026-09-27に、261Kのprefillを続けて流した最中に1度落ちました。運用手順に上限の節を足しました。同じprofileで上限なしと比べると、prefillは約2%遅く、長い入力は1〜5%長く、decode・NLL・completion・正答は変わりませんでした（[GPUクロックの上限](../docs/hosts.ja.md#gpuクロックの上限)）。上限はホスト側の設定で、ランチャーは入れません。
 - 反復性は `max_num_seqs = 1` の範囲でだけ主張します。主要な測定値の行、任意設定の長所、範囲ごとの状態の行にそう書き、同時実行の行には、同時2系列で要求が走っている間の反復は主張しないと書きました。1.19.0では、同時1系列のprofileに同時に送った要求は待ち行列に入り、両profileとも18本中18本が単独のcompletionを繰り返し、公開した任意設定は8起動すべてで同じdecode検査のcompletionでした。
 - 免責事項の基準値の取り直しを済ませました。promptで2,048 tokenを超える要求は、両profileのdecode検査のhashが基準です。出力で超える要求の基準値は取っていません。
 - READMEは204,800 token（200K）設定の値を載せなくなりました。配布既定のtool-evalはその設定の90／100ではなく1.19.0の91／100（failは同じ3件、Safety Gate未達）で、Visionの行は256Kだけです。ベンチマークのリリース候補・1.3.1・1.4.0・200Kのchunk予算の節は、見出しの文言を変えずに **旧profileの記録** の下へ移したので、それらへのリンクは切れません。
@@ -688,7 +688,7 @@
 ### Documentation
 
 - MTPの深さ：配布のcheckpointにも再量子化した複製にも、一つの深さk=3を使います（ユーザー判断、2026-09-21）。深さ2〜5を基準の2台で、調整用・評価用に分けた10入力で測りました。深さはほとんどのcompletionも変えるので、表にはその旨を書いています。2026-09-19から再量子化したattention projectionを深さ4で配信していた基準の2台は、この版からk=3で配信します（[投機デコード](docs/speculative-decoding.ja.md#両方のcheckpointで深さ32026-09-21)）。
-- 再量子化したcheckpoint：attention projectionと `lm_head` をW4A16 NVFP4に再パックしたもの（route l）が、attentionだけの再パック（route g）に代わって日本語散文向けの任意設定になりました。decodeのstepは全入力で12〜13 ms短く、教師強制NLLはroute gから最大1.5%（数学）しか動かず、200Kの合言葉と261,461 tokenの3か所参照は正答です。重みはNVIDIAのモデルカードを添えてMITでHugging Faceに公開しています（[台帳P23](docs/optimization-catalog.ja.md)、[ライセンス](docs/licensing.ja.md#重みのmit通知)、[起動設定](docs/server-configuration.ja.md)）。losslessではないので、テンプレートは固定の重みのままです。
+- 再量子化したcheckpoint：attention projectionと `lm_head` をW4A16 NVFP4に再パックしたもの（route l）が、attentionだけの再パック（route g）に代わって日本語散文向けの任意設定になりました。decodeのstepは全入力で12〜13 ms短く、教師強制NLLはroute gから最大1.5%（数学）しか動かず、200Kの合言葉と261,461 tokenの3か所参照は正答です。重みはNVIDIAのモデルカードを添えてMITでHugging Faceに公開しています（[台帳P23](docs/optimization-catalog.ja.md)、[ライセンス](../docs/licensing.ja.md#重みのmit通知)、[起動設定](docs/server-configuration.ja.md)）。losslessではないので、テンプレートは固定の重みのままです。
 - 全モデルで測って採らなかったもの（数字は各文書に）：decodeのCUDA Graphs（eagerより1 stepあたり7〜9 ms遅い。`runtime.decode_graphs` はoffのまま）、要求の採択履歴から決める深さ、draftの確信度の関門（2台ではhostの同期の費用が得と同じだけになる）、1段目のsparse top-kをdraftの段で使い回さない設定、rank内のdraft argmax、CSA2のindexer再利用（コストの門で中止。indexerはfixtureでprefillの1%未満、全モデルの射影で200Kでも約4%）。これらの設定は配布するコードに入っていません。
 - 検証：このstackではdraft側の変更はcompletionを変えると見込みます（draftする候補が変わると、targetのBF16 logitsの同点が別の側に倒れる）。そうした変更は採択とNLLで判定し、文章の一致では判定しません。
 - ベンチマーク（2026-09-22、タグ後）：公開した任意設定で、READMEが「任意設定では未測定」としていた項目を測りました。38,962 tokenのprefill、固定の短いpromptの後のdecode、255,950 tokenの合言葉、262,080＋64の容量2回、3か所参照3回と、両rankのメモリ最小値です。READMEの比較表に数値を載せました。
@@ -807,7 +807,7 @@
 
 ### Changed
 
-- **テンプレートが `runtime.nccl_channels = 8` を設定する。** 参照対では、NCCLに任せると64チャネルを開き、各engineはcommunicatorを二つ開く。8にすると、MTU 1500で全モデルの最小空きメモリがheadで2.8 GiB、peerで3.0 GiB増え、prefillは1%速くなった。両MTUで64／32／16／8／4チャネルを掃引した2 rankのAllReduceでは、8がメモリと4 MiB（prefill chunk）での最適点だった。キーのないprofileはNCCLの選択とfingerprintを保つ。数値は新しい[チャネル数の節](docs/nccl-validation.ja.md#チャネル数)にある。
+- **テンプレートが `runtime.nccl_channels = 8` を設定する。** 参照対では、NCCLに任せると64チャネルを開き、各engineはcommunicatorを二つ開く。8にすると、MTU 1500で全モデルの最小空きメモリがheadで2.8 GiB、peerで3.0 GiB増え、prefillは1%速くなった。両MTUで64／32／16／8／4チャネルを掃引した2 rankのAllReduceでは、8がメモリと4 MiB（prefill chunk）での最適点だった。キーのないprofileはNCCLの選択とfingerprintを保つ。数値は新しい[チャネル数の節](../docs/nccl-validation.ja.md#チャネル数)にある。
 
 ### Documentation
 

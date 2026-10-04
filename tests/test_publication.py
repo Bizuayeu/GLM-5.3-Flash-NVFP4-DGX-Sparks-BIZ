@@ -139,6 +139,25 @@ class LayoutTests(unittest.TestCase):
             # Only 1.x's README carries the short-name citation.
             self.assertNotIn("missing short-name citation: README.md", found)
 
+    def test_the_repository_map_lists_the_shared_documents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            files = {
+                "docs/README.md": "[Hosts](hosts.md)\n",
+                "docs/hosts.md": "# Hosts\n",
+                "docs/qsfp-network.md": "# QSFP\n",
+            }
+            for name, text in files.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text(text, encoding="utf-8")
+            found = problems(root, set(files))
+            self.assertIn(
+                "document missing from docs/README.md: docs/qsfp-network.md", found
+            )
+            self.assertNotIn(
+                "document missing from docs/README.md: docs/hosts.md", found
+            )
+
 
 class HeadlineTests(unittest.TestCase):
     BENCHMARKS = "## Measurements on 1.4.0\n\n## Measurements on 1.10.0\n"

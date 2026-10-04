@@ -63,7 +63,7 @@ P12は測定軸、P13はscheduler設定、P14は投入順序の実験です。�
 
 | 施策名 | 内容 | 期待される効果／示せる証拠 | 状態／正典 |
 |---|---|---|---|
-| E01 ライセンス・出所の選択 | モデル・独自コード・採用patch・container・harnessを分け、採用版と通知を固定。MIT/Apache中心の方針を維持 | 採用組織が利用・改造・配布範囲を確認しやすくする | 方針・台帳あり。完成イメージ全体やharnessまで同一licenseとは扱わない。[ライセンス整理](licensing.ja.md)／[通知](../../THIRD_PARTY_NOTICES.md) |
+| E01 ライセンス・出所の選択 | モデル・独自コード・採用patch・container・harnessを分け、採用版と通知を固定。MIT/Apache中心の方針を維持 | 採用組織が利用・改造・配布範囲を確認しやすくする | 方針・台帳あり。完成イメージ全体やharnessまで同一licenseとは扱わない。[ライセンス整理](../../docs/licensing.ja.md)／[通知](../../THIRD_PARTY_NOTICES.md) |
 | E02 FreedomBench・政治的文脈 | 英語原版、日本語、長い業務資料を分け、通常／MTP／LPA／併用を比較。拒否・誤答・形式・通信失敗を分離 | 対象設問での回答傾向、政治的主張の挿入や資料への不忠実、最適化による変化を可視化 | 配信profileで完了。未実施の拡張は[FreedomBench](freedombench.ja.md#配信profileでの完了2026-09-22)に列挙 |
 | E03 業務機能・運用の検収 | text、tool往復、SSE、cancel、要求間分離、ZCode／Claude Code、長時間負荷、両rank復旧を検査 | ベンチで速い構成が業務でも使えるかを判定し、戻せるprofileを残す | 通常運用として受入（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。本番信頼性は未検証。[検証範囲](validation.ja.md)／[ハーネス](harnesses.ja.md)／[運用](operations.ja.md) |
 

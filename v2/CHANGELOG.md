@@ -12,7 +12,7 @@ The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this
 
 ### Documentation
 
-- [`host/`](host/README.md) records what was checked on a reference host without sudo (the logger, `cool-gate` in both outcomes, `thermal-watch` stopping a process started in the container) and that `thermal-watch` cannot stop a container's PID 1.
+- [`host/`](../host/README.md) records what was checked on a reference host without sudo (the logger, `cool-gate` in both outcomes, `thermal-watch` stopping a process started in the container) and that `thermal-watch` cannot stop a container's PID 1.
 - The repository README says that each line is self-contained and that the root's `tools/` holds the repository's publication audit and release notes.
 
 ## 2.0.4 — 2026-10-04
@@ -25,7 +25,7 @@ The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this
 
 ### Added
 
-- [`host/`](host/README.md): the hosts' thermal tools this line was measured with, which lived only in the maintainer's records: the GPU clock-cap unit, the telemetry logger with its unit and installer, `cool-gate` (waits for a host to cool between long requests) and `thermal-watch` (stops the engine after two readings in a row at or above 94 °C). The installer takes the service user as an argument; `thermal-watch` was verified with this line's engine only. Their CPU tests are in `tests/`, and CI runs them.
+- [`host/`](../host/README.md): the hosts' thermal tools this line was measured with, which lived only in the maintainer's records: the GPU clock-cap unit, the telemetry logger with its unit and installer, `cool-gate` (waits for a host to cool between long requests) and `thermal-watch` (stops the engine after two readings in a row at or above 94 °C). The installer takes the service user as an argument; `thermal-watch` was verified with this line's engine only. Their CPU tests are in `tests/`, and CI runs them.
 
 ### Documentation
 

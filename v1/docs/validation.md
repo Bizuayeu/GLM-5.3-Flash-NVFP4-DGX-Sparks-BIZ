@@ -48,7 +48,7 @@ Before judging a difference, measure the unchanged arm at least twice and preser
 
 ## Evaluations and open items
 
-[FreedomBench](freedombench.md) (the pinned English suite, the reviewed Japanese translation and the framing and evidence-placement extension), [HLE](hle.md) (two 100-question subsets on both profiles, not comparable with published HLE values) and the [harness acceptance matrix](harnesses.md) (per-case status and the accepted route) own their results; the basic API smoke below feeds the matrix's API group and closes no client case. The [NCCL diagnostic](nccl-validation.md) covers transport and synthetic data correctness on two and three ranks, not the full model. Do not turn a fixture, API smoke or collective result into evidence for a scope the acceptance in [SETUP step 6](../SETUP.md#6-qualify-the-full-model) does not declare.
+[FreedomBench](freedombench.md) (the pinned English suite, the reviewed Japanese translation and the framing and evidence-placement extension), [HLE](hle.md) (two 100-question subsets on both profiles, not comparable with published HLE values) and the [harness acceptance matrix](harnesses.md) (per-case status and the accepted route) own their results; the basic API smoke below feeds the matrix's API group and closes no client case. The [NCCL diagnostic](../../docs/nccl-validation.md) covers transport and synthetic data correctness on two and three ranks, not the full model. Do not turn a fixture, API smoke or collective result into evidence for a scope the acceptance in [SETUP step 6](../SETUP.md#6-qualify-the-full-model) does not declare.
 
 Open, each with its owner:
 

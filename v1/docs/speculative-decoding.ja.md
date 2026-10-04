@@ -2,7 +2,7 @@
 
 [English](speculative-decoding.md) · [MTPなしの基準値](benchmarks.ja.md)
 
-最初のTP=2 baselineは投機なしです。投機profileでは、取得済みNVIDIA checkpointに含まれるMTPを使います。別draftモデル、EXL3変換、DFlash2重みの取得は不要で、モデルライセンスは追加されません。既存の[成果物ごとのライセンス](licensing.ja.md)は引き続き適用されます。
+最初のTP=2 baselineは投機なしです。投機profileでは、取得済みNVIDIA checkpointに含まれるMTPを使います。別draftモデル、EXL3変換、DFlash2重みの取得は不要で、モデルライセンスは追加されません。既存の[成果物ごとのライセンス](../../docs/licensing.ja.md)は引き続き適用されます。
 
 深さは、再量子化したcheckpointで1〜5のすべてを、固定したcheckpointで1・3・4を測定済みです。**テンプレートはk=3のままで、基準の2台が再量子化したcheckpointで配信する深さもk=3です**（[2026-09-21の判断](#両方のcheckpointで深さ32026-09-21)）。MTP k=3は配布既定の一部で、常用として受け入れ済みです（[導入手順のステップ6](../SETUP.ja.md#6-フルモデルの検証)）。[深さ1〜5](#深さ152026-09-1920)がそこに至った掃引で、以下のk=1とk=3の節はそれより前の小さい測定の記録です。掃引の後に試して採らなかったものは[固定の深さの先](#固定の深さの先2026-09-21)にあります。
 

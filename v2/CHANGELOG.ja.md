@@ -14,7 +14,7 @@ TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの
 
 ### Documentation
 
-- [`host/`](host/README.ja.md)に、参照機でsudoなしに確かめたこと（記録係、`cool-gate` の両方の結果、container内で起こしたprocessを止める `thermal-watch`）と、`thermal-watch` はcontainerのPID 1を止められないことを書きました。
+- [`host/`](../host/README.ja.md)に、参照機でsudoなしに確かめたこと（記録係、`cool-gate` の両方の結果、container内で起こしたprocessを止める `thermal-watch`）と、`thermal-watch` はcontainerのPID 1を止められないことを書きました。
 - リポジトリのREADMEは、各系列が自己完結していることと、ルートの `tools/` はリポジトリの公開監査とリリースノートだけだと書きます。
 
 ## 2.0.4 — 2026-10-04
@@ -27,7 +27,7 @@ TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの
 
 ### Added
 
-- [`host/`](host/README.ja.md)：この系列の測定に使い、保守者の記録の中にだけあったホストの熱の道具です。GPUクロックの上限のunit、温度の記録係とそのunit・据え付け台本、`cool-gate`（長い要求の間にホストが冷めるのを待つ）、`thermal-watch`（94 °C以上が2回続くとエンジンを止める）。据え付け台本はserviceの利用者を引数に取ります。`thermal-watch` はこの系列のエンジンでだけ確かめました。CPUテストは `tests/` にあり、CIが回します。
+- [`host/`](../host/README.ja.md)：この系列の測定に使い、保守者の記録の中にだけあったホストの熱の道具です。GPUクロックの上限のunit、温度の記録係とそのunit・据え付け台本、`cool-gate`（長い要求の間にホストが冷めるのを待つ）、`thermal-watch`（94 °C以上が2回続くとエンジンを止める）。据え付け台本はserviceの利用者を引数に取ります。`thermal-watch` はこの系列のエンジンでだけ確かめました。CPUテストは `tests/` にあり、CIが回します。
 
 ### Documentation
 

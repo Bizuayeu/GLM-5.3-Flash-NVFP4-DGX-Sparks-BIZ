@@ -27,9 +27,9 @@
 ## 必要な環境
 
 - **機体**：DGX Sparkまたは互換のGB10機を2台か3台（Linux ARM64、各128 GBの統合メモリ）。GPUで他の大きな仕事を動かさないこと。同じ機で1.x系のserverが動いていれば先に止めます。
-- **fabric**：RoCE v2のConnectX-7リンク。2台は直結、3台はswitchなしのリング（[3台をリングにつなぐ](../v1/docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各portの2本のrailを両方使います。
-- **ホストカーネル**：1.x系と同じです。今のDGX OSの更新が入れる既定のカーネルは、複数ノードのRoCEを壊すことがあります（[ホストカーネルと複数ノードRoCE](../v1/docs/operations.ja.md#ホストカーネルと複数ノードroce)）。
-- **GPUクロック**は1.x系と同じく全機で上限を設けます（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。上限と温度の記録は[`host/`](host/README.ja.md)が据え付けます。2.x系の数字は全部この上限の下で測りました。
+- **fabric**：RoCE v2のConnectX-7リンク。2台は直結、3台はswitchなしのリング（[3台をリングにつなぐ](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各portの2本のrailを両方使います。
+- **ホストカーネル**：1.x系と同じです。今のDGX OSの更新が入れる既定のカーネルは、複数ノードのRoCEを壊すことがあります（[ホストカーネルと複数ノードRoCE](../docs/hosts.ja.md#ホストカーネルと複数ノードroce)）。
+- **GPUクロック**は1.x系と同じく全機で上限を設けます（[GPUクロックの上限](../docs/hosts.ja.md#gpuクロックの上限)）。上限と温度の記録は[`host/`](../host/README.ja.md)が据え付けます。2.x系の数字は全部この上限の下で測りました。
 - **Docker**：NVIDIAのGPU runtimeとRDMA deviceが要ります（`/dev/infiniband` が無い機では、NCCLがsocketに落ちるので `create_container.sh` が止まります）。
 - **disk**：全機にcheckpointを丸ごと（1.x系と同じ。[導入するものと対応機体](../v1/README.ja.md#導入するものと対応機体)）と、image。
 - **操作する機械**：全機へSSHでき、`cluster.sh` を動かす機械一台。
@@ -130,7 +130,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 | 画像入力 | 受ける | 受けない |
 | 公開したAXLの重み | 任意で使える | 対応しない |
 | tool呼び出し | モデルのAPI、任意でtool引数ゲート越し | 同じゲートのこの系列の写しを `v2/` から起動してエンジンの前に置く |
-| 長いprefill中の熱 | エンジンの外：要求の合間の冷却gateと熱の見張り（[`host/`](host/README.ja.md#長い運転の間)） | エンジンがprompt chunkの合間に全rankそろって待つ（92 °Cで待ち、88 °Cで再開） |
+| 長いprefill中の熱 | エンジンの外：要求の合間の冷却gateと熱の見張り（[`host/`](../host/README.ja.md#長い運転の間)） | エンジンがprompt chunkの合間に全rankそろって待つ（92 °Cで待ち、88 °Cで再開） |
 
 ## リリースでの測定値
 
@@ -154,7 +154,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
   - decode検査は、TP=2が `b44c2f1`、TP=3が `2d4fa9b` です。
   - TP=3のprefillと1M tokenのpromptは `2d4fa9b` です。
   - 他の行は `304109c` です。
-- **熱。** 1M tokenのpromptの間、最も熱い機は92 °C前後にとどまり、数秒ずつ約80回待って、最高は92.8 °Cでした。待ちが無いと、同じpromptは6分半で94 °Cに達し、[熱の見張り](host/README.ja.md#長い運転の間)がエンジンを止めました。prefillは機が熱くなるほど遅くもなります。38,960 tokenを3回続けると、1,670から1,540 tok/sまで下がりました。待ちの閾値の手前で、クロックは変わっていません。長い要求の合間には機を冷やしてください。
+- **熱。** 1M tokenのpromptの間、最も熱い機は92 °C前後にとどまり、数秒ずつ約80回待って、最高は92.8 °Cでした。待ちが無いと、同じpromptは6分半で94 °Cに達し、[熱の見張り](../host/README.ja.md#長い運転の間)がエンジンを止めました。prefillは機が熱くなるほど遅くもなります。38,960 tokenを3回続けると、1,670から1,540 tok/sまで下がりました。待ちの閾値の手前で、クロックは変わっていません。長い要求の合間には機を冷やしてください。
 - **tool-eval-bench**は、1.x系と同じ69シナリオと呼び方で回しました。両TPともTC-61だけ失敗しました。
 
 ## 制限
@@ -168,7 +168,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 
 ## リポジトリの構成
 
-2.x系のファイルは `v2/` にあります。imageはライセンスのあるcheckoutのルートからbuildし、Pythonの道具は `v2/` から `python -m glm53_tf <command>` で動かします。
+2.x系のファイルは `v2/` にあります。imageはライセンスのあるcheckoutのルートからbuildし、Pythonの道具は `v2/` から `python -m glm53_tf <command>` で動かします。ホストのツールと、全系共通のホストとfabricの文書はcheckoutのルートにあります（[`host/`](../host/README.ja.md)、[`docs/`](../docs/README.ja.md)）。
 
 ```
 v2/
@@ -185,10 +185,9 @@ v2/
                     serve.sh             1 rank、配信の既定つき
                     cluster.sh           操作する機械から全rankを起動・停止・状態確認
                     hostwatch.sh         メモリの見張り（MemAvailableが5 GiBを切るとエンジンを止める）
-  host/             ホストの熱の道具：GPUクロックの上限、温度の記録、cool-gate、thermal-watch
   examples/         参照機のrankのファイルとclusterのファイル（TP=2とTP=3）
   docs/             validation.md：受け入れの検査と基準値
-  tests/            glm53_tf/とhost/のCPUテスト
+  tests/            glm53_tf/と、これらの頁が引く事実のCPUテスト
   pyproject.toml    2.x系の版
 ```
 

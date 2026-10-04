@@ -40,7 +40,7 @@ NVFP4は取得する重みの形式です。検証済みの参照構成はMarlin
 - ツール用にPython 3.11以上。CPU検査はWindows・Linuxで実行可能。
 - GPU検証にはLinux ARM64、NVIDIA GPU対応Docker、GB10。
 - 検証済みのQSFP/RoCE接続を持つ2台（TP=2）、またはスイッチなしのQSFPリングでつないだ3台（TP=3。[3台のTP=3](SETUP.ja.md#3台のtp3)）。
-- ホストカーネル：現在の DGX OS の更新では2台間のRoCEが失敗することがあるため、更新の前に[ホストカーネルと複数ノードRoCE](docs/operations.ja.md#ホストカーネルと複数ノードroce)を参照。
+- ホストカーネル：現在の DGX OS の更新では2台間のRoCEが失敗することがあるため、更新の前に[ホストカーネルと複数ノードRoCE](../docs/hosts.ja.md#ホストカーネルと複数ノードroce)を参照。
 - 各配置先に重み（[容量](#導入するものと対応機体)）、加えてイメージ・cache・任意のfixtureを保存できる容量。全checkpointは128 GBの1台には収まりません。
 
 ## checkoutから準備する
@@ -82,7 +82,7 @@ python -m glm53_setup build-reference
 
 ### 主要な測定値（1.29.0）
 
-TP=2の行は1.19.0〜1.22.0での測定で、TP=3は表の後にあります。GB10×2、TP=2、prefillはFA2、expert内のtoken順を固定、indexerのtop-kの同点を決定、MTP k=3。二つのprofile：**配布既定**（固定のNVIDIA重み。テンプレートが配信するもの）と、**公開した任意設定**（attention projectionと `lm_head` をW4A16 NVFP4に再パックし、KDAのinput projectionを分割して宣言した `runtime.derived_checkpoint` で配信。重みは[Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16)）。任意設定の列は参照対が配信するprofile＝[同時2系列のAXL profile](examples/server.axl.example.toml)です。**両列とも2026-09-28に1.19.0で、同じ枠で測りました**：配信中の任意設定→配布既定→任意設定の同時1系列（反復性のため）→配信中の任意設定の順に切り替え、同じdriverを使い、両profileとも両rankを高性能コアに置きました（[1.19.0での測定](docs/benchmarks.ja.md#両profileを同じ枠でgpuクロックの上限つきで2026-09-28)）。tool引数ゲートの行だけは2026-09-29に1.22.0で測りました。後の版のimageは両profileのdecode検査のcompletionをbit単位で再現しました（[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)・[1.25.0での測定](docs/benchmarks.ja.md#1250での測定)・[1.29.0での測定](docs/benchmarks.ja.md#1290での測定)）。どのテンプレートも設定する共有メモリの読み手のspinで、任意設定のcountingのdecodeは1.4%遅くなります。**対と隣の機体はGPUクロックを2,200 MHzに制限した状態で測り**、各段の前に温度が下がるのを待ちました。GB10は持続負荷の下で電源ごと落ちることがあるためで、上限の代価はprefillで約2%、長い入力で1〜5%です（[GPUクロックの上限](docs/operations.ja.md#gpuクロックの上限)）。3回または9回の中央値で、幅・条件・旧版はすべて[ベンチマーク](docs/benchmarks.ja.md)にあります。文種は常に 数え上げ／散文／コード の順に並べます。
+TP=2の行は1.19.0〜1.22.0での測定で、TP=3は表の後にあります。GB10×2、TP=2、prefillはFA2、expert内のtoken順を固定、indexerのtop-kの同点を決定、MTP k=3。二つのprofile：**配布既定**（固定のNVIDIA重み。テンプレートが配信するもの）と、**公開した任意設定**（attention projectionと `lm_head` をW4A16 NVFP4に再パックし、KDAのinput projectionを分割して宣言した `runtime.derived_checkpoint` で配信。重みは[Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16)）。任意設定の列は参照対が配信するprofile＝[同時2系列のAXL profile](examples/server.axl.example.toml)です。**両列とも2026-09-28に1.19.0で、同じ枠で測りました**：配信中の任意設定→配布既定→任意設定の同時1系列（反復性のため）→配信中の任意設定の順に切り替え、同じdriverを使い、両profileとも両rankを高性能コアに置きました（[1.19.0での測定](docs/benchmarks.ja.md#両profileを同じ枠でgpuクロックの上限つきで2026-09-28)）。tool引数ゲートの行だけは2026-09-29に1.22.0で測りました。後の版のimageは両profileのdecode検査のcompletionをbit単位で再現しました（[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)・[1.25.0での測定](docs/benchmarks.ja.md#1250での測定)・[1.29.0での測定](docs/benchmarks.ja.md#1290での測定)）。どのテンプレートも設定する共有メモリの読み手のspinで、任意設定のcountingのdecodeは1.4%遅くなります。**対と隣の機体はGPUクロックを2,200 MHzに制限した状態で測り**、各段の前に温度が下がるのを待ちました。GB10は持続負荷の下で電源ごと落ちることがあるためで、上限の代価はprefillで約2%、長い入力で1〜5%です（[GPUクロックの上限](../docs/hosts.ja.md#gpuクロックの上限)）。3回または9回の中央値で、幅・条件・旧版はすべて[ベンチマーク](docs/benchmarks.ja.md)にあります。文種は常に 数え上げ／散文／コード の順に並べます。
 
 | 分類 | 測定 | 配布既定（固定の重みでのNVFP4 BIZ） | 公開した任意設定（NVFP4 BIZ AXL、配信中の同時2系列profile） |
 |---|---|---|---|
@@ -121,7 +121,7 @@ MTPのdecodeの速さは、文がどれだけ予測しやすいかで決まり�
 | fixture | 候補tokenを削らないNoPE参照attention | GPU検証済み |
 | fixture | Marlin W4A16による4層・GPU 1台のfixture | 生成・状態比較を通過。8,705-token入力も確認。[検証範囲](docs/validation.ja.md) |
 | fixture | 固定SM120 sparse MLAでのbatch-invariant mode | 非対応 |
-| 全モデル | 固定ベースによる2 rank・3 rankのNCCL collective | 対と3台のリングで、RoCE経路の試験パターン合格。[実測条件と制約](docs/nccl-validation.ja.md) |
+| 全モデル | 固定ベースによる2 rank・3 rankのNCCL collective | 対と3台のリングで、RoCE経路の試験パターン合格。[実測条件と制約](../docs/nccl-validation.ja.md) |
 | 全モデル | 45層TP=2の参照profile | ロード・基礎APIのテキスト／ツールを確認。[ベンチマーク](docs/benchmarks.ja.md) |
 | 全モデル | スイッチなしのQSFPリングでつないだ3台のTP=3 | [SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で通常運用として受け入れ済み。[1.24.0での測定](docs/benchmarks.ja.md#1240での測定) |
 | 全モデル | temperature 0での同一要求 | `max_num_seqs = 1` の配信では、同じ起動の中でbit一致で反復し、起動を跨いでも同じ（どのテンプレートでもonの[再現性のスイッチ](docs/server-configuration.ja.md#再現性のスイッチ)による）。切替後の起動は今も毎回確かめる（重みのdigest、decode検査、kernel hash）。同時2系列以上が処理中の間は反復を主張しない（[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)）。[それぞれの原因を見つけた経緯](docs/repeatability.ja.md) |
@@ -149,7 +149,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 
 本プロジェクトは、**`nvidia/GLM-5.3-Flash-NVFP4`をDGX Spark相当の機体で、業務で評価・改造・運用しやすくすること**を目的としています。次の三点を一体として整備します。
 
-- **ライセンスと出所の選択：** 商用利用できるMIT/Apache系の構成要素を優先し、採用元・版・通知を固定します。コード・重み・コンテナ・ハーネスそれぞれの条件は[ライセンス整理](docs/licensing.ja.md)に示します。
+- **ライセンスと出所の選択：** 商用利用できるMIT/Apache系の構成要素を優先し、採用元・版・通知を固定します。コード・重み・コンテナ・ハーネスそれぞれの条件は[ライセンス整理](../docs/licensing.ja.md)に示します。
 - **政治的な偏りと資料への忠実さの検証：** [FreedomBenchと業務文脈の追加試験](docs/freedombench.ja.md)で、政治的な問いへの回答・拒否・資料にない主張の挿入を調べます。対象範囲と失敗も示し、スコアだけで普遍的な思想的中立性を証明したとは扱いません。結果と、実施していないことは同じ文書にあります。
 - **実測に基づく性能調整：** MTP・LPA・prefix caching・CUDA融合・batching・並列方式を、タスク品質・メモリ・復旧と併せて検証します。[推論最適化の全体像](docs/optimization-overview.ja.md)に各施策が効く段階と用途別の構成を、[性能・品質施策台帳](docs/optimization-catalog.ja.md)に候補・証拠・保留理由をまとめ、次のGLMでも振り返れる比較基準を残します。
 
@@ -202,7 +202,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 - [vLLM #54296](https://github.com/vllm-project/vllm/pull/54296) がmergeされ固定に入る → slot対応付けのガード（`patch_slot_mapping`）を外す。
 - [vLLM #50843](https://github.com/vllm-project/vllm/pull/50843) がmergeされ固定に入る → samplerの語彙の範囲のガード（`patch_sampler_nonfinite`）を外す。
 - [vLLM #59528](https://github.com/vllm-project/vllm/pull/59528)（kpoolのtailのslot mappingが、0の印の行（dummy run・graphのcapture・padding）からnull blockへ書く）がmergeされる → `patch_kpool_ring` の隣にsource-pinned patchとして移植する。
-- 検証：機体のCPUが実際に出している周波数。[knapcioのissue #7](https://github.com/knapcio/GLM-5.3-Flash-4x-DGX-Spark-TP4/issues/7)は、DGX OS 7.5・kernel 6.17のASUS GX10で、governorが `performance` でもGraceのcoreが最低の性能段で動いていたと報告し、7.0のkernelではdecodeが8〜10%速くなった。参照機は6.17.0-1032 → 許可した窓で、各機のX925の1 coreにbusy loopを置き、CPPCのfeedback counterを読む。最低で動いている機があれば、複数ノードのRoCEに `kho=off` が要る7.0のkernelと天秤にかける（[ホストカーネル](docs/operations.ja.md#ホストカーネルと複数ノードroce)）。両系列の数字がこれに左右される。
+- 検証：機体のCPUが実際に出している周波数。[knapcioのissue #7](https://github.com/knapcio/GLM-5.3-Flash-4x-DGX-Spark-TP4/issues/7)は、DGX OS 7.5・kernel 6.17のASUS GX10で、governorが `performance` でもGraceのcoreが最低の性能段で動いていたと報告し、7.0のkernelではdecodeが8〜10%速くなった。参照機は6.17.0-1032 → 許可した窓で、各機のX925の1 coreにbusy loopを置き、CPPCのfeedback counterを読む。最低で動いている機があれば、複数ノードのRoCEに `kho=off` が要る7.0のkernelと天秤にかける（[ホストカーネル](../docs/hosts.ja.md#ホストカーネルと複数ノードroce)）。両系列の数字がこれに左右される。
 - `mtp.disable_eagle_block_drop`（1.29.0からopt-in）：最後に一致したblockを残すと、TP=2の両profileで、cache済みの124,272 tokenの送り直しの最初のtokenまでが8.5 sから4.4 sになり、応答とdecode検査のcompletionは同じでした（[1.29.0での測定](docs/benchmarks.ja.md#1290での測定)）。vLLMがdraftの受理率について実験的と警告していることと、LPAとは両立しない（起動時に拒む）ことから、どのテンプレートにも入れないopt-inのままとする → vLLMがこの設定を既定にする、または実験的の警告を外す → LPAとの両立を確かめ、cacheが当たった要求でMTPの受理長を測り、テンプレートでの採用を考え直す。
 - vLLMの固定が[#56960](https://github.com/vllm-project/vllm/pull/56960)（GLM-5.3-FlashのKDAのprefill checkpoint）より後へ動く → 新しい固定が[vLLM #59759](https://github.com/vllm-project/vllm/pull/59759)を含むことを確かめるか、移植する：#56960以降は、MTPとprefix cachingで、chunkの途中に線形attentionのcheckpointを保存するprefillのstepが壊れた出力を返し得る。固定版のvLLMはGLMにprefill checkpointのblockを設定しないので、1.29.0はその経路に入らない。
 - [vLLM #48032](https://github.com/vllm-project/vllm/pull/48032)（Marlin MoEのrouteの整列を決定的にする、[#52525](https://github.com/vllm-project/vllm/issues/52525) 向け）がmergeされ固定に入る → 手元のexpert内のtoken順（`runtime.canonical_moe_order`、`patch_moe_order`）をこれに置き換えるかを検討する（fixtureでの比較は[再現性](docs/repeatability.ja.md)が記録）。

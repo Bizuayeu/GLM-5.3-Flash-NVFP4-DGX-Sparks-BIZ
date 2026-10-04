@@ -1,8 +1,8 @@
 # ホストのツール
 
-[English](README.md) · [2.x README](../README.ja.md) · [セットアップ手順](../SETUP.ja.md)
+[English](README.md) · [リポジトリのREADME](../README.ja.md) · [ホストの準備](../docs/hosts.ja.md)
 
-持続負荷でGB10の電源が落ちることへの、ホスト側のツールです。GPUクロックの上限、常時記録、長い要求の合間に呼ぶ冷却gate、エンジンを止める熱の見張りからなります。どれもエンジンの一部ではなくホストの設定で、コンテナの外のホストで動きます。上限と閾値は参照機（MSI EdgeXpert GB10）で決めました。上限の根拠と測った代償は[GPUクロックの上限](../../v1/docs/operations.ja.md#gpuクロックの上限)にあります。他の機は自分の記録で確かめてください。
+持続負荷でGB10の電源が落ちることへの、ホスト側のツールです。配信のエンジンには依りません。GPUクロックの上限、常時記録、長い要求の合間に呼ぶ冷却gate、エンジンを止める熱の見張りからなります。どれもエンジンの一部ではなくホストの設定で、コンテナの外のホストで動きます。上限と閾値は参照機（MSI EdgeXpert GB10）で決めました。上限の根拠と測った代償は[GPUクロックの上限](../docs/hosts.ja.md#gpuクロックの上限)にあります。他の機は自分の記録で確かめてください。
 
 ## ファイル
 
@@ -48,12 +48,12 @@ rootでなければ実行を断ります。記録係のunitにユーザーを書
 
 ## 長い運転の間
 
-エンジン自身のprefillの熱の待ち（`TF_GLM_HEAT_HIGH`・`TF_GLM_HEAT_LOW`、[2.x README](../README.ja.md)）は要求の中で働きます。この2つのツールは要求の外で働きます。
+2.x系のエンジンは、要求の中でもprompt chunkの合間に熱で待ちます（`TF_GLM_HEAT_HIGH`・`TF_GLM_HEAT_LOW`、[2.x README](../v2/README.ja.md)）。この2つのツールは要求の外で働きます。
 
 **冷却gate。** 長い要求の前ごとに、各ホストでcheckoutのルートから：
 
 ```bash
-python3 v2/host/cool-gate --label <text>
+python3 host/cool-gate --label <text>
 ```
 
 ACPIの最高温度が `--band`（既定60 °C）以下になるか、`--cap` 秒（既定600）たつと戻り、1行のJSONを表示します。戻った理由（`cool` か `cap`）、待った秒数、始めと終わりの温度です。終了コード0なら続けます。2は記録が無いか30秒より古いことを示し、記録の無いまま運転を続けるべきではありません。既定値は参照機の記録から来ています。60 °Cはそこで測ったアイドルの帯のすぐ上で、600秒はそこで測ったその帯への戻りの最も遅いものより長い時間です。
@@ -61,11 +61,11 @@ ACPIの最高温度が `--band`（既定60 °C）以下になるか、`--cap` �
 **熱の見張り。** エンジンが配信している間、各ホストで：
 
 ```bash
-python3 v2/host/thermal-watch ~/glm53-tf/logs/therm-<label>.log &
+python3 host/thermal-watch ~/glm53-tf/logs/therm-<label>.log &
 ```
 
 2秒ごとに、時刻、記録の行のepoch、ACPIの最高温度、GPUの温度・電力・クロックをlogに足します。94.0 °C以上が2回続くと、コンテナの中の `pkill -f` でエンジンを止めます。この規則は参照機の記録から来ており、電源断なしに終わった最高の値は93.7 °Cでした。`--threshold` と `--readings` で変えられます。エンジンはコンテナの中でrootとして動くので、見張りは `docker exec` を通して探し、止めます。止めるのはコンテナの中で起動したプロセスです（`cluster.sh` は `docker exec` でエンジンを起動します）。コンテナのPID 1は止まりません。PID 1は既定でこのsignalを無視するためです。`therm-<label>.stop`（logの名前の末尾を `.stop` にしたもの）ができるか、エンジンがいなくなると終わります。
 
-見張りはこの系のエンジン、つまり既定値のコンテナ `glm53-tf` とプロセス `tensorfold serve` で確かめました。`--container` で別のコンテナを指定できます。たとえば別の `CONTAINER` で作ったコンテナです。
+見張りは2.x系のエンジン、つまり既定値のコンテナ `glm53-tf` とプロセス `tensorfold serve` で確かめました。`--container` と `--process` で別のコンテナとプロセスを指定できます。たとえば別の `CONTAINER` で作ったコンテナです。
 
 **確かめたこと。** 2026-10-04に参照機の一台（GB10）で、sudoなしで確かめました。記録係は一時ディレクトリへ2秒ごとに1行を書きました。`cool-gate` は生きた記録で `cool`・終了コード0を、記録が無いと `telemetry stale`・終了コード2を返しました。`thermal-watch` は `--threshold 0` で、`docker exec` で起動したプロセスを2回目の読みで止め、コンテナが無いときはすぐに終わりました。`install.sh` は実行していません（rootでなければ断るため）。

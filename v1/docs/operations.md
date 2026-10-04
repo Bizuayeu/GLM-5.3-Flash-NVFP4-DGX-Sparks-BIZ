@@ -72,6 +72,8 @@ Hashing 200 GB fills the page cache, which shares unified memory with the GPU. A
 
 ## Prepare each host
 
+First prepare every host as in [host preparation](../../docs/hosts.md): the kernel and driver, and the GPU clock cap.
+
 1. Inspect available memory, disk, GPU/driver, active model processes and host state. Stop another model through its own documented procedure before an eventual GLM launch.
 2. Run `prepare-image` on each host. It pulls the pinned ARM64 base and records actual package versions, GPU calculation and GLM registration. The base's native NoPE path is not a qualified serving path.
 3. Build the reference image once with `build-reference`. Its base digest comes from the lock. To replicate it, use Docker image save/load over the verified local link and compare actual image IDs.
@@ -79,34 +81,9 @@ Hashing 200 GB fills the page cache, which shares unified memory with the GPU. A
 
 Docker's overlay2 storage cannot load an image of more than about 125 layers: `docker load` on the receiving host fails with `max depth exceeded` (MiaAI-Lab recipe #301–#304, whose image had reached 126). `build-reference` writes the built image's layer count (`RootFS.Layers`), that limit and the headroom to `image-layers.json` in its record, and warns above 123 layers, the budget that recipe's test enforces.
 
-## Host kernel and multi-node RoCE
-
-**Check the kernel and the driver before installing updates and before the multi-host steps.** The measurements in this repository ran on `6.17.0-1032-nvidia` with driver 580.173.02 and ConnectX-7 firmware 28.45.4028 on MSI EdgeXpert (MS-C931). Kernel `7.0.0-1019-nvidia` and driver 580.178.04 are not validated here.
-
-Updates available as of 2026-09-15 move the `linux-nvidia-hwe-24.04` metapackages to `7.0.0-1019-nvidia`, with the 580 open driver modules built for it. The same update moves `nvidia-driver-580-open` from 580.173.02 to 580.178.04 (seen in `apt list --upgradable` on both reference hosts, 2026-09-18). An `apt` upgrade or a DGX Dashboard update installs it, so a newly installed system boots it after its first update.
-
-With that kernel's defaults, two-host NCCL over RoCE can fail with `NCCL WARN Call to ibv_reg_mr_iova2 failed with error Cannot allocate memory`. Reports describe the model loading and then failing during vLLM profiling or tensor-parallel communication, while raw RDMA tests such as `ib_write_bw` look healthy. NVIDIA's [update advisory](https://forums.developer.nvidia.com/t/dgx-spark-update-advisory/383254) (2026-09-13) recommends that multi-node/RoCE users hold off on this kernel, including updates through DGX Dashboard, and names no fixed release. Whether single-host workloads are affected is not established.
-
-The analysis in [NV-Kernels PR #590](https://github.com/NVIDIA/NV-Kernels/pull/590) (open; a contributor's analysis, not an NVIDIA statement) traces the failure to Kexec HandOver (KHO). The `7.0.0-1019-nvidia` build sets `CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y` (checked in its package config; `6.17.0-1032-nvidia` does not enable KHO by default). At boot, KHO reserves scratch memory for a later kexec and releases it as CMA pageblocks, about 9.3 GiB (4,761 pageblocks) in that report, without counting them in `CmaTotal`. RDMA memory registration pins pages long-term, and pinned pages must first move out of CMA; under GPU memory pressure that migration fails and registration returns `ENOMEM`.
-
-Configure every host the same way:
-
-| Choice | Steps | Notes |
-|---|---|---|
-| Keep `6.17.0-1032-nvidia` | Before upgrading: `sudo apt-mark hold linux-nvidia-hwe-24.04 linux-image-nvidia-hwe-24.04 linux-headers-nvidia-hwe-24.04 linux-modules-nvidia-580-open-nvidia-hwe-24.04 linux-tools-nvidia-hwe-24.04 nvidia-driver-580-open`. Afterwards `apt-mark showhold` must list all six. If 7.0 is already installed, the previous kernel stays installed; boot it from the GRUB menu's advanced options (console access required). | The validated state of this repository. Release the holds when a fixed kernel is published. |
-| Run `7.0.0-1019-nvidia` with KHO off | Add `kho=off` to `GRUB_CMDLINE_LINUX_DEFAULT` in `/etc/default/grub`, keeping the existing values. Run `sudo update-grub` and reboot. Confirm `kho=off` in `/proc/cmdline`; `sudo ls /sys/kernel/debug/kho` must fail with "No such file or directory". | Posted in the advisory thread. The PR reports two-host registration, NCCL and TP2 workload tests passing with KHO off. Not yet validated by this repository. KHO serves kexec-based live update, which this deployment does not use. This row also accepts driver 580.178.04, and `kho=off` does nothing for the host freeze described below. |
-
-**The same update carries a report of a second failure, unrelated to RoCE.** Another two-Spark recipe reports both hosts freezing under ordinary serving load within about 24 hours of the DGX OS 7.5.0 → 7.6.0 update (kernel `7.0.0-1019-nvidia`, driver 580.178.04, Docker 29.6.2) (amasu, forum-post draft in commit `030d37e`; no code adopted). Over two days and two serving stacks it happened five or more times: ping still answered, sshd did not, and only a power cycle recovered the host. The kernel log before each freeze shows bursts of `NVRM: nvCheckOkFailedNoLog: Check failed: Out of memory [NV_ERR_NO_MEMORY] ... returned from _memdescAlloc` (65 and 148 in one boot), with MemAvailable at 9.4 GB and about 73% of swap free, and no OOM-killer event, Xid or panic. The same hosts are described as stable for weeks on 7.5.0 with 580.173.02. The report also notes that the 7.6.0 release notes name 580.173.02 as the Spark driver and that the 580.178.04 support matrix does not list GB10. It is a draft whose hardware-diagnostic results are not filled in; what it shows is correlation, not an established cause. KHO explains the failed RDMA registration and does not explain this freeze. Hold the driver as well, and if the symptom appears after an update, check the previous boot with `journalctl -b -1 -k | grep -c _memdescAlloc`.
-
-After either choice, repeat the [NCCL validation](nccl-validation.md) and a full-model launch before serving.
-
-A separate report with the same error, on MS-C931 systems running an Ubuntu generic 7.0 kernel with driver 595.84, failed with about 118 GiB free before weights loaded and attributes the fix to MSI board firmware updates (embedded controller, SoC firmware, USB-C PD) ([MiaAI-Lab issue #259](https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-DSpark-2x-DGX-Spark/issues/259)). If the error appears without memory pressure, check the vendor firmware as well.
-
-**Check loaded clocks after an unclean restart.** tonyd2wild reports a persistent ~14 W clamp after watchdog resets: 611–890 MHz under load, with BF16 matrix throughput about half the unaffected host. GPU reset, clock/power settings and reboots did not restore it; disconnecting and reconnecting AC did. Running CUDA immediately after a GPU reset without a reboot also faulted (speed-night report, commit `9f5cc2c`; no code adopted). This is an external observation, not reproduced on this reference pair. Before attributing a post-restart slowdown to a model change, record GPU clocks and power under the same workload; an idle power reading alone does not diagnose the clamp.
-
 ## Network and site configuration
 
-For physical connection and persistent IPv4 configuration, use the [QSFP hands-on guide](qsfp-network.md).
+For physical connection and persistent IPv4 configuration, use the [QSFP hands-on guide](../../docs/qsfp-network.md).
 
 Record each host's measured values in the `[nodes]` section of the [server TOML](server-configuration.md), which is the same file on every host:
 
@@ -139,11 +116,11 @@ The workers start headless first and the head last, once they wait for rendezvou
 
 ## Three nodes
 
-A profile with three `[[nodes]]` runs TP=3 on a QSFP ring. The cabling, addressing and the single-host reboot check are in [QSFP network](qsfp-network.md#8-three-hosts-in-a-ring), the settings in [server configuration](server-configuration.md#three-nodes), and launch order, the switch's refusal of a rank-count change and the per-host runtime cache in [launch contracts](launch-safety.md#three-nodes). The ring's runtime caches live in `state/tp3-runtime-cache/` on each host ([storage](#artifact-storage-and-paths)).
+A profile with three `[[nodes]]` runs TP=3 on a QSFP ring. The cabling, addressing and the single-host reboot check are in [QSFP network](../../docs/qsfp-network.md#8-three-hosts-in-a-ring), the settings in [server configuration](server-configuration.md#three-nodes), and launch order, the switch's refusal of a rank-count change and the per-host runtime cache in [launch contracts](launch-safety.md#three-nodes). The ring's runtime caches live in `state/tp3-runtime-cache/` on each host ([storage](#artifact-storage-and-paths)).
 
 A derived checkpoint (the published option) and its overlays must be present on every host at the paths the profile names; `server preflight` checks them on each rank. At 22 heads per rank only the current KDA overlay loads ([overlays](../overlays/README.md)).
 
-Long prefills load all three hosts for long stretches: a prompt near 1M tokens keeps them under load for many minutes before its first token, and the reference ring's lowest `MemAvailable` came during such a request ([measurements on 1.24.0](benchmarks.md#measurements-on-1240)). Let the hosts cool between such requests ([GPU clock cap](#gpu-clock-cap)).
+Long prefills load all three hosts for long stretches: a prompt near 1M tokens keeps them under load for many minutes before its first token, and the reference ring's lowest `MemAvailable` came during such a request ([measurements on 1.24.0](benchmarks.md#measurements-on-1240)). Let the hosts cool between such requests ([GPU clock cap](../../docs/hosts.md#gpu-clock-cap)).
 
 ## Supervision, stall detection and warmup
 
@@ -179,15 +156,9 @@ The last rung is a correctness canary, after MiaAI-Lab recipe #268 (no code adop
 
 The long rung pays a full prefill on every start (measured before FA2 prefill, 1.5.0, with chunk 2048: about 490 s at 256K and 380 s at 200K; with 512: about 500 s at 200K and 206 s at 82K; current full-length prefill times are in [benchmarks](benchmarks.md)). On the reference hosts every ladder reports the same ten kernels, among them `BuildPrefillChunkMetadataKernel` and the TileLang `mhc_pre_big_fuse_with_norm_tilelang` shape that had once compiled while serving a user request; across five starts on 2026-09-17 the runtime cache (1,840 Triton and 55 TileLang files) gained no file, and the short rungs took 1–2 s. One shape of `BuildPrefillChunkMetadataKernel` appears only partway through a long request. The indexer splits the query side once one request's query length times its compressed sequence length exceeds the `VLLM_SPARSE_INDEXER_MAX_LOGITS_MB` budget (512 in the pinned image); every slice after the first then starts at a non-zero offset and asks Triton for a different specialization. The compression ratio is `index_kpool`, 4, so splitting starts at an input of 134,217,728 ÷ `max_num_batched_tokens` × 4 tokens. At 2048 that is 262,144, and the test is less-than-or-equal, so even a request that fills the shipped 256K window is never split. At 4096 it starts at 131,072 and at 8192 at 65,536. When you raise the chunk, or raise `max_model_len` above 262,144, set `generation.warmup_long_tokens` to at least that length so the compile happens at startup. The values were read from the source and settings of the running container (2026-09-18); no request long enough to be split was sent. The mechanism was pointed out by Mia PR #203 (no code adopted); the pinned image's own vLLM warmup keys already list all three classes, so that fix is not needed here.
 
-## GPU clock cap
+## Shared-memory reader spin
 
-GB10 machines (DGX Spark and compatibles) are widely reported to power off under sustained GPU load, leaving no log and staying off until the power button is pressed. The reference pair's head did so once, on 2026-09-27, on the second of two back-to-back 261,573-token prefills after about 54 minutes of long-input load. Accumulated heat and the power peak of prefill are the likely causes; with no temperature or power record from that moment, this is not certain.
-
-The mitigation that works in those reports is capping the GPU clock at 2,200 MHz instead of the default of about 2,418 MHz (`nvidia-smi -lgc 300,2200`; a power limit through `-pl` has no effect on GB10). The reference pair and its neighbor apply it at every boot and record temperatures, power and clock every two seconds. **The [README's headline measurements](../README.md#what-has-been-verified) were taken under this cap.** Against the same profile without the cap, prefill was about 2% slower and long inputs took 1–5% longer, decode on the published option was 1–2% faster, and NLL, completions and correctness did not change ([measurements](benchmarks.md#both-profiles-in-one-window-with-a-gpu-clock-cap-2026-09-28)). The cap is a host setting; this repository's launcher does not apply it. Benchmarks that send long requests one after another should rest between them.
-
-### Shared-memory reader spin
-
-Every template also shortens the spin of vLLM's shared-memory broadcast readers from 1 s to 2 ms (`runtime.shm_spin_seconds = 0.002`; the key in [server configuration](server-configuration.md), the decision in [catalog P29](optimization-catalog.md#performance-initiatives)). On the reference pair only the head's EngineCore spun, and the shorter spin lowered its CPU load and the head's temperature for a small decode cost ([measurements on 1.25.0](benchmarks.md#measurements-on-1250)). A host that runs warm under concurrent load benefits most; to restore vLLM's 1 s, remove the key, and nothing is mounted or set. Like the clock cap, it does not replace rest between long requests.
+Every template also shortens the spin of vLLM's shared-memory broadcast readers from 1 s to 2 ms (`runtime.shm_spin_seconds = 0.002`; the key in [server configuration](server-configuration.md), the decision in [catalog P29](optimization-catalog.md#performance-initiatives)). On the reference pair only the head's EngineCore spun, and the shorter spin lowered its CPU load and the head's temperature for a small decode cost ([measurements on 1.25.0](benchmarks.md#measurements-on-1250)). A host that runs warm under concurrent load benefits most; to restore vLLM's 1 s, remove the key, and nothing is mounted or set. Like the [GPU clock cap](../../docs/hosts.md#gpu-clock-cap), it does not replace rest between long requests.
 
 ## Recovery and records
 

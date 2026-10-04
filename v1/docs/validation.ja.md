@@ -48,7 +48,7 @@ vLLMは[既定での再現性を保証していません](https://github.com/vll
 
 ## 評価と未解決の事項
 
-[FreedomBench](freedombench.ja.md)（固定した英語の設問、確認済みの日本語訳、言い回しと証拠配置の追加試験）、[HLE](hle.ja.md)（100問の部分集合二つを両profileで。公開されているHLEの値とは比べられない）、[ハーネス受け入れ一覧](harnesses.ja.md)（ケース別の状態と受け入れた経路）がそれぞれ結果の正典です。後述の基礎APIスモークは一覧のAPI群に反映され、クライアントのケースを終わらせません。[NCCL診断](nccl-validation.ja.md)の範囲は2 rankと3 rankでのtransportと合成データの正当性で、フルモデルではありません。fixture、APIスモーク、collectiveの結果を、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)の受け入れが宣言していない範囲の証拠に変えないでください。
+[FreedomBench](freedombench.ja.md)（固定した英語の設問、確認済みの日本語訳、言い回しと証拠配置の追加試験）、[HLE](hle.ja.md)（100問の部分集合二つを両profileで。公開されているHLEの値とは比べられない）、[ハーネス受け入れ一覧](harnesses.ja.md)（ケース別の状態と受け入れた経路）がそれぞれ結果の正典です。後述の基礎APIスモークは一覧のAPI群に反映され、クライアントのケースを終わらせません。[NCCL診断](../../docs/nccl-validation.ja.md)の範囲は2 rankと3 rankでのtransportと合成データの正当性で、フルモデルではありません。fixture、APIスモーク、collectiveの結果を、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)の受け入れが宣言していない範囲の証拠に変えないでください。
 
 未解決の事項と、それぞれの正典：
 

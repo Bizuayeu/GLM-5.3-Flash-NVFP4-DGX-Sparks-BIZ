@@ -2,7 +2,7 @@
 
 [日本語](speculative-decoding.ja.md) · [Baseline benchmarks](benchmarks.md)
 
-The first TP=2 baseline used no speculation. The speculative profiles use the MTP tensors already in the pinned NVIDIA checkpoint. No external draft model, EXL3 conversion or DFlash2 weights are needed; this introduces no additional model license. Existing [artifact licenses](licensing.md) still apply.
+The first TP=2 baseline used no speculation. The speculative profiles use the MTP tensors already in the pinned NVIDIA checkpoint. No external draft model, EXL3 conversion or DFlash2 weights are needed; this introduces no additional model license. Existing [artifact licenses](../../docs/licensing.md) still apply.
 
 Depths one to five have been measured, all five with the requantized checkpoint and 1, 3 and 4 with the pinned one. **The template keeps k=3, and k=3 is also the depth the reference pair serves with the requantized checkpoint** ([the decision of 2026-09-21](#depth-three-for-both-checkpoints-2026-09-21)). MTP k=3 is part of the distributed defaults, accepted for routine use ([SETUP step 6](../SETUP.md#6-qualify-the-full-model)). [Depths one to five](#depths-one-to-five-2026-09-19-and-20) holds the sweep that led there; the k=1 and k=3 sections below are the earlier, smaller runs. [Beyond a fixed depth](#beyond-a-fixed-depth-2026-09-21) records what was tried after the sweep and why none of it is adopted.
 

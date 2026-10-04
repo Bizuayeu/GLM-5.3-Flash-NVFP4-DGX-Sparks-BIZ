@@ -1,14 +1,14 @@
 # NCCL diagnostics
 
-[日本語](nccl-validation.ja.md) · [Network preparation](qsfp-network.md) · [Validation limits](validation.md)
+[日本語](nccl-validation.ja.md) · [Network preparation](qsfp-network.md) · [Validation limits](../v1/docs/validation.md)
 
-The repository supplies a small [PyTorch/NCCL probe](../tools/nccl_probe.py). It checks two or three ranks (`--world-size`, default 2) with rank-dependent patterns: FP32/BF16 AllReduce at 1 KiB, 1 MiB, 16 MiB and 256 MiB per rank, plus FP32 AllGather, ReduceScatter and Broadcast. It does not load model weights or generate a full-model qualification receipt.
+The repository supplies a small [PyTorch/NCCL probe](../host/nccl_probe.py). It checks two or three ranks (`--world-size`, default 2) with rank-dependent patterns: FP32/BF16 AllReduce at 1 KiB, 1 MiB, 16 MiB and 256 MiB per rank, plus FP32 AllGather, ReduceScatter and Broadcast. It does not load model weights or generate a full-model qualification receipt. It needs only PyTorch with NCCL; the reference results below ran it in the 1.x image.
 
 ## Run on two hosts
 
 First verify fixed IPv4, HCA, RoCEv2 GID and peer routing. Inventory **host processes and active transfers**, not only Docker containers. Pause or wait for authorized competing work before claiming isolated bandwidth. Never stop an unrelated transfer automatically.
 
-Use the same reviewed source and pinned base image on both hosts. Select fresh container names and output directories. In each host's Linux checkout, replace these illustrative values with observations (rank 1 uses its own interface/HCA/IP; `HEAD_IP` remains rank 0's address):
+Use the same reviewed source and pinned base image on both hosts. Select fresh container names and output directories. From the root of each host's Linux checkout, replace these illustrative values with observations (rank 1 uses its own interface/HCA/IP; `HEAD_IP` remains rank 0's address):
 
 ```sh
 RANK=0
@@ -17,8 +17,8 @@ HCA='REPLACE_WITH_OBSERVED_HCA'
 GID='REPLACE_WITH_OBSERVED_INDEX'
 HEAD_IP='10.53.0.1'
 RUN_ID='REPLACE_WITH_UNIQUE_RUN_ID'
-IMAGE=$(python -c 'from glm53_setup.config import load_lock; print(load_lock()["image"])')
-mkdir -p "../records/$RUN_ID"
+IMAGE=$(cd v1 && python -c 'from glm53_setup.config import load_lock; print(load_lock()["image"])')
+mkdir -p "records/$RUN_ID"
 ```
 
 Confirm port 29653 is unused on rank 0. Start rank 1 and then rank 0 promptly (rendezvous timeout is 90 seconds). Keep an external five-minute experiment deadline; if exceeded, stop these specific test containers on both hosts and preserve their logs.
@@ -34,11 +34,11 @@ docker run --name "glm53-nccl-$RUN_ID-rank$RANK" \
   -e NCCL_SOCKET_FAMILY=AF_INET -e "NCCL_SOCKET_IFNAME==$FABRIC_IF" \
   -e "GLOO_SOCKET_IFNAME=$FABRIC_IF" \
   -e NCCL_DEBUG=INFO -e NCCL_DEBUG_SUBSYS=INIT,NET,GRAPH \
-  -v "$PWD/tools/nccl_probe.py:/probe.py:ro" \
-  -v "$PWD/../records/$RUN_ID:/out" \
+  -v "$PWD/host/nccl_probe.py:/probe.py:ro" \
+  -v "$PWD/records/$RUN_ID:/out" \
   --entrypoint python3 "$IMAGE" /probe.py \
   --rank "$RANK" --head "$HEAD_IP" --port 29653 \
-  --output "/out/rank$RANK.json" >"../records/$RUN_ID/nccl.log" 2>&1
+  --output "/out/rank$RANK.json" >"records/$RUN_ID/nccl.log" 2>&1
 ```
 
 The doubled equals signs in the Docker arguments are intentional: the environment value begins with `=` for an exact device-name match. See [NCCL's environment reference](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html). Keep the distributed ports within the trusted fabric.
@@ -57,19 +57,19 @@ Reference result (two GB10 hosts, MTU 1500, NCCL runtime 2.30.7, after fabric tr
 
 ## Three hosts in a ring
 
-On a ring ([network](qsfp-network.md#8-three-hosts-in-a-ring)), run the probe once on all three hosts with `--world-size 3`, the fabric environment of the launch and the head's address as `--head`, starting ranks 2 and 1 before rank 0. Then probe each link alone with `--world-size 2`: `server plan` prints each rank's links under `link_probes`, each with the pair's head, the probe rank and an environment that names only that link. With three or more nodes the launcher sets `NCCL_IB_SUBNET_AWARE_ROUTING=1`, so NCCL sends to each peer over the link whose subnet reaches it.
+On a ring ([network](qsfp-network.md#8-three-hosts-in-a-ring)), run the probe once on all three hosts with `--world-size 3`, the fabric environment of the launch and the head's address as `--head`, starting ranks 2 and 1 before rank 0. Then probe each link alone with `--world-size 2`: 1.x's `server plan` prints each rank's links under `link_probes`, each with the pair's head, the probe rank and an environment that names only that link. With three or more nodes 1.x's launcher sets `NCCL_IB_SUBNET_AWARE_ROUTING=1`, as 2.x's TP=3 rank files do, so NCCL sends to each peer over the link whose subnet reaches it.
 
 Accept as above on every rank. Reference result (three GB10 hosts, NCCL runtime 2.30.7, 2026-09-29): all 11 checks passed on three ranks; NCCL merged each host's two HCAs into one virtual NIC, built the ring 0→1→2 and ran every channel over `NET/IB`, with no fallback to sockets. AllReduce bus bandwidth was 7.87 GB/s at 16 MiB and 7.01 GB/s at 256 MiB in FP32, 8.56 and 6.94 GB/s in BF16; these are bus bandwidths, not the probe's per-rank `payload_GB_per_s`. GPUDirect RDMA stayed off, as on the pair.
 
 ## A GID index that moves
 
-`server preflight` refuses a rail whose IPv4-mapped RoCE v2 GID is not at the configured index, and lists under `gid_hints` where that entry is now, with `fixes`. A link that goes down and comes back can move it: MiaAI-Lab recipe #277 reports this, and the reference pair's peer moved rail 0 from index 3 to 4 on 2026-09-27 after the head lost power. A second IPv6 link-local address on the interface moves it too: NetworkManager's default `ipv6.addr-gen-mode` of `stable-privacy` adds one beside the kernel's, its GID entries come first, and the IPv4 entries shift to later indices (MiaAI-Lab recipe #291 reports 5 and 6 instead of 2 and 3). On a node with two rails, each HCA can then end at a different index, while NCCL takes one per rank. `gid_hints` names this `likely_cause: nm_stable_privacy` when the rail's net device carries two distinct link-local GIDs and the IPv4 RoCE v2 entry is at another index; with one link-local it names no cause.
+1.x's `server preflight` refuses a rail whose IPv4-mapped RoCE v2 GID is not at the configured index, and lists under `gid_hints` where that entry is now, with `fixes`. A link that goes down and comes back can move it: MiaAI-Lab recipe #277 reports this, and the reference pair's peer moved rail 0 from index 3 to 4 on 2026-09-27 after the head lost power. A second IPv6 link-local address on the interface moves it too: NetworkManager's default `ipv6.addr-gen-mode` of `stable-privacy` adds one beside the kernel's, its GID entries come first, and the IPv4 entries shift to later indices (MiaAI-Lab recipe #291 reports 5 and 6 instead of 2 and 3). On a node with two rails, each HCA can then end at a different index, while NCCL takes one per rank. `gid_hints` names this `likely_cause: nm_stable_privacy` when the rail's net device carries two distinct link-local GIDs and the IPv4 RoCE v2 entry is at another index; with one link-local it names no cause.
 
-To confirm, `ip -o addr show dev <interface>` lists two `inet6 fe80::` addresses, and `nmcli -g ipv6.addr-gen-mode connection show <connection>` shows a mode other than `eui64`. The recipe's fixes, both as root: set the connection's `ipv6.addr-gen-mode` to `eui64` and reactivate it, or rebind the HCA's `mlx5_core` PCI function so its GID table is rebuilt. After a link drop, set that node's `gid_index` when all its rails agree, or restore the index on the host (reboot, or bring the interface down and up, as root). The check keeps refusing until the entry is back at the configured index. Neither fix has been needed on the reference hosts.
+To confirm, `ip -o addr show dev <interface>` lists two `inet6 fe80::` addresses, and `nmcli -g ipv6.addr-gen-mode connection show <connection>` shows a mode other than `eui64`. The recipe's fixes, both as root: set the connection's `ipv6.addr-gen-mode` to `eui64` and reactivate it, or rebind the HCA's `mlx5_core` PCI function so its GID table is rebuilt. After a link drop, set that node's `gid_index` in 1.x's server profile when all its rails agree, or restore the index on the host (reboot, or bring the interface down and up, as root). The check keeps refusing until the entry is back at the configured index. Neither fix has been needed on the reference hosts.
 
 ## Channel count
 
-On its own, NCCL 2.30.7 opens 64 channels on this pair (identical on 2026-09-11 and 2026-09-17). The template sets [`runtime.nccl_channels = 8`](server-configuration.md). The measurements behind that value were taken on 2026-09-17 with the reference image and the launcher's fabric environment, changing only `NCCL_MIN_NCHANNELS`/`NCCL_MAX_NCHANNELS`.
+On its own, NCCL 2.30.7 opens 64 channels on this pair (identical on 2026-09-11 and 2026-09-17). 1.x's template sets [`runtime.nccl_channels = 8`](../v1/docs/server-configuration.md). The measurements behind that value were taken on 2026-09-17 with the reference image and the launcher's fabric environment, changing only `NCCL_MIN_NCHANNELS`/`NCCL_MAX_NCHANNELS`.
 
 **Collectives alone.** A two-rank BF16 AllReduce sweep, run twice in opposite orders, took the median of seven batches per size. Memory is the drop in `MemAvailable` across communicator setup and all sizes. The sizes the model uses are set by hidden size 4096 in BF16 (8,192 bytes per token): a decode verify with MTP k=3 is 32 KiB, a draft step 8 KiB, and a 512-token prefill chunk 4 MiB.
 

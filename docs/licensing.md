@@ -1,6 +1,6 @@
 # Use, modification and redistribution
 
-[日本語](licensing.ja.md) · [Provenance and notices](../../THIRD_PARTY_NOTICES.md)
+[日本語](licensing.ja.md) · [Provenance and notices](../THIRD_PARTY_NOTICES.md)
 
 This guide covers both serving lines. **Original repository code and documentation are Apache-2.0: commercial use, modification, and paid or free redistribution are permitted subject to its conditions. Weights, containers and harnesses retain separate terms.** This is an operational summary; the applicable license text and artifact version govern.
 
@@ -16,7 +16,7 @@ This guide covers both serving lines. **Original repository code and documentati
 | Complete image containing CUDA and other dependencies (2.x's is built on NVIDIA's PyTorch container, under NVIDIA's terms) | Subject to each component's terms | Do not treat SDK modification rights as Apache | **No blanket clearance for the image** | Review the actual component inventory, versions, redistributables and notices |
 | ZCode / Claude Code binaries | Subject to their product/service terms | No modification rights granted by this repository | No redistribution rights granted by this repository | Install separately from official sources; do not bundle credentials |
 
-Sources: [Apache sections 2–4 and 6–9](../../LICENSE), MIT texts ([kingjones](../../LICENSES/kingjones-MIT.txt), [knapcio](../../LICENSES/knapcio-MIT.txt), [HLE](../../LICENSES/hle-MIT.txt)), [pinned NVIDIA model card](https://huggingface.co/nvidia/GLM-5.3-Flash-NVFP4/blob/423acf37583782c51c142d145aef733d72943d93/README.md).
+Sources: [Apache sections 2–4 and 6–9](../LICENSE), MIT texts ([kingjones](../LICENSES/kingjones-MIT.txt), [knapcio](../LICENSES/knapcio-MIT.txt), [HLE](../LICENSES/hle-MIT.txt)), [pinned NVIDIA model card](https://huggingface.co/nvidia/GLM-5.3-Flash-NVFP4/blob/423acf37583782c51c142d145aef733d72943d93/README.md).
 
 ## MIT and Apache-2.0 compared
 
@@ -38,7 +38,7 @@ Warranty is disclaimed; paid support can be offered on your own responsibility. 
 
 ## Weight notices
 
-The pinned NVIDIA snapshot has no standalone LICENSE file; its README states MIT and commercial eligibility. We preserve the [upstream Z.AI license](https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/LICENSE) as [LICENSES/ZAI-GLM-MIT.txt](../../LICENSES/ZAI-GLM-MIT.txt), without claiming that file came from the NVIDIA snapshot.
+The pinned NVIDIA snapshot has no standalone LICENSE file; its README states MIT and commercial eligibility. We preserve the [upstream Z.AI license](https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/LICENSE) as [LICENSES/ZAI-GLM-MIT.txt](../LICENSES/ZAI-GLM-MIT.txt), without claiming that file came from the NVIDIA snapshot.
 
 When redistributing weights, attach the model card and upstream MIT notice, identify the source/quantization/revision, and account for any additional code or training data you used. Place notices outside the exact Hugging Face snapshot so its official checksum/extra-file check remains reproducible. MIT does not guarantee output ownership, non-infringement or rights to your input data.
 
@@ -46,9 +46,9 @@ This project applied those rules once: the attention and `lm_head` W4A16 repack 
 
 ## LPA projector
 
-The independently fitted [LPA cut32 auxiliary weights](lpa.md#download-the-trained-projector) are offered under **Apache-2.0**, to the extent of the maintainer's rights. The Release package includes LICENSE, NOTICE, teacher provenance and training-data attribution. This does not relicense NVIDIA's checkpoint or the training dataset.
+The independently fitted [LPA cut32 auxiliary weights](../v1/docs/lpa.md#download-the-trained-projector) are offered under **Apache-2.0**, to the extent of the maintainer's rights. The Release package includes LICENSE, NOTICE, teacher provenance and training-data attribution. This does not relicense NVIDIA's checkpoint or the training dataset.
 
-The [projector lock](../config/lpa-projector.lock.json) records the sampled LLM-jp Corpus v3 subsets: Japanese/English Wikipedia labeled CC-BY-SA-3.0, and C++ filtered by per-repository MIT/Apache/BSD/ISC metadata. LLM-jp provenance does not make every underlying text Apache-2.0. Corpus text and teacher captures are not distributed with the projector.
+The [projector lock](../v1/config/lpa-projector.lock.json) records the sampled LLM-jp Corpus v3 subsets: Japanese/English Wikipedia labeled CC-BY-SA-3.0, and C++ filtered by per-repository MIT/Apache/BSD/ISC metadata. LLM-jp provenance does not make every underlying text Apache-2.0. Corpus text and teacher captures are not distributed with the projector.
 
 The Apache offer covers the auxiliary artifact, not third-party expression that might be reproduced by a model. Whether training or an artifact requires permission for such expression is a separate, fact-dependent question: [Creative Commons' guidance](https://creativecommons.org/using-cc-licensed-works-for-ai-training-2/) distinguishes copyright exceptions from uses that trigger its conditions. The license choice is not a legal finding that those conditions can never apply.
 
@@ -67,4 +67,4 @@ ZCode follows its [terms](https://zcode.z.ai/en/terms); Claude Code follows the 
 - [ ] For images, review the actual component inventory and redistribution terms; a 2.x image keeps the engine's notices under `/opt/tensorfold` and the project's under `/opt/glm53-tf/`.
 - [ ] Exclude harness binaries, keys, credentials and private logs unless separately authorized and licensed.
 
-Connection design and technical acceptance are covered in [harness integration](harnesses.md).
+Connection design and technical acceptance are covered in [harness integration](../v1/docs/harnesses.md).

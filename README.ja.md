@@ -21,19 +21,19 @@ BIZは意図であり、約束ではありません。製品ティア・サポ�
 
 ## ライセンスの早見表
 
-対象ごとに条件が違い、義務と選定理由は[ライセンス整理](v1/docs/licensing.ja.md)、出所は[第三者通知](THIRD_PARTY_NOTICES.md)が正典です。
+対象ごとに条件が違い、義務と選定理由は[ライセンス整理](docs/licensing.ja.md)、出所は[第三者通知](THIRD_PARTY_NOTICES.md)が正典です。
 
 | 対象 | ライセンス | 出所 |
 |---|---|---|
 | 独自のセットアップコード・文書 | **Apache-2.0** | 本リポジトリ |
 | GLM-5.3-Flash NVFP4 重み | **MIT**（固定NVIDIAモデルカードの表記。上流Z.aiモデルもMIT） | 利用者が取得。同梱しない |
-| attentionと `lm_head` のW4A16再パック（1.x系の公開した任意設定） | **MIT**。NVIDIAのモデルカードを併置 | 任意の[Hugging Face配布の重み](v1/docs/licensing.ja.md#重みのmit通知)。Git追跡外 |
+| attentionと `lm_head` のW4A16再パック（1.x系の公開した任意設定） | **MIT**。NVIDIAのモデルカードを併置 | 任意の[Hugging Face配布の重み](docs/licensing.ja.md#重みのmit通知)。Git追跡外 |
 | LPA cut32補助重み（1.x系） | **Apache-2.0**。学習データの通知は別途保持 | 任意の[Release添付物](v1/docs/lpa.ja.md#学習済みprojectorの取得)。Git追跡外 |
 | TensorFoldのBIZ版（2.x系） | **Apache-2.0**（0.6.0より前のコードはMITの表示を保つ） | [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) から `TENSORFOLD_REF` でimageにclone。エンジン自身の表示は `/opt/tensorfold` に。ここには同梱しない |
 | 完成Dockerイメージ | 同梱物ごと（CUDA・Torch・NCCL等。NVIDIAのPyTorch containerはNVIDIAの条件）。一括して一色とは扱わない | 利用者が固定の公式base imageから構築 |
 | ZCode／Claude Codeハーネス（1.x系） | 各製品の規約 | 別途導入。本リポジトリで再許諾しない |
 
-本リポジトリをソース・固定参照・ビルド手順として配る場合の義務は、Apache-2.0の条件と、取り込んだ第三者コード（MIT・Apache）の著作権表示・許諾文の保持です。重みや完成イメージを再配布する場合に、それぞれの条件が加わります。配信の経路には非商用・改変禁止の条件がありません：1.x系はEXL3/TR3重み、DFlash2重み、Mia現行AGPL版を導入する構成ではなく、2.x系はDFlash2のdraftの重み（CC BY-NC-ND 4.0）を読み込まず（`--drafter none`）、EXL3などの再量子化した重みも使いません。対象別の許諾範囲と義務は[商用利用・改造・再配布の整理](v1/docs/licensing.ja.md)にまとめています。
+本リポジトリをソース・固定参照・ビルド手順として配る場合の義務は、Apache-2.0の条件と、取り込んだ第三者コード（MIT・Apache）の著作権表示・許諾文の保持です。重みや完成イメージを再配布する場合に、それぞれの条件が加わります。配信の経路には非商用・改変禁止の条件がありません：1.x系はEXL3/TR3重み、DFlash2重み、Mia現行AGPL版を導入する構成ではなく、2.x系はDFlash2のdraftの重み（CC BY-NC-ND 4.0）を読み込まず（`--drafter none`）、EXL3などの再量子化した重みも使いません。対象別の許諾範囲と義務は[商用利用・改造・再配布の整理](docs/licensing.ja.md)にまとめています。
 
 ## ローカルデータと開発
 

@@ -4,36 +4,23 @@
 
 Every document has one role; other documents link to it instead of repeating its content. Every user-facing page comes as an English/Japanese pair (`name.md` / `name.ja.md`); only the agent instructions, the license/notice texts and the overlay manifest (a provenance record whose hashes have one owner) are English-only by design. The changelog is a pair too: the English file is canonical and the GitHub Release is made from it. Update both when user-visible instructions change ([Contributing](../../CONTRIBUTING.md)).
 
+This map lists the 1.x line's documents and the owner of each 1.x fact. The repository's own pages, the host and fabric pages every line shares and the 2.x pages are in the [repository's document map](../../docs/README.md).
+
 ## Entry points
 
 | Document | Role | EN | JA |
 |---|---|---|---|
-| Repository README | The serving lines, what BIZ means and does not mean, licensing at a glance, local data | [EN](../../README.md) | [JA](../../README.ja.md) |
 | README | Summary, what is deployed, supported hardware, how to start, the headline comparison of the two served profiles, status by scope, business-use objectives (BIZ), other public recipes, this line's disclaimer, Next Action | [EN](../README.md) | [JA](../README.ja.md) |
 | Setup runbook | Ordered deployment gates from host inspection to acceptance | [EN](../SETUP.md) | [JA](../SETUP.ja.md) |
-| Contributing | CPU checks, publication audit, contribution rules | [EN](../../CONTRIBUTING.md) | [JA](../../CONTRIBUTING.ja.md) |
 | Changelog | Change history and validation status by release | [EN](../CHANGELOG.md) | [JA](../CHANGELOG.ja.md) |
-| Repository instructions | Rules for AI agents and operators editing this checkout | [EN](../../AGENTS.md) | — |
-| Licensing and notices | Apache-2.0 text, attribution, third-party provenance | [LICENSE](../../LICENSE), [NOTICE](../../NOTICE), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md), [LICENSES/](../../LICENSES/) | — |
 
-The 2.x line (TensorFold) keeps its own pages in `v2/`, each an English/Japanese pair:
-
-| Document | Role | EN | JA |
-|---|---|---|---|
-| 2.x README | Summary, what it is, requirements, quick start, serving defaults, configuration, API, differences from 1.x, release measurements, limits, layout, other recipes on TensorFold, Next Action | [EN](../../v2/README.md) | [JA](../../v2/README.ja.md) |
-| 2.x setup runbook | Ordered steps from hosts to acceptance and stop | [EN](../../v2/SETUP.md) | [JA](../../v2/SETUP.ja.md) |
-| 2.x validation | The reference values a 2.x launch is accepted against | [EN](../../v2/docs/validation.md) | [JA](../../v2/docs/validation.ja.md) |
-| 2.x host tools | GPU clock cap, telemetry logger, cool-gate and thermal-watch for the hosts that serve 2.x | [EN](../../v2/host/README.md) | [JA](../../v2/host/README.ja.md) |
-| 2.x changelog | 2.x releases; the English file is canonical | [EN](../../v2/CHANGELOG.md) | [JA](../../v2/CHANGELOG.ja.md) |
 
 ## Deploy and operate
 
 | Document | Role | EN | JA |
 |---|---|---|---|
-| Operations | Artifact storage paths, acquisition, host preparation, launch checks, three nodes, supervision and the warmup ladder, GPU clock cap and the shared-memory reader spin, recovery | [EN](operations.md) | [JA](operations.ja.md) |
+| Operations | Artifact storage paths, acquisition, host preparation, launch checks, three nodes, supervision and the warmup ladder, the shared-memory reader spin, recovery | [EN](operations.md) | [JA](operations.ja.md) |
 | Server configuration | The categorized server TOML and its three templates, the published option against the defaults, three nodes, every optional key, KV/RAM conditions, image markers, feature limits | [EN](server-configuration.md) | [JA](server-configuration.ja.md) |
-| QSFP network | Direct QSFP connection for the pair and the three-host ring, persistent NetworkManager profiles, per-host /32 addresses | [EN](qsfp-network.md) | [JA](qsfp-network.ja.md) |
-| NCCL validation | Two- and three-rank collective diagnostic, a moving GID index, channel count, limits | [EN](nccl-validation.md) | [JA](nccl-validation.ja.md) |
 | Launch contracts | API client authentication, allocator propagation, all-rail checks, switch and recovery for any rank count, three-node launch order and runtime cache, the decode check, APC history qualification | [EN](launch-safety.md) | [JA](launch-safety.ja.md) |
 | Architecture | Package layout (every module of `glm53_setup/` and `tools/` has a row) and validation boundaries | [EN](architecture.md) | [JA](architecture.ja.md) |
 | Overlay manifest | The two vLLM source overlays the published option needs: targets, SHA-256, base hashes, markers, placement | [EN](../overlays/README.md) | — |
@@ -52,7 +39,6 @@ The 2.x line (TensorFold) keeps its own pages in `v2/`, each an English/Japanese
 | HLE | Two 100-question HLE subsets on both profiles: results, how they were run, and why they are not comparable with published values | [EN](hle.md) | [JA](hle.ja.md) |
 | Harnesses | The accepted harness route (npm ZCode CLI), connection settings, the tool-argument gate and the acceptance matrix | [EN](harnesses.md) | [JA](harnesses.ja.md) |
 | ZCode guard hook | Setup of the PreToolUse existing-file guard: why a hook, install, verify, limits | [EN](../examples/zcode-hooks/README.md) | [JA](../examples/zcode-hooks/README.ja.md) |
-| Licensing guide | Commercial use, modification and redistribution by artifact | [EN](licensing.md) | [JA](licensing.ja.md) |
 
 ## Optimize
 
@@ -77,25 +63,25 @@ The 2.x line (TensorFold) keeps its own pages in `v2/`, each an English/Japanese
 | MTP speculative configuration (the launcher builds it from `mtp.*`; the files show it for a manual reproduction) | [examples/speculative.mtp1.json](../examples/speculative.mtp1.json), [speculative.mtp3.json](../examples/speculative.mtp3.json) |
 | FreedomBench item and answer pins | [config/freedombench.lock.json](../config/freedombench.lock.json); the reviewed Japanese translation in [config/freedombench-ja.lock.json](../config/freedombench-ja.lock.json) |
 | Initiative IDs, adoption decisions, reevaluation criteria | [Optimization catalog](optimization-catalog.md) |
-| Measured numbers and their conditions | [Benchmarks](benchmarks.md), [image input](vision.md), [speculative decoding](speculative-decoding.md), [LPA](lpa.md), [component validation](component-validation.md), [candidate order](candidate-order.md), [indexer reuse](indexer-reuse.md), [NCCL validation](nccl-validation.md), [FreedomBench](freedombench.md), [HLE](hle.md), [output correctness gates](correctness-gates.md) (the prefix-cache gate, multibyte output), [repeatability](repeatability.md) |
+| Measured numbers and their conditions | [Benchmarks](benchmarks.md), [image input](vision.md), [speculative decoding](speculative-decoding.md), [LPA](lpa.md), [component validation](component-validation.md), [candidate order](candidate-order.md), [indexer reuse](indexer-reuse.md), [NCCL validation](../../docs/nccl-validation.md), [FreedomBench](freedombench.md), [HLE](hle.md), [output correctness gates](correctness-gates.md) (the prefix-cache gate, multibyte output), [repeatability](repeatability.md) |
 | APC/LPA shared-state contract (N, H, T, R, B) | [APC-first LPA design](apc-lpa-design.md) |
 | Client authentication, allocator, rails, switch and recovery contracts | [Launch contracts](launch-safety.md) |
 | Launch order, rank-count refusal and the per-host runtime cache at three nodes | [Launch contracts](launch-safety.md#three-nodes) |
-| A GID index that moves: diagnosis and remedies | [NCCL validation](nccl-validation.md#a-gid-index-that-moves) |
+| A GID index that moves: diagnosis and remedies | [NCCL validation](../../docs/nccl-validation.md#a-gid-index-that-moves) |
 | The decode check after a switch: its routine and the two tools | [Launch contracts](launch-safety.md#after-a-switch-the-decode-check); `tools/decode_check.py`, `tools/decode_divergence.py` |
 | Routine-use acceptance of the serving profile: its scope and where each item's evidence is recorded | [Setup runbook step 6](../SETUP.md#6-qualify-the-full-model); the README status table and [validation](validation.md#full-model-scope) point there |
 | Storage paths for checkpoint, MTP view, projector, images, state | [Operations](operations.md#artifact-storage-and-paths) |
 | What `server preflight` checks before a start, and what it does not certify | [Operations](operations.md#full-model-launch-checks) |
 | Image capability markers: which setting requires each, and from which version images carry it | [Server configuration](server-configuration.md#current-image-contract) |
-| Host kernel requirement, the `7.0.0-1019-nvidia` RoCE failure and the `kho=off` workaround | [Operations](operations.md#host-kernel-and-multi-node-roce) |
-| License permissions and obligations by artifact | [Licensing guide](licensing.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md); the summary table is the [repository README's](../../README.md#licensing-at-a-glance) |
+| Host kernel requirement, the `7.0.0-1019-nvidia` RoCE failure and the `kho=off` workaround | [Host preparation](../../docs/hosts.md#host-kernel-and-multi-node-roce) |
+| License permissions and obligations by artifact | [Licensing guide](../../docs/licensing.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md); the summary table is the [repository README's](../../README.md#licensing-at-a-glance) |
 | Harness acceptance cases and their run status | [Harnesses](harnesses.md) |
 | ZCode permission-mode facts, model limit and compaction budget rules, and the existing-file guard hook | [Harnesses](harnesses.md#zcode-permission-modes-model-limits-and-the-existing-file-guard), script in [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | Validation scope and open items | [Validation](validation.md#evaluations-and-open-items) |
 | Raw responses, traces, all repetitions, failures, host-specific values | Private `records/<run-id>/`, never distributed; public documents carry reviewed summaries |
 | Other public recipes for this model: links, licenses and what was taken from each | [README](../README.md#other-glm-53-flash-recipes-for-dgx-spark-systems) for the recipes on other engines, [2.x's README](../../v2/README.md#other-recipes-on-tensorfold) for those on TensorFold; other documents cite by name and pull request, without links or licenses (`tools/check_publication.py` enforces this) |
 | What the project does not claim, and upstream-triggered work (trigger → action) | [Repository README](../../README.md#biz) for BIZ, this line's [README disclaimer](../README.md#disclaimer) and [next action](../README.md#next-action) |
-| Private implementation plans and their stage status | `docs/plans/`, untracked and excluded from publication; `docs/plans/README.md` indexes them locally and each plan's own leading status line owns its state |
+| Private implementation plans and their stage status | `docs/plans/` at the checkout root, untracked and excluded from publication; `docs/plans/README.md` indexes them locally and each plan's own leading status line owns its state |
 | Site configuration and acquisition state | `state/`, untracked |
 
 ## Conventions

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools import nccl_probe
+from host import nccl_probe
 
 
 class NcclProbeCliTests(unittest.TestCase):

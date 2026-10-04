@@ -1,0 +1,36 @@
+# ホストの準備
+
+[English](hosts.md) · [リポジトリのREADME](../README.ja.md) · [ホストのツール](../host/README.ja.md)
+
+どの配信系も、系ごとのセットアップの前にホストへ求めるもの：動かすカーネルとドライバー、そしてGPUクロックの上限です。配線とfabricは[QSFPネットワーク](qsfp-network.ja.md)と[NCCL診断](nccl-validation.ja.md)にあります。各系の手順書（[1.x](../v1/SETUP.ja.md)、[2.x](../v2/SETUP.ja.md)）はここを参照します。
+
+## ホストカーネルと複数ノードRoCE
+
+**更新を入れる前と、複数台で動かす手順の前に、カーネルとドライバーを確認してください。** 本リポジトリの実測は、MSI EdgeXpert（MS-C931）上の `6.17.0-1032-nvidia`、ドライバー 580.173.02、ConnectX-7 ファームウェア 28.45.4028 で行いました。カーネル `7.0.0-1019-nvidia` とドライバー 580.178.04 は、ここでは未検証です。
+
+2026-09-15 時点の更新では、`linux-nvidia-hwe-24.04` 系のメタパッケージが `7.0.0-1019-nvidia` へ上がり、580 open ドライバーのモジュールもそのカーネル向けに入ります。同じ更新で `nvidia-driver-580-open` も 580.173.02 から 580.178.04 へ上がります（参照機2台の `apt list --upgradable` で 2026-09-18 に確認）。`apt` の更新でも DGX Dashboard の更新でも入るため、新しく導入した機体も最初の更新の後はこのカーネルで起動します。
+
+このカーネルの既定設定では、2台間の RoCE 越しの NCCL が `NCCL WARN Call to ibv_reg_mr_iova2 failed with error Cannot allocate memory` で失敗することがあります。報告では、モデルのロードは済み、vLLM のプロファイル中や TP 通信で失敗し、`ib_write_bw` などの RDMA 単体試験は正常に見えます。NVIDIA の[更新に関する告知](https://forums.developer.nvidia.com/t/dgx-spark-update-advisory/383254)（2026-09-13）は、複数ノード・RoCE 構成の利用者に対し、DGX Dashboard 経由を含めてこのカーネルへの更新を見送るよう求めており、修正版は示していません。単体ノードの処理に影響するかは確認されていません。
+
+[NV-Kernels PR #590](https://github.com/NVIDIA/NV-Kernels/pull/590)（未マージ。投稿者による分析で、NVIDIA の見解ではない）は、原因を Kexec HandOver（KHO）と特定しています。`7.0.0-1019-nvidia` のビルドは `CONFIG_KEXEC_HANDOVER_ENABLE_DEFAULT=y` です（パッケージの config で確認。`6.17.0-1032-nvidia` は KHO を既定では有効にしない）。KHO は起動時に、後の kexec 用の scratch メモリを確保し、CMA のページブロックとして解放します。その報告では約 9.3 GiB（4,761 ページブロック）で、`CmaTotal` には計上されません。RDMA のメモリ登録はページを長期間固定し、固定するページは先に CMA の外へ移す必要があります。GPU がメモリを使い込んでいるとこの移動が失敗し、登録が `ENOMEM` を返します。
+
+すべてのホストを同じ対応にしてください。
+
+| 選択 | 手順 | 補足 |
+|---|---|---|
+| `6.17.0-1032-nvidia` を使い続ける | 更新の前に `sudo apt-mark hold linux-nvidia-hwe-24.04 linux-image-nvidia-hwe-24.04 linux-headers-nvidia-hwe-24.04 linux-modules-nvidia-580-open-nvidia-hwe-24.04 linux-tools-nvidia-hwe-24.04 nvidia-driver-580-open`。設定後は `apt-mark showhold` で6つとも並ぶことを確かめる。既に 7.0 を入れた場合も旧カーネルは残るので、GRUB メニューの詳細オプションから起動する（コンソール接続が必要）。 | 本リポジトリで検証済みの状態。修正版カーネルが出たら hold を外す。 |
+| `7.0.0-1019-nvidia` を KHO 無効で使う | `/etc/default/grub` の `GRUB_CMDLINE_LINUX_DEFAULT` に、既存の値を残したまま `kho=off` を足す。`sudo update-grub` の後に再起動する。`/proc/cmdline` に `kho=off` があり、`sudo ls /sys/kernel/debug/kho` が "No such file or directory" で失敗することを確認する。 | 告知スレッドに投稿された回避策。PR では KHO 無効で、2台間のメモリ登録・NCCL・TP2 の試験が通ったと報告されている。本リポジトリでは未検証。KHO は kexec による稼働中更新のための機能で、この構成では使わない。この行はドライバー 580.178.04 も受け入れることになり、`kho=off` は下記のホスト固着には効かない。 |
+
+**同じ更新には、RoCE とは別の故障の報告があります。** Spark 2台の他レシピは、DGX OS 7.5.0→7.6.0 の更新（カーネル `7.0.0-1019-nvidia`、ドライバー 580.178.04、Docker 29.6.2）から約24時間のうちに、2台とも通常の配信負荷でホストごと固まったと報告しています（amasu、コミット `030d37e` の投稿草稿、コードは採用しない）。2日間に2つの配信スタックで5回以上、ping は返るが sshd が応答せず、復旧は電源の入れ直しだけでした。固まる前のカーネルログには `NVRM: nvCheckOkFailedNoLog: Check failed: Out of memory [NV_ERR_NO_MEMORY] ... returned from _memdescAlloc` が連続し（1回の起動で65回と148回）、そのとき MemAvailable は 9.4 GB・swap の空きは約73%で、OOM killer・Xid・panic はどれも記録されていません。同じ機体は 7.5.0・580.173.02 で数週間安定していたとあります。報告は、7.6.0 のリリースノートが Spark 向けに挙げるドライバーは 580.173.02 で、580.178.04 のサポート表に GB10 が無いことも指摘しています。ハードウェア診断の結果が未記入の草稿であり、示されているのは相関で、原因の確定ではありません。KHO は RDMA のメモリ登録の失敗を説明しますが、この固着は説明しません。ドライバーも hold の対象に入れ、更新後にこの症状が出たら `journalctl -b -1 -k | grep -c _memdescAlloc` で前回起動を確かめてください。
+
+どちらを選んでも、提供を始める前に [NCCL 検証](nccl-validation.ja.md)とフルモデルの起動をやり直してください。
+
+同じエラーの別の報告もあります。Ubuntu 汎用の 7.0 カーネル・ドライバー 595.84 の MS-C931 機で、空きが約 118 GiB あり重みのロード前だったにもかかわらず失敗し、MSI のボードファームウェア更新（組み込みコントローラー、SoC ファームウェア、USB-C PD）で解決したとしています（[MiaAI-Lab issue #259](https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-DSpark-2x-DGX-Spark/issues/259)）。メモリに余裕があるのにこのエラーが出る場合は、メーカーのファームウェアも確認してください。
+
+**異常終了後は負荷時のクロックを確認する。** tonyd2wildはwatchdog reset後に約14 Wの電力制限が残り、負荷時611〜890 MHz、BF16行列演算の速度が正常機の約半分になったと報告しています。GPU reset・クロック／電力設定・再起動では戻らず、ACの抜き差しで復旧しました。GPU reset直後に再起動を挟まずCUDAを実行した場合もfaultが発生しています（speed-night報告、commit `9f5cc2c`。コードは採用しない）。基準の2台で再現した事実ではなく、外部の観測です。再起動後の低速化をモデル変更の効果と読む前に、同じ負荷でGPUクロックと電力を記録してください。アイドル時の電力だけではこの制限を診断できません。
+
+## GPUクロックの上限
+
+GB10機（DGX Sparkと互換機）は、持続したGPU負荷の下で電源ごと落ちることが広く報告されています（ログは残らず、電源ボタンを押すまで戻らない）。参照対のheadも2026-09-27に1度、約54分の長い入力の負荷のあと、261,573 tokenのprefillを間を空けずに続けた2本目で落ちました。熱の蓄積と、prefillの電力の山が重なったと見ていますが、温度と電力の記録が無く、確定ではありません。
+
+報告で効いている対処は、GPUクロックの上限を既定の約2,418 MHzから2,200 MHzに下げることです（`nvidia-smi -lgc 300,2200`。GB10では `-pl` による電力の上限は効きません）。参照対とその隣の機体は起動のたびにこれを入れ、温度・電力・クロックを2秒ごとに記録しています。**1.x系の[主要な測定値](../v1/README.ja.md#確認した範囲)はこの上限の下で取ったもので、2.x系の数値もすべてそうです**。1.x系での上限の代価は、同じprofileで上限なしと比べてprefillが約2%遅く、長い入力が1〜5%長くなる程度で、公開した任意設定のdecodeは1〜2%速く、NLL・completion・正答は変わりませんでした（[測定](../v1/docs/benchmarks.ja.md#両profileを同じ枠でgpuクロックの上限つきで2026-09-28)）。上限の設定はホスト側のもので、どちらの系のランチャーも入れません。[ホストのツール](../host/README.ja.md)が、常時記録と並べて起動時のunitとして据え付けます。長い要求を続けて流すベンチマークでは、要求の間に休みを入れてください。

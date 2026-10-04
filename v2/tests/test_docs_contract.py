@@ -14,7 +14,7 @@ from pathlib import Path
 from glm53_tf import config
 
 LINE = Path(__file__).resolve().parents[1]
-HOST = LINE / "host"
+HOST = LINE.parent / "host"
 PAIRS = ("", ".ja")
 
 

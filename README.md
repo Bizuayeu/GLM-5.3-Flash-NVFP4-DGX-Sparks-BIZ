@@ -21,19 +21,19 @@ BIZ is an intent, not a promise. It is not a product tier, a support commitment,
 
 ## Licensing at a glance
 
-Each artifact keeps its own terms; obligations and the rationale are in the [licensing guide](v1/docs/licensing.md), provenance in the [third-party notices](THIRD_PARTY_NOTICES.md).
+Each artifact keeps its own terms; obligations and the rationale are in the [licensing guide](docs/licensing.md), provenance in the [third-party notices](THIRD_PARTY_NOTICES.md).
 
 | Artifact | License | Where it comes from |
 |---|---|---|
 | Original setup code and documents | **Apache-2.0** | This repository |
 | GLM-5.3-Flash NVFP4 weights | **MIT** (stated in the pinned NVIDIA model card; upstream Z.ai model is MIT) | Downloaded by the operator; not bundled |
-| Attention and `lm_head` W4A16 repack (1.x's published option) | **MIT**, with NVIDIA's model card beside it | Optional [Hugging Face weights](v1/docs/licensing.md#weight-notices); outside Git |
+| Attention and `lm_head` W4A16 repack (1.x's published option) | **MIT**, with NVIDIA's model card beside it | Optional [Hugging Face weights](docs/licensing.md#weight-notices); outside Git |
 | LPA cut32 auxiliary projector (1.x) | **Apache-2.0**; training-data notices retained separately | Optional [Release asset](v1/docs/lpa.md#download-the-trained-projector); outside Git |
 | TensorFold, the BIZ release (2.x) | **Apache-2.0** (code from before 0.6.0 keeps its MIT notice) | Cloned into the image from [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `TENSORFOLD_REF`, with the engine's own notices under `/opt/tensorfold`; not vendored here |
 | Built container image | Per bundled component (CUDA, Torch, NCCL and others; NVIDIA's PyTorch container under NVIDIA's terms); not treated as one blanket license | Built by the operator from the pinned official base image |
 | ZCode / Claude Code harnesses (1.x) | Each product's own terms | Installed separately; nothing is relicensed here |
 
-Distributing this repository as source, pinned references and build steps requires Apache-2.0 compliance plus retention of the copyright and license notices of the adapted third-party code (MIT and Apache). Redistributing weights or built images adds those artifacts' conditions. The serving paths have no non-commercial or no-derivatives terms in them: 1.x does not require EXL3/TR3 weights, DFlash2 weights or Mia's current AGPL distribution, and 2.x does not load the DFlash2 draft weights (CC BY-NC-ND 4.0; `--drafter none`) or use EXL3 or other requantized weights. See [commercial use, modification and redistribution](v1/docs/licensing.md) for permissions and obligations by artifact.
+Distributing this repository as source, pinned references and build steps requires Apache-2.0 compliance plus retention of the copyright and license notices of the adapted third-party code (MIT and Apache). Redistributing weights or built images adds those artifacts' conditions. The serving paths have no non-commercial or no-derivatives terms in them: 1.x does not require EXL3/TR3 weights, DFlash2 weights or Mia's current AGPL distribution, and 2.x does not load the DFlash2 draft weights (CC BY-NC-ND 4.0; `--drafter none`) or use EXL3 or other requantized weights. See [commercial use, modification and redistribution](docs/licensing.md) for permissions and obligations by artifact.
 
 ## Local data and contribution
 

@@ -111,7 +111,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ### 並列化と通信
 
-`runtime.nccl_channels`（未指定はNCCLに任せる、テンプレートは8）は、全rankの `NCCL_MIN_NCHANNELS` と `NCCL_MAX_NCHANNELS` に同じ正の整数を渡します。参照機でNCCL自身の選択に比べ、8本は両rankのメモリを空け、prefillを遅くしません（[チャネル数の測定](nccl-validation.ja.md#チャネル数)）。1.3.1より前に書いたprofileにはキーが無く、NCCLの選択をそのまま保ちます。テンプレートの値を使うにはキーを足します。Mia PR #200を参考にしました。
+`runtime.nccl_channels`（未指定はNCCLに任せる、テンプレートは8）は、全rankの `NCCL_MIN_NCHANNELS` と `NCCL_MAX_NCHANNELS` に同じ正の整数を渡します。参照機でNCCL自身の選択に比べ、8本は両rankのメモリを空け、prefillを遅くしません（[チャネル数の測定](../../docs/nccl-validation.ja.md#チャネル数)）。1.3.1より前に書いたprofileにはキーが無く、NCCLの選択をそのまま保ちます。テンプレートの値を使うにはキーを足します。Mia PR #200を参考にしました。
 
 `runtime.shm_spin_seconds`（未指定はvLLMの1秒。どのテンプレートも0.002、[施策台帳P29](optimization-catalog.ja.md#性能施策一覧)）は、vLLMの共有メモリbroadcastの読み手が、最後に読んでから `sched_yield()` で回り続ける時間を決めます。過ぎるとzmqのpollで眠ります。ランチャーはcheckoutから `glm53_setup/runtime/shm_spin.py` と1行の `.pth` をmountし、全rankに `GLM53_SHM_SPIN_SECONDS` を渡します。imageの対応は要りません。0.002〜1の外の値は拒否し、キーが無ければ何もmountも設定もしません。hostあたりGPU 1基では、固定vLLMの共有メモリの読み手はheadにしかいません（TP=2でもTP=3でも同じ）。worker 0の返答を読むEngineCoreと、schedulerのbroadcastを読むworker 0です。ほかのrankはどちらもzmqで読みます。参照機でspinしていた読み手と、0.002秒がそのCPU負荷・headの温度・decodeに与えた効果は[1.25.0での測定](benchmarks.ja.md#1250での測定)にあります。TP=3のテンプレートの値は延長での適用で、TP=3での効果は測っていません。
 
@@ -125,7 +125,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ### 3ノード
 
-`[[nodes]]` が3つなら、スイッチなしのQSFPリング上でTP=3を動かします（[QSFP直結](qsfp-network.ja.md)）。モデルのattentionとKDAのhead 64、routed・shared expertの幅2,048、語彙は3で割り切れないので、ランチャーが全rankに `GLM53_TP_PAD_MULTIPLE=3` を設定し、imageがロード時にゼロで埋めます：headは66（rankあたり22）、幅は2,112（rankあたり704）、語彙は192の倍数（154,880から154,944）に、MTPのdraftも同じように埋めます（[1台での確認](benchmarks.ja.md#1240での測定)）。`GLM53_TP_PAD_API=1` が必要です（[イメージの契約](#現行イメージの契約)）。2ノードではknobを設定せず、patchは何も変えません。3ノードではランチャーはさらに：
+`[[nodes]]` が3つなら、スイッチなしのQSFPリング上でTP=3を動かします（[QSFP直結](../../docs/qsfp-network.ja.md)）。モデルのattentionとKDAのhead 64、routed・shared expertの幅2,048、語彙は3で割り切れないので、ランチャーが全rankに `GLM53_TP_PAD_MULTIPLE=3` を設定し、imageがロード時にゼロで埋めます：headは66（rankあたり22）、幅は2,112（rankあたり704）、語彙は192の倍数（154,880から154,944）に、MTPのdraftも同じように埋めます（[1台での確認](benchmarks.ja.md#1240での測定)）。`GLM53_TP_PAD_API=1` が必要です（[イメージの契約](#現行イメージの契約)）。2ノードではknobを設定せず、patchは何も変えません。3ノードではランチャーはさらに：
 
 - 疎MLAのdecodeを、rankあたり22 headを受ける参照attentionで処理します。SM120のFlashInferのdecode kernelが受けるのは8・16・32・64・128 headだけです。`runtime.fa2_attention` はTP=3のどの測定でもonでした（[1.24.0での測定](benchmarks.ja.md#1240での測定)）
 - 視覚塔をdata parallelで動かします（`--mm-encoder-tp-mode data`）。16 headが3で割り切れないためです
@@ -133,7 +133,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 - derived checkpoint（公開した任意設定）を受けます。そのoverlayは埋めた66 headをTPで分けます。PP2・EP・LPAは2ノードのままです（[起動契約](launch-safety.ja.md#3ノード)）
 - derived checkpointなしのKVを3 GiBまでとする2ノードの制限を適用しません
 
-各ノードは単一レールの項目の代わりに、他のノード1台につき `links` を1項目書きます（`peer`・`hca`・`interface`・`local_ip`・`peer_ip`・`gid_index`）。ランチャーはリングが閉じていること、各 /30 の両端が食い違わないこと、ノードごとにGID indexが一つであることを確かめ、リンクのHCAをすべて `NCCL_IB_HCA` に並べます。全ノードに `host_address`（他のランクが届く固定の /32）と `host_interface`（それを載せるinterface）を書いてください。Gloo・TCPStore・NCCL bootstrapがこれを使います（[QSFPネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）。書かなければ、各rankはheadとの直結リンクのhead側でheadに会い、headとのリンクの自分側を広告しますが、3台目からは経路なしにそこへ届きません。ランチャーは省略を受け付けます。Wi-Fiの `host_interface` は、そのノードが `host_interface_wifi_test = true` も書かない限り拒否します。これは**試験用の設定**で、これらのsocketだけを管理用Wi-Fiに載せ、データは直結リンクのままです。
+各ノードは単一レールの項目の代わりに、他のノード1台につき `links` を1項目書きます（`peer`・`hca`・`interface`・`local_ip`・`peer_ip`・`gid_index`）。ランチャーはリングが閉じていること、各 /30 の両端が食い違わないこと、ノードごとにGID indexが一つであることを確かめ、リンクのHCAをすべて `NCCL_IB_HCA` に並べます。全ノードに `host_address`（他のランクが届く固定の /32）と `host_interface`（それを載せるinterface）を書いてください。Gloo・TCPStore・NCCL bootstrapがこれを使います（[QSFPネットワーク](../../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。書かなければ、各rankはheadとの直結リンクのhead側でheadに会い、headとのリンクの自分側を広告しますが、3台目からは経路なしにそこへ届きません。ランチャーは省略を受け付けます。Wi-Fiの `host_interface` は、そのノードが `host_interface_wifi_test = true` も書かない限り拒否します。これは**試験用の設定**で、これらのsocketだけを管理用Wi-Fiに載せ、データは直結リンクのままです。
 
 起動順、rank数の変わる切替の拒否、ホストごとのruntime cacheは[起動契約](launch-safety.ja.md#3ノード)にあります。
 

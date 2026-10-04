@@ -55,7 +55,7 @@ ibdev2netdev
 
 コマンドがなければ不足として記録し、作業権限の範囲で必要なメーカー対応パッケージだけを導入します。診断のためにOS・ドライバー・ファームウェアを一括更新しません。2台のinterface・HCA・GID番号が同じとは仮定しません。
 
-**カーネル:** `uname -r` が `7.0.0-1019-nvidia` の場合、または保留中の更新でそれが入る場合は、手順5より前に[ホストカーネルと複数ノードRoCE](docs/operations.ja.md#ホストカーネルと複数ノードroce)に従って、`6.17.0-1032-nvidia` を使い続けるか `kho=off` で起動するかを決めてください。
+**カーネル:** `uname -r` が `7.0.0-1019-nvidia` の場合、または保留中の更新でそれが入る場合は、手順5より前に[ホストカーネルと複数ノードRoCE](../docs/hosts.ja.md#ホストカーネルと複数ノードroce)に従って、`6.17.0-1032-nvidia` を使い続けるか `kho=off` で起動するかを決めてください。
 
 **通過条件:** 2台への接続、資源と空き容量、カーネルと起動パラメーター、ケーブル有無を記録済み。ケーブル未接続でも、前提がそろった手順2〜4を進められます。手順5は待機します。
 
@@ -106,13 +106,13 @@ python -m unittest discover -s tests -t . -v
 
 ## 5. ケーブル接続とfabric検証
 
-[QSFP・NetworkManagerのハンズオン](docs/qsfp-network.ja.md)で、PowerShellからのSSH、ケーブルとinterfaceの特定、片方ずつの設定・検証を進めます。
+[QSFP・NetworkManagerのハンズオン](../docs/qsfp-network.ja.md)で、PowerShellからのSSH、ケーブルとinterfaceの特定、片方ずつの設定・検証を進めます。
 
 物理接続は人が行います。管理接続を維持しながらメーカー手順に従って設定し、変更前のネットワーク設定と戻し方を保存します。両機の既存経路を確認せずに例示のサブネットを設定しません。
 
 実際にリンクしたEthernet interface、HCA、各IPv4に対応するRoCEv2 GIDを測り、[サイト設定](docs/operations.ja.md#ネットワークとサイト設定)へ反映します。サンプル値はすべて仮値です。MTU 9000も経路全体で成立する場合に限ります。双方向を確認し、SSH/IP到達性とRDMA転送を区別します。
 
-重みをフルロードする前に、[2 rankのNCCL診断](docs/nccl-validation.ja.md)を実施します。コマンド、ツール版、rank配置、transportログ、payloadサイズ、データ検査、帯域実測を残し、指定RDMA経路の使用とデータ検査合格を確認してください。**本番向けの帯域合格閾値はありません。フルモデルの通常運用としての受け入れは、ここで測る数値ではなく[手順6](#6-フルモデルの検証)に記録した証拠に拠ります。** 性能基準を先に決めて記録し、pingや基準のない帯域数値だけで性能合格にしません。
+重みをフルロードする前に、[2 rankのNCCL診断](../docs/nccl-validation.ja.md)を実施します。コマンド、ツール版、rank配置、transportログ、payloadサイズ、データ検査、帯域実測を残し、指定RDMA経路の使用とデータ検査合格を確認してください。**本番向けの帯域合格閾値はありません。フルモデルの通常運用としての受け入れは、ここで測る数値ではなく[手順6](#6-フルモデルの検証)に記録した証拠に拠ります。** 性能基準を先に決めて記録し、pingや基準のない帯域数値だけで性能合格にしません。
 
 **通過条件:** 実際の2 rank通信の正当性と経路を証明。未達なら根拠付きで未実施・失敗を明記。
 
@@ -181,7 +181,7 @@ python -m glm53_setup server preflight --rank 0
 
 [起動設定](docs/server-configuration.ja.md#コマンド)のとおり、`server start` でrank 1、次にrank 0を起動します。両機のイメージID、ソース・モデルrevision、引数、設定、起動ログを保存します。loopbackまたは検証したSSHトンネルでAPIへ接続し、実際のクライアントからテキスト・無害なツールの受け入れ試験を再実施します。
 
-**受け入れた経路であるnpm版ZCode CLI**で[ハーネス受け入れ一覧](docs/harnesses.ja.md)を実施します。他の経路は必須対象ではありません（[判断](docs/harnesses.ja.md#受け入れ試験一覧と実施状態)）。基礎APIだけの成功でクライアントのケースを閉じず、クライアント版、設定の非秘密部分、各ケースの結果を別々に記録してください。配布する場合は[対象別のライセンス条件](docs/licensing.ja.md)も確認します。
+**受け入れた経路であるnpm版ZCode CLI**で[ハーネス受け入れ一覧](docs/harnesses.ja.md)を実施します。他の経路は必須対象ではありません（[判断](docs/harnesses.ja.md#受け入れ試験一覧と実施状態)）。基礎APIだけの成功でクライアントのケースを閉じず、クライアント版、設定の非秘密部分、各ケースの結果を別々に記録してください。配布する場合は[対象別のライセンス条件](../docs/licensing.ja.md)も確認します。
 
 信頼できるネットワーク内で運用します。host networkのコンテナでは分散制御ポートが到達可能な相手へ露出するため、APIのloopback bindだけでrendezvousまで保護されるわけではありません。外部公開、認証・TLS、firewall、事業用の可用性は別途設計します。名称の「BIZ」は業務利用の意図であり、本番認証やサポートの約束を意味しません。
 
@@ -189,7 +189,7 @@ python -m glm53_setup server preflight --rank 0
 
 スイッチなしのQSFPリングでつないだ3台のGB10でTP=3を配信します（[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)）。上の手順を3台すべてで進め、次を足します。
 
-- **ネットワーク（手順5）。** 3本のリンクをそれぞれ一組として設定し、各ホストにdummyインタフェース上の安定した/32を一つ持たせ、他の2台へは直結リンク越しの静的経路で届くようにします（[QSFPネットワークの8節](docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。3 rankをまとめて、またリンクごとに一本ずつprobeします（[NCCL診断](docs/nccl-validation.ja.md#3台のリング)）。
+- **ネットワーク（手順5）。** 3本のリンクをそれぞれ一組として設定し、各ホストにdummyインタフェース上の安定した/32を一つ持たせ、他の2台へは直結リンク越しの静的経路で届くようにします（[QSFPネットワークの8節](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。3 rankをまとめて、またリンクごとに一本ずつprobeします（[NCCL診断](../docs/nccl-validation.ja.md#3台のリング)）。
 - **profile。** [`examples/server.tp3.example.toml`](examples/server.tp3.example.toml) から始めます。各ノードは自分のリンクを書き、`host_address` と `host_interface` を設定します（[起動設定](docs/server-configuration.ja.md)）。imageは同じ参照imageで、3台ではランチャーが詰めのknobを設定します。テンプレートは262,144 tokenの1系列を配信します。`max_model_len` はcheckpointの1,048,576まで上げられ、長さと同時数ごとに要るKVは[起動設定](docs/server-configuration.ja.md#3ノード)、実測の容量は[1.24.0での測定](docs/benchmarks.ja.md#1240での測定)にあります。
 - **起動と切替。** rankは番号の大きい方から起動し、headが最後です。2台と3台の間の移動は、先に全rankを止めます。`cluster switch` はrank数が変わる切替を拒みます（[起動の安全](docs/launch-safety.ja.md#3ノード)）。
 - **受け入れ（手順6）。** 同じ検査に加え、TP=3のdecode検査のhashは各ホストのruntime cacheと組で保管し（[起動の安全](docs/launch-safety.ja.md#3ノード)）、教師強制のNLLはTP=2の記録と位置ごとに比べます（[検証](docs/validation.ja.md#フルモデルの範囲)）。参照リングの証拠は手順6に記録しています。

@@ -4,36 +4,23 @@
 
 文書ごとに役割を一つ決め、他の文書は内容を複製せずリンクで参照します。利用者向けの文書はすべて英日の対（`name.md`／`name.ja.md`）です。エージェント向け指示・ライセンスと通知の本文・overlayの台帳（hashの所有者を一つにする出所記録）だけは意図して英語のみとします。Changelogも英日の対です。正典は英語版で、GitHub Releaseは英語版から作られます。利用者に見える手順を変える際は両方を更新します（[Contributing](../../CONTRIBUTING.ja.md)）。
 
+本書は1.x系の文書と、1.x系の事実ごとの正典を並べます。リポジトリそのものの文書、全系共通のホストとfabricの文書、2.x系の文書は[リポジトリの文書一覧](../../docs/README.ja.md)にあります。
+
 ## 入口
 
 | 文書 | 役割 | EN | JA |
 |---|---|---|---|
-| リポジトリのREADME | 配信の系列、BIZが意味することと意味しないこと、ライセンスの早見表、ローカルデータ | [EN](../../README.md) | [JA](../../README.ja.md) |
 | README | 要約、導入するもの、対応機体、始め方、配信する二つのprofileの主要な比較、範囲ごとの状態、業務利用の目的（BIZ）、他の公開レシピ、この系列の免責事項、Next Action | [EN](../README.md) | [JA](../README.ja.md) |
 | セットアップ手順書 | 機体確認から受け入れまでの順序付きゲート | [EN](../SETUP.md) | [JA](../SETUP.ja.md) |
-| Contributing | CPU検査、公開監査、貢献の規則 | [EN](../../CONTRIBUTING.md) | [JA](../../CONTRIBUTING.ja.md) |
 | Changelog | 変更履歴と版ごとの検証状態 | [EN](../CHANGELOG.md) | [JA](../CHANGELOG.ja.md) |
-| リポジトリ指示 | このcheckoutを編集するAIエージェント・運用者向けの規則 | [EN](../../AGENTS.md) | — |
-| ライセンス・通知 | Apache-2.0本文、帰属、第三者の出所 | [LICENSE](../../LICENSE)、[NOTICE](../../NOTICE)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md)、[LICENSES/](../../LICENSES/) | — |
 
-2.x系（TensorFold）は `v2/` に自分の文書を持ち、どれも英日の対です。
-
-| 文書 | 役割 | EN | JA |
-|---|---|---|---|
-| 2.xのREADME | 要約、何であるか、必要な環境、はじめ方、配信の既定値、設定、API、1.x系との違い、リリースの測定値、制約、構成、TensorFoldの他のレシピ、Next Action | [EN](../../v2/README.md) | [JA](../../v2/README.ja.md) |
-| 2.xのセットアップ手順書 | ホストから受け入れ・停止までの順序 | [EN](../../v2/SETUP.md) | [JA](../../v2/SETUP.ja.md) |
-| 2.xの検証 | 2.xの起動を受け入れる基準値 | [EN](../../v2/docs/validation.md) | [JA](../../v2/docs/validation.ja.md) |
-| 2.xのホストの道具 | 2.xを配信するホストのGPUクロックの上限、温度の記録、cool-gate、thermal-watch | [EN](../../v2/host/README.md) | [JA](../../v2/host/README.ja.md) |
-| 2.xの変更履歴 | 2.xのリリース。英語版が正典 | [EN](../../v2/CHANGELOG.md) | [JA](../../v2/CHANGELOG.ja.md) |
 
 ## 導入・運用
 
 | 文書 | 役割 | EN | JA |
 |---|---|---|---|
-| 運用手順 | 資材の保管場所、取得、機体準備、起動検査、3ノード、監視とwarmup ladder、GPUクロックの上限と共有メモリの読み手のspin、復旧 | [EN](operations.md) | [JA](operations.ja.md) |
+| 運用手順 | 資材の保管場所、取得、機体準備、起動検査、3ノード、監視とwarmup ladder、共有メモリの読み手のspin、復旧 | [EN](operations.md) | [JA](operations.ja.md) |
 | 起動設定 | カテゴリ別の起動TOMLとテンプレート3つ、公開した任意設定と配布既定の差、3ノード、全任意キー、KV／RAM条件、imageのmarker、機能の制約 | [EN](server-configuration.md) | [JA](server-configuration.ja.md) |
-| QSFPネットワーク | 対と3台のリングのQSFP直結、NetworkManagerの永続profile、ホストごとの/32アドレス | [EN](qsfp-network.md) | [JA](qsfp-network.ja.md) |
-| NCCL検証 | 2 rank・3 rankのcollective診断、動くGID index、チャネル数、限界 | [EN](nccl-validation.md) | [JA](nccl-validation.ja.md) |
 | 起動契約 | APIクライアント認証、allocator伝達、全レール検査、rank数によらない切替と復旧、3ノードの起動順とruntime cache、decode検査、APC履歴検証 | [EN](launch-safety.md) | [JA](launch-safety.ja.md) |
 | 構成 | パッケージ配置（`glm53_setup/` と `tools/` の全モジュールに行がある）と検証境界 | [EN](architecture.md) | [JA](architecture.ja.md) |
 | overlayの台帳 | 公開した任意設定が要するvLLM source overlay 2件：対象、SHA-256、base hash、marker、配置 | [EN](../overlays/README.md) | — |
@@ -52,7 +39,6 @@
 | HLE | HLEの100問の部分集合二つを両profileで：結果、実行方法、公開の値と比べられない理由 | [EN](hle.md) | [JA](hle.ja.md) |
 | ハーネス | 受け入れたハーネス経路（npmのZCode CLI）、接続設定、tool引数ゲート、受け入れ試験一覧 | [EN](harnesses.md) | [JA](harnesses.ja.md) |
 | ZCodeガードhook | PreToolUseの既存ファイルガードの導入：hookである理由、導入、確認、限界 | [EN](../examples/zcode-hooks/README.md) | [JA](../examples/zcode-hooks/README.ja.md) |
-| ライセンス整理 | 対象別の商用利用・改造・再配布の可否 | [EN](licensing.md) | [JA](licensing.ja.md) |
 
 ## 最適化
 
@@ -76,26 +62,26 @@
 | MTPの投機設定（ランチャーは `mtp.*` から組み立てる。ファイルは手で再現するときの形を示す） | [examples/speculative.mtp1.json](../examples/speculative.mtp1.json)、[speculative.mtp3.json](../examples/speculative.mtp3.json) |
 | FreedomBenchの設問・正答の固定 | [config/freedombench.lock.json](../config/freedombench.lock.json)。確認済みの日本語訳は[config/freedombench-ja.lock.json](../config/freedombench-ja.lock.json) |
 | 施策ID、採否、再評価条件 | [施策台帳](optimization-catalog.ja.md) |
-| 実測値とその条件 | [ベンチマーク](benchmarks.ja.md)、[画像入力](vision.ja.md)、[投機的デコーディング](speculative-decoding.ja.md)、[LPA](lpa.ja.md)、[部品検証](component-validation.ja.md)、[候補順序](candidate-order.ja.md)、[Indexer再利用](indexer-reuse.ja.md)、[NCCL検証](nccl-validation.ja.md)、[FreedomBench](freedombench.ja.md)、[HLE](hle.ja.md)、[出力の正しさの関門](correctness-gates.ja.md)（prefix cacheの関門、マルチバイト出力）、[再現性](repeatability.ja.md) |
+| 実測値とその条件 | [ベンチマーク](benchmarks.ja.md)、[画像入力](vision.ja.md)、[投機的デコーディング](speculative-decoding.ja.md)、[LPA](lpa.ja.md)、[部品検証](component-validation.ja.md)、[候補順序](candidate-order.ja.md)、[Indexer再利用](indexer-reuse.ja.md)、[NCCL検証](../../docs/nccl-validation.ja.md)、[FreedomBench](freedombench.ja.md)、[HLE](hle.ja.md)、[出力の正しさの関門](correctness-gates.ja.md)（prefix cacheの関門、マルチバイト出力）、[再現性](repeatability.ja.md) |
 | APC／LPAの共有状態契約（N・H・T・R・B） | [APC優先LPAの設計](apc-lpa-design.ja.md) |
 | クライアント認証、allocator、レール、切替・復旧の契約 | [起動契約](launch-safety.ja.md) |
 | 3ノードの起動順、rank数の変更の拒否、ホストごとのruntime cache | [起動契約](launch-safety.ja.md#3ノード) |
-| 動くGID index：診断と直し方 | [NCCL検証](nccl-validation.ja.md#gid-indexが動く) |
+| 動くGID index：診断と直し方 | [NCCL検証](../../docs/nccl-validation.ja.md#gid-indexが動く) |
 | 切替の後のdecode検査：その定型と道具2件 | [起動契約](launch-safety.ja.md#切替の後のdecode検査)。`tools/decode_check.py`、`tools/decode_divergence.py` |
 | 配信profileの通常運用の受け入れ：その範囲と各項目の証拠の所在 | [セットアップ手順書の手順6](../SETUP.ja.md#6-フルモデルの検証)。READMEの状態表と[検証範囲](validation.ja.md#フルモデルの範囲)はそこを指す |
 | checkpoint・MTP view・projector・image・stateの保管場所 | [運用手順](operations.ja.md#資材の保管場所とパス) |
 | 配布LPA projectorのURL、hash、形式、教師・学習来歴 | [config/lpa-projector.lock.json](../config/lpa-projector.lock.json)。配布ファイル構成は[運用手順](operations.ja.md#資材の保管場所とパス) |
 | `server preflight` が起動前に検査すること、保証しないこと | [運用手順](operations.ja.md#フルモデルの起動検査) |
 | imageの機能marker：どの設定が各markerを要求するか、どの版からimageが持つか | [起動設定](server-configuration.ja.md#現行イメージの契約) |
-| ホストカーネルの要件、`7.0.0-1019-nvidia` のRoCE失敗と `kho=off` の回避策 | [運用手順](operations.ja.md#ホストカーネルと複数ノードroce) |
-| 対象別のライセンス許諾と義務 | [ライセンス整理](licensing.ja.md)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md)。早見表は[リポジトリのREADME](../../README.ja.md#ライセンスの早見表) |
+| ホストカーネルの要件、`7.0.0-1019-nvidia` のRoCE失敗と `kho=off` の回避策 | [ホストの準備](../../docs/hosts.ja.md#ホストカーネルと複数ノードroce) |
+| 対象別のライセンス許諾と義務 | [ライセンス整理](../../docs/licensing.ja.md)、[THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md)。早見表は[リポジトリのREADME](../../README.ja.md#ライセンスの早見表) |
 | ハーネス受け入れ試験と実施状態 | [ハーネス](harnesses.ja.md) |
 | ZCodeの権限モード、モデル上限と圧縮予算の規則、既存ファイルガードのhook | [ハーネス](harnesses.ja.md#zcodeの権限モードモデル上限既存ファイルガード)、スクリプトは [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | 検証範囲と未解決の事項 | [検証範囲](validation.ja.md#評価と未解決の事項) |
 | 生応答、trace、全反復、失敗、実機固有の値 | 非公開の `records/<run-id>/`。配布せず、公開文書には検証した要約を置く |
 | このモデルの他の公開レシピ：リンク・ライセンス・取り込んだもの | 他のエンジンのレシピは[README](../README.ja.md#dgx-spark向けの他のglm-53-flashレシピ)、TensorFoldのレシピは[2.xのREADME](../../v2/README.ja.md#tensorfoldの他のレシピ)。他の文書は名前とPR番号だけで引用し、リンクとライセンスは書かない（`tools/check_publication.py` が検査） |
 | 本プロジェクトが主張しないこと、上流を契機とする予定作業（契機 → 対応） | BIZは[リポジトリのREADME](../../README.ja.md#biz)、この系列はREADMEの[免責事項](../README.ja.md#免責事項)と[Next Action](../README.ja.md#next-action) |
-| 非公開の実装計画とStage状態 | `docs/plans/`。Git追跡外・公開対象外で、`docs/plans/README.md` がローカルの索引、状態は各計画の先頭の状態行が正典 |
+| 非公開の実装計画とStage状態 | checkoutのルートの `docs/plans/`。Git追跡外・公開対象外で、`docs/plans/README.md` がローカルの索引、状態は各計画の先頭の状態行が正典 |
 | サイト設定と取得状態 | `state/`。Git追跡外 |
 
 ## 約束事

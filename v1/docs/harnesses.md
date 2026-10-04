@@ -1,6 +1,6 @@
 # Harness integration and acceptance
 
-[日本語](harnesses.ja.md) · [Setup](../SETUP.md) · [Licensing](licensing.md) · [Validation](validation.md)
+[日本語](harnesses.ja.md) · [Setup](../SETUP.md) · [Licensing](../../docs/licensing.md) · [Validation](validation.md)
 
 A harness is the client that manages conversation, files, tool execution, history and approvals; it is separate from the GPU inference server. **This document is the single source for harness connection design, the acceptance matrix and its run status.** Other documents point here instead of restating status. A full-model startup and the basic API group are prerequisites for every client case.
 

@@ -1,4 +1,4 @@
-"""The host tools in v2/host: telemetry reading, the cooling gate and the thermal watch."""
+"""The host tools in host/: telemetry reading, the cooling gate and the thermal watch."""
 
 import datetime
 import importlib.util

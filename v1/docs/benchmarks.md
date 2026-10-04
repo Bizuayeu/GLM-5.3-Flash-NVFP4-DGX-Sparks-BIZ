@@ -880,7 +880,7 @@ The reference pair switched from 1.18.0 to the 1.19.0 image (`sha256:99e6cf7a…
 
 ### Both profiles in one window, with a GPU clock cap (2026-09-28)
 
-The README's main measurements are this window's values. On the 1.19.0 image (`sha256:99e6cf7a…`) and the release checkout (`f026079`), the pair switched from the served published option (two sequences) to the distribution defaults, then to the published option at one sequence, then back to the served two-sequence profile, and the same drivers measured each. Both profiles pinned both ranks to CPUs 5–9 and 15–19, with MTP k=3. All three nodes ran under a **GPU clock cap of 2,200 MHz** (`nvidia-smi -lgc 300,2200`); the reason is in [operations](operations.md#gpu-clock-cap). Before each stage the run read a temperature record taken every two seconds and waited until the hottest ACPI zone was back in its idle band, so long requests never ran back to back. The highest GPU clock under load was 2,197 MHz.
+The README's main measurements are this window's values. On the 1.19.0 image (`sha256:99e6cf7a…`) and the release checkout (`f026079`), the pair switched from the served published option (two sequences) to the distribution defaults, then to the published option at one sequence, then back to the served two-sequence profile, and the same drivers measured each. Both profiles pinned both ranks to CPUs 5–9 and 15–19, with MTP k=3. All three nodes ran under a **GPU clock cap of 2,200 MHz** (`nvidia-smi -lgc 300,2200`); the reason is in [operations](../../docs/hosts.md#gpu-clock-cap). Before each stage the run read a temperature record taken every two seconds and waited until the hottest ACPI zone was back in its idle band, so long requests never ran back to back. The highest GPU clock under load was 2,197 MHz.
 
 | Measure | Distribution defaults | Published option |
 |---|---|---|
@@ -929,7 +929,7 @@ The gate intervened once per run, on TC-43 (the user asks to "just call web_sear
 
 ### Three hosts at TP=3 (2026-09-29 and 10-01)
 
-Three GB10 hosts cabled as a switchless QSFP ring ([network](qsfp-network.md#8-three-hosts-in-a-ring)) served TP=3 with the zero-padding described in [server configuration](server-configuration.md#three-nodes). On a single-host fixture the padded heads came out exactly zero and the real heads bit for bit as before. Control traffic ran over one /32 per host with static routes on the direct links (from 2026-10-01; on 2026-09-29 over the management Wi-Fi as a test setting). Every profile: MTP k=3, FA2 prefill, the fixed expert order, settled indexer ties, deterministic Inductor configs, image input on, `cpuset_cpus = "5-9,15-19"` on all three hosts. Decode is three samples of 512 tokens after a fixed ~2,048-token prompt (median tok/s, mean acceptance length).
+Three GB10 hosts cabled as a switchless QSFP ring ([network](../../docs/qsfp-network.md#8-three-hosts-in-a-ring)) served TP=3 with the zero-padding described in [server configuration](server-configuration.md#three-nodes). On a single-host fixture the padded heads came out exactly zero and the real heads bit for bit as before. Control traffic ran over one /32 per host with static routes on the direct links (from 2026-10-01; on 2026-09-29 over the management Wi-Fi as a test setting). Every profile: MTP k=3, FA2 prefill, the fixed expert order, settled indexer ties, deterministic Inductor configs, image input on, `cpuset_cpus = "5-9,15-19"` on all three hosts. Decode is three samples of 512 tokens after a fixed ~2,048-token prompt (median tok/s, mean acceptance length).
 
 | Measure | Distributed defaults, TP=3 | Published option, TP=3 | Distributed defaults, TP=2 (1.19.0) |
 |---|---|---|---|
@@ -952,7 +952,7 @@ At 3 GiB per rank the distributed defaults held 323,824 tokens (TP=2: 301,645) i
 
 **The revised KDA overlay on TP=2.** On 2026-10-01 the published option on the reference pair with the 1.24.0 KDA overlay (`27a532ce…`) and image (`e8ed139a…`) gave its 1.19.0 decode-check completions (`0ef555f7` / `d5247cf9` / `403411d6`) and its teacher-forced record exactly (argmax agreement 1.0, no log-probability movement).
 
-**NCCL.** Three ranks passed all 11 checks of `tools/nccl_probe.py` ([NCCL diagnostics](nccl-validation.md#three-hosts-in-a-ring)).
+**NCCL.** Three ranks passed all 11 checks of `host/nccl_probe.py` ([NCCL diagnostics](../../docs/nccl-validation.md#three-hosts-in-a-ring)).
 
 Not measured: the distributed defaults at 524,288 or 1,048,576; twelve 262,144-token requests or three 1,048,576-token requests at once (the boot lines give the capacity).
 

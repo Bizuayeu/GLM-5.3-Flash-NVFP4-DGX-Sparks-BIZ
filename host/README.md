@@ -1,8 +1,8 @@
 # Host Tools
 
-[日本語](README.ja.md) · [2.x README](../README.md) · [Setup runbook](../SETUP.md)
+[日本語](README.ja.md) · [Repository README](../README.md) · [Host preparation](../docs/hosts.md)
 
-Host-side tools against the GB10 hard power-off under sustained load: a GPU clock cap, a telemetry logger, a cooling gate to call between long requests and a thermal watch that stops the engine. They are host settings, not part of the engine, and run on the host, outside the container. The cap and the thresholds were chosen on the reference hosts (MSI EdgeXpert GB10); the cap's rationale and its measured cost are in [GPU clock cap](../../v1/docs/operations.md#gpu-clock-cap). Other hosts should check them against their own records.
+Host-side tools, independent of the serving engine, against the GB10 hard power-off under sustained load: a GPU clock cap, a telemetry logger, a cooling gate to call between long requests and a thermal watch that stops the engine. They are host settings, not part of the engine, and run on the host, outside the container. The cap and the thresholds were chosen on the reference hosts (MSI EdgeXpert GB10); the cap's rationale and its measured cost are in [GPU clock cap](../docs/hosts.md#gpu-clock-cap). Other hosts should check them against their own records.
 
 ## Files
 
@@ -48,12 +48,12 @@ To remove: `sudo systemctl disable --now gb10-clock-cap.service gb10-telemetry.s
 
 ## During Long Runs
 
-The engine's own prefill heat wait (`TF_GLM_HEAT_HIGH`, `TF_GLM_HEAT_LOW`; [2.x README](../README.md)) acts inside a request. These two tools act outside it.
+2.x's engine also waits for heat inside a request, between prompt chunks (`TF_GLM_HEAT_HIGH`, `TF_GLM_HEAT_LOW`; [2.x README](../v2/README.md)). These two tools act outside it.
 
 **Cooling gate.** Before each long request, from the checkout root on each host:
 
 ```bash
-python3 v2/host/cool-gate --label <text>
+python3 host/cool-gate --label <text>
 ```
 
 It returns once the hottest ACPI zone is at or below `--band` (default 60 °C) or after `--cap` seconds (default 600), and prints one JSON line: why it returned (`cool` or `cap`), the seconds waited, and the temperatures at the start and the end. Exit 0 means go on. Exit 2 means the telemetry is missing or older than 30 s: the run should not continue unrecorded. The defaults come from the reference hosts' records: 60 °C sits just above the idle band measured there, and 600 s is longer than the slowest return to it they measured.
@@ -61,11 +61,11 @@ It returns once the hottest ACPI zone is at or below `--band` (default 60 °C) o
 **Thermal watch.** While the engine serves, on each host:
 
 ```bash
-python3 v2/host/thermal-watch ~/glm53-tf/logs/therm-<label>.log &
+python3 host/thermal-watch ~/glm53-tf/logs/therm-<label>.log &
 ```
 
 Every 2 s it appends the time, the telemetry row's epoch, the hottest ACPI zone, GPU temperature, power and clock to the log. Two readings in a row at or above 94.0 °C stop the engine with `pkill -f` inside the container. The rule comes from the reference hosts' records, where 93.7 °C is the highest reading that ended without a power-off; `--threshold` and `--readings` change it. The engine runs as root in its container, so the watch finds and stops it through `docker exec`. It stops a process started inside the container, as `cluster.sh` starts the engine with `docker exec`; a container's PID 1 is not stopped, because PID 1 ignores the signal by default. It ends when `therm-<label>.stop` (the log's name with `.stop`) exists or the engine is gone.
 
-The watch was verified with this line's engine: container `glm53-tf` and process `tensorfold serve`, its defaults. `--container` names another container, for example one created with a different `CONTAINER`.
+The watch was verified with the 2.x engine: container `glm53-tf` and process `tensorfold serve`, its defaults. `--container` and `--process` name another container and process, for example a container created with a different `CONTAINER`.
 
 **Verified.** On 2026-10-04 on a reference host (GB10), without sudo: the logger wrote a row every 2 s into a temporary directory; `cool-gate` returned `cool` with exit 0 on the live record and `telemetry stale` with exit 2 without one; `thermal-watch` with `--threshold 0` stopped a process started with `docker exec` on its second reading and ended at once when the container was absent. `install.sh` was not run (it refuses without root).
