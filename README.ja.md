@@ -1,5 +1,7 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
+![GLM-5.3-Flash NVFP4 BIZ：DGX Spark互換のGB10機2〜3台で動かすローカルAI](assets/banner.png)
+
 [English](README.md)
 
 **NVFP4 BIZ** は、NVIDIAの固定したGLM-5.3-Flash NVFP4 checkpointを配布のまま、DGX Sparkまたは互換のGB10機で配信します。このリポジトリは配信の系列ごとにディレクトリを分けています。

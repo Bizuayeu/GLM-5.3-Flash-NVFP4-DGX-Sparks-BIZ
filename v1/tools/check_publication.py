@@ -60,6 +60,20 @@ SENSITIVE = [
     re.compile(r"(?i)[a-z]:[/\\]Users[/\\][a-z0-9_.-]+"),
     re.compile(r"/home/" + r"[a-z0-9_.-]+/"),
 ]
+# Images the READMEs show: only in an assets/ directory, by file signature.
+IMAGE_SIGNATURES = {".png": (b"\x89PNG\r\n\x1a\n",), ".webp": (b"RIFF", b"WEBP")}
+
+
+def is_asset_image(name, data):
+    """A PNG or WebP under an assets/ directory whose bytes are what it claims."""
+    signature = IMAGE_SIGNATURES.get(Path(name).suffix.lower())
+    if "assets" not in Path(name).parts[:-1] or signature is None:
+        return False
+    if len(signature) == 1:
+        return data.startswith(signature[0])
+    return data.startswith(signature[0]) and data[8:12] == signature[1]
+
+
 # README headline table and the benchmark document that owns its numbers.
 VERSION = r"(\d+\.\d+\.\d+)"
 HEADLINES = {
@@ -298,7 +312,8 @@ def audit(root, files):
         try:
             content = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            problems.append(f"unexpected binary file: {name}")
+            if not is_asset_image(name, path.read_bytes()):
+                problems.append(f"unexpected binary file: {name}")
             continue
         if any(pattern.search(content) for pattern in SENSITIVE):
             problems.append(f"sensitive-text candidate: {name}")

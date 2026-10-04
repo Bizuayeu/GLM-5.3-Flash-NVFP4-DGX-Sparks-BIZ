@@ -46,6 +46,42 @@ class PublicationTests(unittest.TestCase):
             self.assertIn("sensitive-text candidate: sample.txt", issues)
             self.assertNotIn(candidate, "\n".join(issues))
 
+    def test_images_in_an_assets_directory_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            images = {
+                "assets/banner.png": b"\x89PNG\r\n\x1a\n" + b"\xff" * 64,
+                "v2/assets/banner.webp": b"RIFF\x00\x00\x00\x00WEBP" + b"\xff" * 64,
+            }
+            for name, data in images.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_bytes(data)
+            issues = audit(root, set(images))
+            self.assertEqual([i for i in issues if "assets/" in i], [])
+
+    def test_binaries_outside_assets_or_not_images_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            files = {
+                "docs/banner.png": b"\x89PNG\r\n\x1a\n" + b"\xff" * 64,
+                "assets/tool.png": b"MZ" + b"\xff" * 64,
+                "assets/tool.exe": b"MZ" + b"\xff" * 64,
+            }
+            for name, data in files.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_bytes(data)
+            issues = audit(root, set(files))
+            for name in files:
+                self.assertIn(f"unexpected binary file: {name}", issues)
+
+    def test_large_image_in_assets_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            name = "assets/banner.png"
+            (root / "assets").mkdir()
+            (root / name).write_bytes(b"\x89PNG\r\n\x1a\n" + b"\xff" * 2_000_000)
+            self.assertIn(f"unexpected large file: {name}", audit(root, {name}))
+
     def test_tracked_weight_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

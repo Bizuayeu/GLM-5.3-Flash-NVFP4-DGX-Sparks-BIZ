@@ -1,5 +1,7 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
+![GLM-5.3-Flash NVFP4 BIZ: local AI on DGX Spark-compatible GB10 systems, two or three nodes](assets/banner.png)
+
 [日本語](README.ja.md)
 
 **NVFP4 BIZ** serves NVIDIA's pinned GLM-5.3-Flash NVFP4 checkpoint as distributed, on DGX Spark or compatible GB10 systems. This repository carries one directory per serving line:
