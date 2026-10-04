@@ -134,7 +134,7 @@ The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthrop
 
 ## Measured on the Release
 
-Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [1.x's changelog](../v1/CHANGELOG.md#1280--2026-10-04).
+Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [the NLL set on 1.26.0's defaults](../v1/docs/benchmarks.md#the-nll-set-on-1260s-distributed-defaults-2026-10-02).
 
 | Measurement | TP=2 | TP=3 | 1.x |
 |---|---|---|---|
