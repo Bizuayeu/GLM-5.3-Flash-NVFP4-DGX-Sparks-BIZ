@@ -5,6 +5,7 @@ quote them in both languages. Each test reads the owner and looks for its value 
 every quote, so a changed default fails here until the pages say it too.
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -246,7 +247,8 @@ class ExampleFileTests(unittest.TestCase):
             self.assertEqual(len(hosts.split()), tp)
 
 
-@unittest.skipUnless(shutil.which("bash"), "needs bash")
+# On Windows `bash` can resolve to WSL's launcher, which cannot read Windows paths; Linux CI runs this.
+@unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "needs bash on POSIX")
 class ScriptSyntaxTests(unittest.TestCase):
     def test_every_shell_script_parses(self):
         scripts = sorted((LINE / "scripts").glob("*.sh")) + [HOST / "install.sh"]
