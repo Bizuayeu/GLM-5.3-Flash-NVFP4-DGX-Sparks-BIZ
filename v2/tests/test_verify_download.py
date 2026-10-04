@@ -69,8 +69,10 @@ class VerifyDownloadTests(unittest.TestCase):
 
     def test_a_paused_download_still_exits_two_while_waiting(self):
         self.download("paused")
-        code, _, _, slept = self.run_main("--wait")
+        code, saved, run, slept = self.run_main("--wait")
         self.assertEqual(code, 2)
+        self.assertEqual(saved["status"], "paused")
+        run.assert_not_called()
         slept.assert_not_called()
 
     def test_wait_polls_until_the_download_completes(self):
