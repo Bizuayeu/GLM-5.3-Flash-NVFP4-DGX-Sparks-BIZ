@@ -153,7 +153,7 @@ derived checkpoint（公開した任意設定）とそのoverlayは、profileが
 
 ### 標本に記録するもの
 
-`resources.jsonl` の各行には `mem_free_gib` と `free_2mib_gib` を記録します。後者は `/proc/buddyinfo` から全zoneを合算した、2 MiB以上のbuddy blockに入っている空きです。tonyd2wildのGB10メモリの記録（コードは採用しない）によると、NVRMはページキャッシュを追い出さずにこの大きさのblockを確保するため、4 GiB以上空いていても `NV_ERR_NO_MEMORY` が出ることと合います。基準のheadでは配信中、MemAvailable 7.1 GiBのときMemFreeは1.1 GiB、2 MiB以上のblockは0.49 GiBでした。どちらも観測値です。rankを止めるのは `MemAvailable` だけで、読み取りに失敗した標本は停止させずに `memory_sample_error` として記録します。同じ記録では `vm.min_free_kbytes` を4 GiBに上げるとvLLMの起動時のメモリ検査が約6.2 GiB下がったとあるため、このキットでは配布時の既定値のままにします。
+`resources.jsonl` の各行には `mem_free_gib` と `free_2mib_gib` を記録します。後者は `/proc/buddyinfo` から全zoneを合算した、2 MiB以上のbuddy blockに入っている空きです。tonyd2wildのGB10メモリの記録（コードは採用しない）によると、NVRMはページキャッシュを追い出さずにこの大きさのblockを確保するため、4 GiBを超えて空いていても `NV_ERR_NO_MEMORY` が出ることと合います。基準のheadでは配信中、MemAvailable 7.1 GiBのときMemFreeは1.1 GiB、2 MiB以上のblockは0.49 GiBでした。どちらも観測値です。rankを止めるのは `MemAvailable` だけで、読み取りに失敗した標本は停止させずに `memory_sample_error` として記録します。同じ記録では `vm.min_free_kbytes` を4 GiBに上げるとvLLMの起動時のメモリ検査が約6.2 GiB下がったとあるため、このキットでは配布時の既定値のままにします。
 
 各標本には、containerのcgroupメモリと、その全プロセスの `VmRSS`／`RssAnon` の合計（`container_cgroup_gib`・`container_rss_gib`・`container_anon_gib`）も記録します。cgroup v2と `/proc` を権限なしで読みます。GB10ではGPUがホストのメモリを共有し、device側の確保はcgroupにもプロセスにも計上されないので、rankが `memory-reserve` で止まった時、記録そのものが二つの場合を切り分けます。cgroupとRSSが平らなまま `MemAvailable` が減るならdevice側の増加（decode Graph有効時の200K prefillで観測）、RSSが増えるならプロセス側の増加です。読めなかった観測は `container_memory_error` として記録し、rankの停止条件にはしません。
 

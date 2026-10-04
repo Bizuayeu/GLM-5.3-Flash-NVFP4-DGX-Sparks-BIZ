@@ -697,7 +697,7 @@ Pinning only the Inductor config of the indexer's key norm reproduced state 2 (8
 
 ## Measurements on 1.10.2
 
-On the reference pair the pinned weights leave the head 5.5 GiB at 3 GiB of KV against a 3 GiB reserve, the repacked ones 10.5 GiB; this is why the launcher refuses more than 3 GiB of KV on two nodes without the derived checkpoint ([server configuration](server-configuration.md)).
+The launcher refuses more than 3 GiB of KV on two nodes without the derived checkpoint ([server configuration](server-configuration.md)) because of the head's lowest available memory at 3 GiB of KV in [measurements on 1.8.0](#measurements-on-180): 5.53 GiB with the pinned weights and 10.50 GiB with the repacked ones, against a 3 GiB reserve.
 
 ### Two active sequences on the published option (2026-09-23)
 

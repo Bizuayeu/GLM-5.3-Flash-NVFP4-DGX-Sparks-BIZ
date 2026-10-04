@@ -697,7 +697,7 @@ indexerのkey正規化のInductor configだけを指定すると、状態2（ran
 
 ## 1.10.2での測定
 
-参照対では固定の重みがKV 3 GiBでheadに5.5 GiBを残し（保護は3 GiB）、再パックした重みは10.5 GiBを残します。2ノードでランチャーが再パックしたcheckpointなしで3 GiBを超えるKVを拒むのはこのためです（[サーバー設定](server-configuration.ja.md)）。
+2ノードでランチャーが再パックしたcheckpointなしで3 GiBを超えるKVを拒むのは（[サーバー設定](server-configuration.ja.md)）、[1.8.0での測定](#180での測定)でのKV 3 GiBのheadの空きの最低値が、固定の重みで5.53 GiB、再パックした重みで10.50 GiB（保護は3 GiB）だったためです。
 
 ### 公開した任意設定での同時2系列（2026-09-23）
 
