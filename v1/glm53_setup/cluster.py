@@ -36,8 +36,8 @@ def current(rank):
     if not path.exists():
         return None
     state = read_json(path)
-    info = server.inspect_owned(state["name"], state["fingerprint"])
-    if not info["State"]["Running"]:
+    info = server.inspect_recorded(state["name"], state["fingerprint"])
+    if info is None or not info["State"]["Running"]:
         return None
     if "config_path" not in state:
         raise ValueError("Running rank has no recorded configuration path for recovery")

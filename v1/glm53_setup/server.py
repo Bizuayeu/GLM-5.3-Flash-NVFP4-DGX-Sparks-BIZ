@@ -219,6 +219,31 @@ def inspect_owned(name, fingerprint=None):
     return info
 
 
+def inspect_recorded(name, fingerprint=None):
+    """``inspect_owned`` of a recorded container, or None when Docker no longer has it (removed after it exited).
+
+    Missing is decided from a successful ``docker ps -a`` inventory after the inspect fails, never from the failed
+    inspect alone."""
+    try:
+        return inspect_owned(name, fingerprint)
+    except subprocess.CalledProcessError:
+        if (
+            name
+            in host.run("docker", "ps", "-a", "--format", "{{.Names}}").splitlines()
+        ):
+            raise
+        return None
+
+
+def rank_running(rank):
+    """Whether this rank's recorded container exists and runs."""
+    state = state_path(rank)
+    if not state.exists():
+        return False
+    info = inspect_recorded(read_json(state)["name"])
+    return info is not None and info["State"]["Running"]
+
+
 def verify_cpu_set(profile, rank, name):
     """Read back an explicitly requested Docker placement before recording a start."""
     requested = settings.cpuset_cpus(profile, rank)
@@ -434,7 +459,11 @@ def running_head(profile, require=None):
     With ``require``, a head that is not running raises ValueError(require).
     """
     state = read_json(state_path(0))
-    info = inspect_owned(state["name"], settings.fingerprint(profile))
+    info = inspect_recorded(state["name"], settings.fingerprint(profile))
+    if info is None:
+        raise ValueError(
+            require or f"Rank 0's recorded container {state['name']} no longer exists"
+        )
     if require is not None and not info["State"]["Running"]:
         raise ValueError(require)
     return state, info
@@ -750,19 +779,21 @@ def act_stop(cli, args, profile):
     if os.name != "posix":
         cli.error("Run stop on the Linux model host")
     current = read_json(state_path(args.rank))
-    inspect_owned(current["name"])
+    if inspect_recorded(current["name"]) is None:
+        print(f"{current['name']} no longer exists; nothing to stop")
+        return
     print(host.run("docker", "stop", current["name"]))
 
 
 def act_status(cli, args, profile):
     """Report this rank's container state and whether the settings moved."""
     current = read_json(state_path(args.rank))
-    info = inspect_owned(current["name"])
+    info = inspect_recorded(current["name"])
     print(
         json.dumps(
             {
                 "name": current["name"],
-                "state": info["State"],
+                "state": info["State"] if info is not None else None,
                 "settings_changed": current["fingerprint"]
                 != settings.fingerprint(profile),
             },
@@ -774,8 +805,8 @@ def act_status(cli, args, profile):
 def act_ask(cli, args, profile):
     """Send one request to the running head under the host request lock."""
     current = read_json(state_path(args.rank))
-    info = inspect_owned(current["name"])
-    if args.rank != 0 or not info["State"]["Running"]:
+    info = inspect_recorded(current["name"])
+    if args.rank != 0 or info is None or not info["State"]["Running"]:
         cli.error("ask requires the running rank 0")
     inspect_owned(current["name"], settings.fingerprint(profile))
     if bool(args.prompt) == bool(args.request):
@@ -860,7 +891,7 @@ def act_launch(cli, args, profile):
 def start_rank(cli, args, profile, result):
     """Launch this rank's container and supervise it in the foreground."""
     state = state_path(args.rank)
-    if state.exists() and inspect_owned(read_json(state)["name"])["State"]["Running"]:
+    if rank_running(args.rank):
         raise ValueError("The previous rank is still running; stop it first")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     if args.run_id and not re.fullmatch(r"[0-9a-f]{32}", args.run_id):

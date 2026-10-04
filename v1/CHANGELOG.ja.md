@@ -4,6 +4,12 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.28.1 — 2026-10-04
+
+### Fixed
+
+- 記録したcontainerが終了後に消された（`docker rm`、`docker container prune`）rankを、止まっているものとして扱うようにしました。これまでは `cluster switch` が `Rank 0 current: remote-operation-failed` ですぐ失敗し、そのrankの `server stop`・`server status`・`server ask`・headを要る記録づくりの実行・新しい `server start` は、`docker inspect` の `CalledProcessError` で落ちていました。無いかどうかは、inspectが失敗した後の `docker ps -a` が成功して名前が無いことで決め、失敗したinspectだけでは決めません。そのとき `server stop` は止めるものが無いと伝え、`server status` は `"state": null` を返し、稼働中のheadを要るコマンドは言葉で断ります。
+
 ## 1.28.0 — 2026-10-04
 
 ### Layout

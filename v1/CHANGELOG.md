@@ -2,6 +2,12 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.28.1 — 2026-10-04
+
+### Fixed
+
+- A rank whose recorded container was removed after it exited (`docker rm`, `docker container prune`) counts as stopped. Before, `cluster switch` failed at once with `Rank 0 current: remote-operation-failed`, and `server stop`, `server status`, `server ask`, the record-making runs that need the head and a new `server start` on that rank raised `CalledProcessError` from `docker inspect`. Missing is decided by a successful `docker ps -a` after the inspect fails, never by the failed inspect alone; `server stop` then says there is nothing to stop, `server status` reports `"state": null`, and the commands that need the running head refuse in words.
+
 ## 1.28.0 — 2026-10-04
 
 ### Layout
