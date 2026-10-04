@@ -2,10 +2,8 @@
 # PyTorch container. Build from the checkout root, where the licences are:
 #   docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
 # The engine compiles its CUDA extensions on the GPU host into TORCH_EXTENSIONS_DIR (scripts/build_ext.sh).
-ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:26.07-py3
-# cc-defer: pinned by tag; 2.0.0 was built and accepted on nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9
-# 406bc3832b435cdb60dfa2d261f7d2f34a1c (2026-10-04). Pin that digest at the next engine change, when the image is
-# accepted again anyway: changing this line now would give the accepted image a new ID.
+# The base by digest, not by tag (a tag can move): NVIDIA's PyTorch container 26.07-py3 as 2.0.0 was accepted on it.
+ARG BASE_IMAGE=nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c
 FROM ${BASE_IMAGE}
 
 ARG TENSORFOLD_REPO=https://github.com/Bizuayeu/TensorFold.git

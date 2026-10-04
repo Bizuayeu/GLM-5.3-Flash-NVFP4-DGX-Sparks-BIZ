@@ -39,7 +39,7 @@ docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
 docker image inspect --format '{{.Id}}' glm53-tf:2.0.0
 ```
 
-Dockerfileはエンジンを一つのcommit（`TENSORFOLD_REF`）に固定し、完全なSHAでなければbuildを拒みます。imageを他のホストへ写すか（リンク越しに `docker save glm53-tf:2.0.0 | ssh <host> docker load`）そこでbuildし、全ホストのimage IDを比べます。一致していなければなりません。測定したbase imageは `nvcr.io/nvidia/pytorch:26.07-py3`、image IDは `sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c` です。
+Dockerfileはエンジンを一つのcommit（`TENSORFOLD_REF`）に固定し、完全なSHAでなければbuildを拒みます。imageを他のホストへ写すか（リンク越しに `docker save glm53-tf:2.0.0 | ssh <host> docker load`）そこでbuildし、全ホストのimage IDを比べます。一致していなければなりません。base imageはdigestで固定しています：`nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c`（測定したときの `nvcr.io/nvidia/pytorch:26.07-py3`）。tagが動いても変わりません。
 
 ## 4. 各ホストのcontainerとrankのファイル
 

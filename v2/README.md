@@ -141,7 +141,7 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
 |---|---|---|---|
 | Decode check count / prose / code (tok/s) | 41.04 / 26.73 / 34.85 | 52.47 / 37.99 / 48.47 | TP=2 defaults 32.59 / 21.12 / 28.21; TP=3 AXL 51.00 / 30.10 / 39.48 |
 | MTP acceptance length, same tasks | 3.821 / 2.098 / 3.180 | 3.549 / 2.222 / 3.234 | — |
-| Prefill of 38,960 tokens (tok/s, median of three, cooled before each) | 1,329.9 | 1,668.5 (1,671.4 with the heat wait off) | TP=2 defaults 1,233.4 (38,962 tokens) |
+| Prefill of 38,960 tokens (tok/s, median of three; TP=3 cooled before each, TP=2 back to back after one cooling) | 1,329.9 | 1,668.5 (1,671.4 with the heat wait off) | TP=2 defaults 1,233.4 (38,962 tokens) |
 | Decode after a short fixed prompt, 512 tokens (tok/s) | 35.31 | 52.93 | TP=2 defaults 27.18 |
 | Window (tokens) | 300,000 (567,255 with `--context 0`) | 1,048,576 | 262,144 (TP=2) |
 | Passphrase at 199,652 tokens | correct, first token after 163.7 s | correct, first token after 133.2 s | TP=3 AXL 150.5 s |
@@ -220,7 +220,6 @@ Each item is a trigger and what this line then does.
 - Image input: planned after 2.0.0. Read upstream pull request [#194](https://github.com/ashhart/TensorFold/pull/194) (GLM-5.3-Flash image input on CUDA over two ranks) first and build on it if it fits; otherwise wire it into this line's engine. Until a release accepts it, the engine refuses images.
 - The CPU-frequency check of the hosts in [1.x's Next Action](../v1/README.md#next-action) → its result applies to this line's figures too.
 - The published AXL weights on 2.x: on hold after 2.0.0; 2.x serves the pinned weights only.
-- The next engine change → pin the base image by digest in the Dockerfile (`nvcr.io/nvidia/pytorch@sha256:2140e699…`, the one 2.0.0 was accepted on), since that image is accepted again anyway.
 
 ## Local Data and Contribution
 
