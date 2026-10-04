@@ -57,8 +57,8 @@ flowchart LR
 
 | 施策 | 仕組み | 状態 | 既定 | 正典 |
 |---|---|---|---|---|
-| P13 標準batching | `max_num_seqs=2`で実batch重複を作る。LPAは1系列限定 | 公開した任意設定は2系列を配信（2026-09-23受入、1要求あたり約200K tokenまで）。どんな負荷でもcompletionが反復するのは1系列のときだけ（[同時実行の範囲](validation.ja.md#同時実行の範囲)） | 1系列（`context.max_num_seqs=1`）。公開した任意設定では2 | [P13](benchmarks.ja.md#標準batchingの独立評価) |
-| P28 TP=3 | スイッチなしのQSFPリングで3台。head・expertの幅・語彙を読み込み時に0で詰め、3で割れるようにする | 実施。2026-10-01に通常運用として受入（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）：2台より長く、多くの要求を同時に持てる | 2台はTP=2。3台は `examples/server.tp3.example.toml` | [1.24.0](benchmarks.ja.md#1240での測定)／[3ノード](server-configuration.ja.md#3ノード) |
+| P13 標準batching | `max_num_seqs=2`で実batch重複を作る。LPAは1系列限定 | 公開した任意設定は2系列を配信（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)の範囲で通常運用として受入）。どんな負荷でもcompletionが反復するのは1系列のときだけ（[同時実行の範囲](validation.ja.md#同時実行の範囲)） | 1系列（`context.max_num_seqs=1`）。公開した任意設定では2 | [P13](benchmarks.ja.md#標準batchingの独立評価) |
+| P28 TP=3 | スイッチなしのQSFPリングで3台。head・expertの幅・語彙を読み込み時に0で詰め、3で割れるようにする | 実施。通常運用として受入（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）：2台より長く、多くの要求を同時に持てる | 2台はTP=2。3台は `examples/server.tp3.example.toml` | [1.24.0](benchmarks.ja.md#1240での測定)／[3ノード](server-configuration.ja.md#3ノード) |
 | P21 Expert Parallel | Expert層の分割だけをTPからEPへ | 不採用（実測したthroughput負荷） | off（`runtime.expert_parallel=false`） | [P21](benchmarks.ja.md#expert-parallel-の独立評価p21) |
 | P17 TP2／PP2 | 同じ2台をTP1×PP2に | 不採用（実測した生成負荷） | TP2（`runtime.pipeline_parallel_size=1`） | [P17](benchmarks.ja.md#tp2pp2の独立評価p17) |
 | P14 同種タスクbatching | 投入順を同種でまとめる | 不採用（この負荷） | —（設定項目なし） | [P14](benchmarks.ja.md#同種タスクの投入順比較p14) |
@@ -90,7 +90,7 @@ flowchart LR
 
 | 用途 | 構成 | 根拠 | 注意 |
 |---|---|---|---|
-| 生成重視・直列（コード。配布既定） | 固定のcheckpoint、MTP k=3、unpack融合、非同期検査、FA2 prefill、APC、再現性のスイッチ、読み手のspin、1系列。effortを指定しない要求は `high` | [配布用の既定設定](server-configuration.ja.md#配布用の既定設定) | 1系列で通常運用として受入（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。固定の重みに対してlossless |
+| 生成重視・直列（コード。配布既定） | 固定のcheckpoint、MTP k=3、unpack融合、非同期検査、FA2 prefill、APC、再現性のスイッチ、読み手のspin、1系列。effortを指定しない要求は `high` | [配布用の既定設定](server-configuration.ja.md#配布用の既定設定) | 通常運用として受入（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。固定の重みに対してlossless |
 | 日本語散文 | 公開した任意設定（NVFP4 BIZ AXL） | [公開した任意設定と配布既定の差](server-configuration.ja.md#公開した任意設定と配布既定の差)／[配信profile](benchmarks.ja.md#基準の2台の配信profileattentionと-lm_head-の再パック深さ3) | losslessではない。その費用はREADMEの比較にある（[確認した範囲](../README.ja.md#確認した範囲)）。prefix cacheの関門は判定不能だった（[関門](validation.ja.md#prefix-cacheの正しさの関門)） |
 | 長い入力のバッチprefill | MTP k=3＋unpack融合＋非同期検査＋LPA cut32／tail512、FA2 prefillはoff、APCは任意 | P18／P22最終併用 | LPAはバッチ用opt-inで近似、FA2 prefillと排他、共有prefixの再利用を失う |
 | prefix再利用重視 | APC＋LPA（P22、B=128）＋`dense`保持、MTPなし | 同一入力再利用・途中編集のA/B/A | 通常primingで共有cacheを育てる。cold処理は小幅悪化 |
