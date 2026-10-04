@@ -4,6 +4,19 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.8 — 2026-10-05
+
+### Documentation
+
+- The comparison with 1.x said that 1.x handled heat with the cooling gate and the thermal watch. 1.x has no wait in the engine; its measurements rested the hosts between requests with a cooling gate, and no record shows the thermal watch on 1.x.
+- The cluster file's `CHECKOUT` is the repository's root on every host, where 1.x's `--checkout` names its `v1/`; the configuration table says so.
+
+### Tests
+
+- The test of a paused download under `--wait` is one test with all its checks; the separate `test_transfer_state.py` repeated it.
+
+The image, the scripts and the serving defaults are unchanged, so 2.0.7's image and acceptance stand (the repository's `.dockerignore` lost lines that admitted nothing more; the build context is the same).
+
 ## 2.0.7 — 2026-10-05
 
 ### Changed

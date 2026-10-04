@@ -4,6 +4,21 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.6 — 2026-10-05
+
+### Fixed
+
+- `tools/decode_divergence.py` は読んだ2つのtokenの記録を閉じます。これまではgarbage collectorに任せ、テストはその警告を黙らせていました。テストは開いたままのファイルで失敗するようになりました。
+
+### Added
+
+- CIの任意のjobが、CPU向けのtorch（`requirements/cpu-torch.lock.txt`、固定版imageと同じminorのtorch 2.13.0、dev lockの後に入れる）でこの系列のテストを回します。torchが無いとskipするテストの半分がCIで走るようになりました。CUDAや固定版vLLMのimageを要する22件はskipのままです。PyTorchのpackage indexに頼るので、mergeの合否は止めません（[CONTRIBUTING](../CONTRIBUTING.ja.md)）。
+
+### Changed
+
+- リポジトリの `.dockerignore` は、ディレクトリの行を残し、それ以上何も通していなかった隣のファイル単位の行を外しました。build contextは同じ136ファイルです（参照機でBuildKitから両方のファイルでcontextを書き出して確かめました）。この系列のimageは変わりません。
+- `--wait` で一時停止中のdownloadを扱うテストは、確かめることを全部まとめた1本です。別の `test_transfer_state.py` は同じことを繰り返していました。
+
 ## 1.29.5 — 2026-10-05
 
 ### Changed

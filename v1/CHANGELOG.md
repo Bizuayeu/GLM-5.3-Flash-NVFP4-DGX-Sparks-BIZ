@@ -2,6 +2,21 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.6 — 2026-10-05
+
+### Fixed
+
+- `tools/decode_divergence.py` closes the two token records it reads; it had left them to the garbage collector, and its tests had silenced the warning. The tests now fail on a file left open.
+
+### Added
+
+- An optional CI job runs this line's tests with torch built for CPU (`requirements/cpu-torch.lock.txt`, torch 2.13.0, the pinned image's minor version, installed after the dev lock). Half of the tests that skip without torch now run in CI; the 22 that need CUDA or the pinned vLLM image still skip. The job does not gate a merge, since it depends on PyTorch's package index ([CONTRIBUTING](../CONTRIBUTING.md)).
+
+### Changed
+
+- The repository's `.dockerignore` keeps its directory lines and drops the per-file lines beside them, which admitted nothing more: the build context is the same 136 files, checked by exporting it with both files through BuildKit on a reference host. This line's image is unchanged.
+- The test of a paused download under `--wait` is one test with all its checks; the separate `test_transfer_state.py` repeated it.
+
 ## 1.29.5 — 2026-10-05
 
 ### Changed
