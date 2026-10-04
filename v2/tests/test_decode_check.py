@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from glm53_tf import decode_check
+from glm53_tf import decode_check, decode_divergence
 
 # The stream's last chunk on TensorFold (records/20261003-tp3/t5, U3 on b1-2rail).
 TF_BLOCK = {"rounds": 26, "accepted": 38, "drafted": 59, "tokens_per_round": 2.423}
@@ -162,6 +162,17 @@ class TensorFoldTokenIdsTests(unittest.TestCase):
         self.assertEqual(len(saved["samples"]), 3)
         self.assertEqual(saved["samples"][0]["token_ids"], [16, 17, 18])
         self.assertEqual(saved["samples"][0]["text"], "16\n17\n18\n")
+
+    def test_decode_divergence_reads_tokens_out_to_the_first_differing_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = [str(Path(tmp) / "a.json"), str(Path(tmp) / "b.json")]
+            for path, ids in zip(paths, ([16, 17, 18], [16, 99, 18])):
+                run([stream(TF_BLOCK, ids)] * 3, [TF_METRICS] * 2, tokens_out=path)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                decode_divergence.main(paths)
+        first = out.getvalue().splitlines()[0]
+        self.assertIn("first differing token 1/3 (ids [17, 18] vs [99, 18])", first)
 
 
 class TensorFoldPrefixCacheTests(unittest.TestCase):

@@ -1,8 +1,14 @@
 import copy
 import hashlib
+import io
 import json
+import sys
+import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from glm53_tf import score_nll
 
@@ -98,6 +104,56 @@ class ScoreTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertNotIn("code", summary)
         self.assertEqual(summary["ja"]["positions"], 6)
+
+
+class MainTests(unittest.TestCase):
+    """main() sends each text's token ids, teacher-forced, to the server's model."""
+
+    def test_the_server_scores_the_tokenizers_ids_at_temperature_zero(self):
+        data = small_set()
+        tokenizer = SimpleNamespace(
+            encode=lambda text, add_special_tokens: SimpleNamespace(ids=tokenize(text))
+        )
+        tokenizers = SimpleNamespace(
+            Tokenizer=SimpleNamespace(from_file=lambda path: tokenizer)
+        )
+        reply = complete_at(lambda ids: -1.0)
+        posts = []
+
+        def post(url, path, body=None, timeout=900.0):
+            posts.append((url, path, body))
+            if path == "/v1/models":
+                return {"data": [{"id": "glm-tf"}]}
+            return reply(body["prompt"], body["prompt_logprobs"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "set.json").write_text(json.dumps(data), encoding="utf-8")
+            (tmp / "tok.json").write_text("tok", encoding="utf-8")
+            argv = ["--url", "http://h:1", "--set", str(tmp / "set.json")]
+            argv += ["--tokenizer", str(tmp / "tok.json"), "--out", str(tmp / "o.json")]
+            with (
+                patch.dict(sys.modules, {"tokenizers": tokenizers}),
+                patch.object(score_nll, "post", post),
+                redirect_stdout(io.StringIO()),
+            ):
+                code = score_nll.main(argv)
+            out = json.loads((tmp / "o.json").read_text(encoding="utf-8"))
+        self.assertEqual(code, 0)
+        self.assertEqual(out["model"], "glm-tf")
+        self.assertEqual(posts[0][1], "/v1/models")
+        _, path, body = posts[1]
+        self.assertEqual(path, "/v1/completions")
+        self.assertEqual(
+            {k: v for k, v in body.items() if k != "prompt_logprobs"},
+            {
+                "model": "glm-tf",
+                "prompt": tokenize("abc"),
+                "max_tokens": 1,
+                "temperature": 0,
+                "seed": 42,
+            },
+        )
 
 
 class CrossLineTests(unittest.TestCase):

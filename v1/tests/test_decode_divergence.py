@@ -75,11 +75,8 @@ class DecodeDivergenceTests(unittest.TestCase):
 
     # Until 1.26.2 zip dropped the extra sample, so the runs read as identical.
     def test_differing_sample_counts_are_not_reported_as_matching(self):
-        code, lines = compare([sample([1]), sample([2])], [sample([1])])
-        self.assertTrue(
-            code not in (0, None) or any("identical" not in line for line in lines),
-            lines,
-        )
+        _, lines = compare([sample([1]), sample([2])], [sample([1])])
+        self.assertEqual(lines[-1], "samples: A has 2, B has 1")
 
 
 if __name__ == "__main__":
