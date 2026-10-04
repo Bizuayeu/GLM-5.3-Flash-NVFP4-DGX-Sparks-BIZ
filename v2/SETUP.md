@@ -2,18 +2,18 @@
 
 [日本語](SETUP.ja.md) · [2.x overview](README.md) · [Validation](docs/validation.md)
 
-The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Every host has the same checkout; the commands below run from its root, where the image's build context is, and the 1.x tools from its `v1/`. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
+The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts at TP=3. The hosts, cables, kernel and checkpoint are prepared as for 1.x, and those steps link to the [1.x runbook](../v1/SETUP.md). Every host has the same checkout; the commands below run from its root, where the image's build context is. Every command that changes a host (stopping another server, starting this one) belongs inside a window the operator has authorized.
 
 ## 1. Hosts and fabric
 
-Two or three DGX Spark or compatible GB10 systems with ConnectX-7 links, prepared and inspected as in [1.x step 1](../v1/SETUP.md#1-collect-inputs-and-inspect-both-hosts) (inventory, kernel and `kho=off`, other workloads). Cable and qualify the fabric as in [1.x step 5](../v1/SETUP.md#5-connect-and-qualify-the-fabric--cable-required): a direct link for the pair, a ring for three hosts ([three hosts in a ring](../v1/docs/qsfp-network.md#8-three-hosts-in-a-ring)). Record for each host the RDMA device names on its links (`ibdev2netdev`), the GID index that is RoCE v2 on the link's IPv4 address, and the interface or address the ranks meet on.
+Two or three DGX Spark or compatible GB10 systems with ConnectX-7 links, prepared and inspected as in [1.x step 1](../v1/SETUP.md#1-collect-inputs-and-inspect-both-hosts) (inventory, kernel, other workloads). Cable and qualify the fabric as in [1.x step 5](../v1/SETUP.md#5-connect-and-qualify-the-fabric--cable-required): a direct link for the pair, a ring for three hosts ([three hosts in a ring](../v1/docs/qsfp-network.md#8-three-hosts-in-a-ring)). Record for each host the RDMA device names on its links (`ibdev2netdev`), the GID index that is RoCE v2 on the link's IPv4 address, and the interface or address the ranks meet on.
 
-Cap the GPU clock at 2,200 MHz on every host before long runs and record temperatures ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)): GB10 hosts have powered off under long prefills one after another, and every 2.x figure was measured under the cap.
+Cap the GPU clock on every host before long runs, as in 1.x ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)); every 2.x figure was measured under the cap.
 
 ## 2. Checkout and checkpoint
 
 1. Check out the same reviewed commit on every host (a `v2.*` release tag).
-2. Download the pinned checkpoint once, verify it, copy the cache to the other hosts and verify each copy, as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The downloader runs from `v1/` (`python -m glm53_setup download`, then `verify-download`). The engine reads it from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
+2. Download the pinned checkpoint once, verify it, copy the cache to the other hosts and verify each copy, as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The downloader runs from `v1/` ([prepare assets](../v1/README.md#prepare-assets)). The engine reads it from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
 
 ## 3. Image
 

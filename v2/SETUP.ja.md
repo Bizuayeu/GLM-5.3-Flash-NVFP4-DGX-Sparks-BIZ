@@ -2,18 +2,18 @@
 
 [English](SETUP.md) · [2.x系の概要](README.ja.md) · [検証](docs/validation.ja.md)
 
-2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。全ホストに同じcheckoutを置き、以下のコマンドはimageのbuild contextがあるそのルートから、1.x系の道具はその `v1/` から実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
+2台のTP=2または3台のTP=3で2.x系を配信する手順を順に並べます。機体・ケーブル・kernel・checkpointの準備は1.x系と同じで、その段は[1.x系の手順書](../v1/SETUP.ja.md)を指します。全ホストに同じcheckoutを置き、以下のコマンドはimageのbuild contextがあるそのルートから実行します。ホストを変えるコマンド（他のサーバーの停止、このサーバーの起動）は、運用者が許可した時間の中で行います。
 
 ## 1. 機体とfabric
 
-ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台、[1.x系の手順1](../v1/SETUP.ja.md#1-必要情報を集め2台とも現状確認する)のとおりに準備・確認します（棚卸し、kernelと `kho=off`、他の負荷）。ケーブルとfabricの検証は[1.x系の手順5](../v1/SETUP.ja.md#5-ケーブル接続とfabric検証)のとおりで、対は直結、3台はリングです（[3台をリングにつなぐ](../v1/docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各ホストについて、リンクのRDMAデバイス名（`ibdev2netdev`）、リンクのIPv4アドレスでRoCE v2になるGIDのindex、rankが待ち合わせるinterfaceかアドレスを記録します。
+ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台、[1.x系の手順1](../v1/SETUP.ja.md#1-必要情報を集め2台とも現状確認する)のとおりに準備・確認します（棚卸し、kernel、他の負荷）。ケーブルとfabricの検証は[1.x系の手順5](../v1/SETUP.ja.md#5-ケーブル接続とfabric検証)のとおりで、対は直結、3台はリングです（[3台をリングにつなぐ](../v1/docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各ホストについて、リンクのRDMAデバイス名（`ibdev2netdev`）、リンクのIPv4アドレスでRoCE v2になるGIDのindex、rankが待ち合わせるinterfaceかアドレスを記録します。
 
-長い処理の前に全ホストのGPUクロックを2,200 MHzに制限し、温度を記録します（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。GB10機は長いprefillを続けたときに電源ごと落ちたことがあり、2.x系の数値はすべてこの上限の下で測りました。
+長い処理の前に、1.x系と同じく全ホストのGPUクロックに上限を設けます（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。2.x系の数値はすべてこの上限の下で測りました。
 
 ## 2. checkoutとcheckpoint
 
 1. 全ホストで同じ確認済みのcommitをcheckoutします（`v2.*` のリリースのtag）。
-2. 固定のcheckpointを一度だけ取得して検証し、他のホストへcacheを写してそれぞれ検証します。[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じで、取得の道具は `v1/` から実行します（`python -m glm53_setup download`、続けて `verify-download`）。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
+2. 固定のcheckpointを一度だけ取得して検証し、他のホストへcacheを写してそれぞれ検証します。[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じで、取得の道具は `v1/` から実行します（[資産の準備](../v1/README.ja.md#資産の準備)）。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
 
 ## 3. image
 

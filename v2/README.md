@@ -27,10 +27,10 @@
 - **Hosts**: two or three DGX Spark or compatible GB10 systems (Linux ARM64, 128 GB unified memory each) with nothing else large on their GPUs. A 1.x server on the same hosts is stopped first.
 - **Fabric**: ConnectX-7 links with RoCE v2, a direct cable for the pair or a switchless ring for three hosts ([three hosts in a ring](../v1/docs/qsfp-network.md#8-three-hosts-in-a-ring)). Both rails of each port are used.
 - **Host kernel**: as in 1.x; the default of current DGX OS updates can break multi-node RoCE ([host kernel and multi-node RoCE](../v1/docs/operations.md#host-kernel-and-multi-node-roce)).
-- **GPU clock** capped at 2,200 MHz on every host, with temperatures recorded ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)). Every 2.x figure was measured under the cap.
+- **GPU clock** capped on every host, as in 1.x ([GPU clock cap](../v1/docs/operations.md#gpu-clock-cap)). Every 2.x figure was measured under the cap.
 - **Docker** with NVIDIA's GPU runtime and the RDMA devices (`create_container.sh` refuses a host without `/dev/infiniband`, where NCCL would fall back to sockets).
-- **Disk**: about 205 GB per host for the checkpoint, which every host holds whole, plus the image.
-- **A control machine** with SSH to every host, for `cluster.sh`, and the 1.x Python tools from `v1/` for the download and the checks.
+- **Disk**: the whole checkpoint on every host, as in 1.x ([what you deploy](../v1/README.md#what-you-deploy-and-supported-hardware)), plus the image.
+- **A control machine** with SSH to every host, for `cluster.sh`. The download and the checks use 1.x's Python tools ([repository layout](#repository-layout)).
 
 ## Quick Start
 
@@ -120,7 +120,7 @@ The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthrop
 
 | | 1.x (vLLM) | 2.x (TensorFold) |
 |---|---|---|
-| Repeatable output | vLLM with the [repeatability switches](../v1/docs/server-configuration.md#repeatability-switches) on (one token order inside each expert, settled indexer top-k ties, Inductor configs chosen without timing) | the engine's contract: drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on the prompt chunking |
+| Repeatable output | vLLM with the [repeatability switches](../v1/docs/server-configuration.md#repeatability-switches) on | the engine's contract: drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on the prompt chunking |
 | KV and window | FP8, 262,144 tokens (3 GiB per rank) | FP8 latent and index keys, 300,000 tokens at TP=2 and 1,048,576 at TP=3 |
 | Launch | `glm53_setup` reads one server TOML; `server preflight`, `cluster switch`, warmup ladder | the scripts here; no preflight or switch |
 | Sequences in flight | one, or two with the published option's two-sequence profile | one |

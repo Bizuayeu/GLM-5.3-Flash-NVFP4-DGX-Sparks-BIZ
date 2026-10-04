@@ -27,10 +27,10 @@
 - **機体**：DGX Sparkまたは互換のGB10機を2台か3台（Linux ARM64、各128 GBの統合メモリ）。GPUで他の大きな仕事を動かさないこと。同じ機で1.x系のserverが動いていれば先に止めます。
 - **fabric**：RoCE v2のConnectX-7リンク。2台は直結、3台はswitchなしのリング（[3台をリングにつなぐ](../v1/docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各portの2本のrailを両方使います。
 - **ホストカーネル**：1.x系と同じです。今のDGX OSの更新が入れる既定のカーネルは、複数ノードのRoCEを壊すことがあります（[ホストカーネルと複数ノードRoCE](../v1/docs/operations.ja.md#ホストカーネルと複数ノードroce)）。
-- **GPUクロック**は全機で2,200 MHzを上限にし、温度を記録します（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。2.x系の数字は全部この上限の下で測りました。
+- **GPUクロック**は1.x系と同じく全機で上限を設けます（[GPUクロックの上限](../v1/docs/operations.ja.md#gpuクロックの上限)）。2.x系の数字は全部この上限の下で測りました。
 - **Docker**：NVIDIAのGPU runtimeとRDMA deviceが要ります（`/dev/infiniband` が無い機では、NCCLがsocketに落ちるので `create_container.sh` が止まります）。
-- **disk**：checkpointに1台あたり約205 GB（全機が丸ごと持ちます）と、image。
-- **操作する機械**：全機へSSHでき、`cluster.sh` を動かす機械一台。ダウンロードと検査には `v1/` の1.x系のPythonの道具を使います。
+- **disk**：全機にcheckpointを丸ごと（1.x系と同じ。[導入するものと対応機体](../v1/README.ja.md#導入するものと対応機体)）と、image。
+- **操作する機械**：全機へSSHでき、`cluster.sh` を動かす機械一台。ダウンロードと検査には1.x系のPythonの道具を使います（[リポジトリの構成](#リポジトリの構成)）。
 
 ## はじめ方
 
@@ -120,7 +120,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 
 | | 1.x（vLLM） | 2.x（TensorFold） |
 |---|---|---|
-| 出力の反復性 | vLLMの[再現性のスイッチ](../v1/docs/server-configuration.ja.md#再現性のスイッチ)（expert内のtoken順の固定、indexerのtop-kの同点の決め方、計測なしで選ぶInductorのconfig） | エンジンの契約：draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない |
+| 出力の反復性 | vLLMの[再現性のスイッチ](../v1/docs/server-configuration.ja.md#再現性のスイッチ)を入れる | エンジンの契約：draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない |
 | KVと窓 | FP8、262,144 token（rankあたり3 GiB） | latentとindex keyをFP8、TP=2で300,000 token、TP=3で1,048,576 |
 | 起動 | `glm53_setup` が一つのserver TOMLを読む。`server preflight`・`cluster switch`・warmupの段階 | ここの台本。preflightや切替は無い |
 | 同時に処理する系列 | 1、公開した任意設定の2系列profileで2 | 1 |
