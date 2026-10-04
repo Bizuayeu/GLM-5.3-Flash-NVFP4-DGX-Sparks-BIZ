@@ -1,0 +1,12 @@
+# The optional CPU job (.github/workflows/ci.yml): torch built for CPU, at the minor version of the pinned
+# image's torch (2.13), and what it pulls in; install after dev.lock.txt.
+--index-url https://download.pytorch.org/whl/cpu
+filelock==3.32.3
+fsspec==2026.7.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.6.1
+sympy==1.14.0
+torch==2.13.0+cpu
+typing_extensions==4.16.0

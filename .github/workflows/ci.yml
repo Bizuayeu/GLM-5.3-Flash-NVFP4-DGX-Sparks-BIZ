@@ -44,3 +44,21 @@ jobs:
         working-directory: v2
       - run: ruff format --check glm53_tf tests
         working-directory: v2
+
+  cpu-torch:
+    # Optional: 1.x's tests that need torch but no GPU, with torch built for CPU. It does not
+    # gate a merge, since it depends on PyTorch's package index; the CUDA and pinned-vLLM tests
+    # still skip here.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: v1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements/dev.lock.txt
+      - run: python -m pip install -r requirements/cpu-torch.lock.txt
+      - run: python -m unittest discover -s tests -t . -v

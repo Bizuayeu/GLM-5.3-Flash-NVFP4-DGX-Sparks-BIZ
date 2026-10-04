@@ -24,7 +24,7 @@ python tools/check_publication.py
 
 公開監査は系列ごとの規則を両方の系列に当てます（版、ライセンス、モデルの固定、版の変更履歴の節。1.x系はさらに文書一覧・構成の頁・READMEの引用）。`python tools/check_publication.py --duplicates` は、同じ系列の複数の頁に出てくる実測値らしい数も挙げます。数値の持ち主は一つの頁ですが意図して引用することもあるので、文書を直す人への警告で、失敗にはしません。
 
-GPUの検査はCPUテストとは別です。固定版イメージを使い、実効引数、出力の完全性、数値差、失敗を記録します。検証手順は系列ごとにあります：[1.x系](v1/docs/validation.ja.md)、[2.x系](v2/docs/validation.ja.md)。
+CIの任意のjobは、CPU向けのtorch（`v1/requirements/cpu-torch.lock.txt`、dev lockの後に入れる）で1.x系のテストも回し、torchは要るがGPUは要らないテストを走らせます。CUDAや固定版vLLMのimageを要するテストはそこでもskipします。GPUの検査はCPUテストとは別です。固定版イメージを使い、実効引数、出力の完全性、数値差、失敗を記録します。検証手順は系列ごとにあります：[1.x系](v1/docs/validation.ja.md)、[2.x系](v2/docs/validation.ja.md)。
 
 - 認証情報、実機固有の設定、モデルの重み、生ログ、非公開の実験記録をコミットしません。
 - 推論中はモデル・cacheの成果物を読み取り専用に保ち、失敗した実行も残します。
