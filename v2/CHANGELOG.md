@@ -4,6 +4,18 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.6 — 2026-10-04
+
+### Added
+
+- The publication audit now checks this line too: its required files, a release version with a changelog section in both languages, the Apache-2.0 license and a pinned model revision in `config/model.lock.json`.
+
+### Documentation
+
+- The release measurements describe the engine builds they ran on (the release, the build one printed line before it, a build before the heat wait) instead of naming unreleased commits, and say that without the heat wait the [thermal watch](../host/README.md#during-long-runs) stopped the engine at 94 °C, as recorded. The slowing of prefill as a host heats is stated once, in [validation](docs/validation.md#prefill-and-decode-speed). The 1.x column of the comparison names its sources in 1.x's benchmarks.
+
+The image, the scripts and the serving defaults are unchanged, so 2.0.0's image and acceptance stand.
+
 ## 2.0.5 — 2026-10-04
 
 ### Changed

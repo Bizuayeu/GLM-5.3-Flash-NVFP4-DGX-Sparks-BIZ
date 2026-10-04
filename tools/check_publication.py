@@ -22,31 +22,17 @@ REQUIRED = {
     ".gitignore",
     ".dockerignore",
 }
-# Each serving line's checks name files relative to its directory: what it must
-# hold, its lock (the 1.x lock also pins the base image by digest) and whether its
-# README carries the short-name citation and the headline measurements.
-LINE_PAGES = {
+# The project checks below name files relative to this directory.
+PROJECT = "v1"
+PROJECT_REQUIRED = {
     "README.md",
     "README.ja.md",
     "SETUP.md",
     "SETUP.ja.md",
     "CHANGELOG.md",
     "CHANGELOG.ja.md",
+    "config/runtime.lock.json",
     "pyproject.toml",
-}
-LINES = {
-    "v1": {
-        "required": LINE_PAGES | {"config/runtime.lock.json"},
-        "lock": "config/runtime.lock.json",
-        "image": True,
-        "cited": True,
-    },
-    "v2": {
-        "required": LINE_PAGES | {"config/model.lock.json"},
-        "lock": "config/model.lock.json",
-        "image": False,
-        "cited": False,
-    },
 }
 PRIVATE_DIRS = {"state", "records", "upstream", ".ssh", ".venv", ".claude-local-test"}
 PRIVATE_SUFFIXES = {
@@ -353,12 +339,11 @@ def audit(root, files):
     return problems
 
 
-def project_problems(root, files, line="v1"):
-    """The checks of ``line``, on ``files`` named relative to its directory ``root``."""
-    spec = LINES[line]
+def project_problems(root, files):
+    """The 1.x checks, on ``files`` named relative to the project directory ``root``."""
     problems = [
-        f"missing required file: {line}/{name}"
-        for name in sorted(spec["required"] - files)
+        f"missing required file: {PROJECT}/{name}"
+        for name in sorted(PROJECT_REQUIRED - files)
     ]
     documents = {name for name in files if name.endswith(".md")}
     for map_name in MAPS:
@@ -376,15 +361,16 @@ def project_problems(root, files, line="v1"):
             problems += architecture_problems(
                 (root / name).read_text(encoding="utf-8"), modules
             )
-    if spec["lock"] in files:
-        lock = json.loads((root / spec["lock"]).read_text(encoding="utf-8"))
-        if (
-            spec["image"]
-            and not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", lock["image"])
+    if "config/runtime.lock.json" in files:
+        lock = json.loads(
+            (root / "config/runtime.lock.json").read_text(encoding="utf-8")
+        )
+        if not re.fullmatch(
+            r"[^\s]+@sha256:[0-9a-f]{64}", lock["image"]
         ) or not re.fullmatch(r"[0-9a-f]{40}", lock["revision"]):
-            problems.append(f"runtime artifacts must be digest/revision pinned: {line}")
+            problems.append("runtime artifacts must be digest/revision pinned")
     for name, (benchmarks, *_) in HEADLINES.items():
-        if spec["cited"] and name in files and benchmarks in files:
+        if name in files and benchmarks in files:
             problems += headline_problems(
                 name,
                 (root / name).read_text(encoding="utf-8"),
@@ -404,15 +390,91 @@ def project_problems(root, files, line="v1"):
             "project"
         ]
         if not re.fullmatch(r"\d+\.\d+\.\d+", project["version"]):
-            problems.append(f"expected release version: {line}")
+            problems.append("expected release version")
         if project["license"] != "Apache-2.0":
-            problems.append(f"unexpected project license: {line}")
+            problems.append("unexpected project license")
         for name in CITATIONS:
-            if spec["cited"] and name in files:
+            if name in files:
                 problems += citation_problems(
                     name, (root / name).read_text(encoding="utf-8"), project["version"]
                 )
     return problems
+
+
+# The 2.x checks: the files a line needs, its version, license and model pin.
+LINE2 = "v2"
+LINE2_REQUIRED = {
+    "README.md",
+    "README.ja.md",
+    "SETUP.md",
+    "SETUP.ja.md",
+    "CHANGELOG.md",
+    "CHANGELOG.ja.md",
+    "pyproject.toml",
+    "config/model.lock.json",
+}
+
+
+def line2_problems(root, files):
+    """The 2.x checks, on ``files`` named relative to the line directory ``root``."""
+    problems = [
+        f"missing required file: {LINE2}/{name}"
+        for name in sorted(LINE2_REQUIRED - files)
+    ]
+    if "config/model.lock.json" in files:
+        lock = json.loads((root / "config/model.lock.json").read_text(encoding="utf-8"))
+        if not lock.get("model") or not re.fullmatch(
+            r"[0-9a-f]{40}", str(lock.get("revision", ""))
+        ):
+            problems.append(f"{LINE2}: model and revision must be pinned")
+    if "pyproject.toml" in files:
+        project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))[
+            "project"
+        ]
+        version = project.get("version", "")
+        if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+            problems.append(f"{LINE2}: expected release version")
+        if project.get("license") != "Apache-2.0":
+            problems.append(f"{LINE2}: unexpected project license")
+        for name in ("CHANGELOG.md", "CHANGELOG.ja.md"):
+            if name in files and not re.search(
+                rf"(?m)^## {re.escape(version)} ",
+                (root / name).read_text(encoding="utf-8"),
+            ):
+                problems.append(f"{LINE2}: {name} has no section for {version}")
+    return problems
+
+
+# A measured-looking number: thousands separators or two or more decimals, not part
+# of a version or a longer number.
+MEASURED = re.compile(
+    r"(?<![\w.,])(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d{2,})(?![\w.,]*\d)"
+)
+
+
+def duplicate_numbers(root, files):
+    """Measured-looking numbers on more than one English page of a line, by line.
+
+    A warning for whoever edits the documents (``--duplicates``), not a failure: a
+    number has one owner page, but a page may cite it deliberately. Changelogs,
+    Japanese pages and code spans are left out.
+    """
+    seen = {}
+    for name in sorted(files):
+        path = Path(name)
+        if (
+            path.suffix != ".md"
+            or name.endswith(".ja.md")
+            or path.name.startswith("CHANGELOG")
+        ):
+            continue
+        line = path.parts[0] if path.parts[0] in (PROJECT, LINE2) else ""
+        text = re.sub(
+            r"`[^`\n]*`", "", prose((root / name).read_text(encoding="utf-8"))
+        )
+        for number in set(MEASURED.findall(text)):
+            seen.setdefault((line, number), set()).add(name)
+    return {key: sorted(names) for key, names in seen.items() if len(names) > 1}
 
 
 def problems(root, files, plans=False):
@@ -430,13 +492,17 @@ def problems(root, files, plans=False):
             )
     if plans:
         found += plan_link_problems(root)
-    for line in LINES:
-        prefix = line + "/"
-        found += project_problems(
-            root / line,
-            {name.removeprefix(prefix) for name in files if name.startswith(prefix)},
-            line,
-        )
+    prefix = PROJECT + "/"
+    found += project_problems(
+        root / PROJECT,
+        {name.removeprefix(prefix) for name in files if name.startswith(prefix)},
+    )
+    prefix = LINE2 + "/"
+    line2_files = {
+        name.removeprefix(prefix) for name in files if name.startswith(prefix)
+    }
+    if line2_files:
+        found += line2_problems(root / LINE2, line2_files)
     return found
 
 
@@ -453,12 +519,23 @@ def main():
         action="store_true",
         help="Also check the relative links of the untracked docs/plans/",
     )
+    parser.add_argument(
+        "--duplicates",
+        action="store_true",
+        help="Also list measured-looking numbers found on more than one page of a line"
+        " (a warning; the exit status does not change)",
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     files = public_files(root, args.export_tree)
     found = problems(root, files, args.plans)
     for problem in found:
         print(problem)
+    if args.duplicates:
+        duplicates = duplicate_numbers(root, files)
+        for (line, number), names in sorted(duplicates.items()):
+            print(f"duplicate candidate: {line or '.'} {number}: {', '.join(names)}")
+        print(f"Duplicate candidates: {len(duplicates)}")
     print(f"Publication audit: {len(files)} files, {len(found)} issues")
     raise SystemExit(bool(found))
 

@@ -93,7 +93,7 @@ The CLI also exposes `inspect-runtime`, `probe-attention` and `test-reference`; 
 
 ### Kpool tail ring repro
 
-`glm53_setup/validation/kpool_ring_repro.py` runs the kpool decode kernel of the reference image on one GPU, without weights: a draft that completes a pool is rejected after the drafts behind it were stashed, and the pool the redo writes is compared byte for byte with the prefill writer's result on the true keys (the no-speculation reference). It is adapted from the regression test of vLLM pull request #58454. On an image that carries `patch_kpool_ring` the expected result is that the one-pool ring (4 slots, the unpatched layout) differs and the MTP-3 ring (8 slots) matches, with a control run matching on both; the command exits nonzero otherwise.
+`glm53_setup/validation/kpool_ring_repro.py` runs the kpool decode kernel of the reference image on one GPU, without weights: a draft that completes a pool is rejected after the drafts behind it were stashed, and the pool the redo writes is compared byte for byte with the prefill writer's result on the true keys (the no-speculation reference). It is adapted from the regression test of vLLM pull request #58454. On an image that carries `patch_kpool_ring` the expected result is that the one-pool ring (the unpatched layout) differs and the MTP-3 ring matches ([slot counts](server-configuration.md#kv-capacity-and-ram-requirements)), with a control run matching on both; the command exits nonzero otherwise.
 
 ~~~sh
 python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json

@@ -93,7 +93,7 @@ CLIは `inspect-runtime`・`probe-attention`・`test-reference` も提供しま�
 
 ### kpool tail ringの再現
 
-`glm53_setup/validation/kpool_ring_repro.py` は、参照imageのkpool decode kernelをGPU 1台で重みなしに動かします。poolを完成させるdraftを、その後ろのdraftがstashされた後で棄却し、やり直しが書くpoolを、正しいkeyに対するprefill側の書き込み結果（投機なしの基準）とbyte単位で比べます。vLLMのpull request #58454の回帰テストを元にしています。`patch_kpool_ring` を持つimageでの期待は、1 pool分のring（4 slot、patch前の配置）が一致せず、MTP 3のring（8 slot）が一致し、対照runはどちらでも一致することです。そうでなければ0以外で終了します。
+`glm53_setup/validation/kpool_ring_repro.py` は、参照imageのkpool decode kernelをGPU 1台で重みなしに動かします。poolを完成させるdraftを、その後ろのdraftがstashされた後で棄却し、やり直しが書くpoolを、正しいkeyに対するprefill側の書き込み結果（投機なしの基準）とbyte単位で比べます。vLLMのpull request #58454の回帰テストを元にしています。`patch_kpool_ring` を持つimageでの期待は、1 pool分のring（patch前の配置）が一致せず、MTP 3のring（[slot数](server-configuration.ja.md#kv容量とramの条件)）が一致し、対照runはどちらでも一致することです。そうでなければ0以外で終了します。
 
 ~~~sh
 python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
