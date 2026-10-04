@@ -64,7 +64,7 @@ Order is part of the contract in two places. `VALIDATORS` runs the profile rules
 | `examples/zcode-hooks/` | ZCode existing-file guard hook and its setup ([harnesses](harnesses.md)) |
 | `overlays/` | The two vLLM source overlays that the published option's checkpoint needs, with their manifest ([overlays/README.md](../overlays/README.md)) |
 | `docker/` | Image construction; base digest supplied from the lock by the build command |
-| `requirements/` | Fixed host-tool dependencies |
+| `requirements/` | Fixed dependencies: the host tools' (`huggingface.lock.txt`), the tests' (`test.lock.txt`) and CPU torch for the optional CI job (`cpu-torch.lock.txt`); the check tools are the checkout root's `requirements/dev.lock.txt` |
 | `tests/` | CPU contracts |
 | `tools/` | `kernel_hashes.py` (the indexer's kernels hashed inside every serving worker), `assess_benchmark.py`, `check_prefix_cache.py`, `decode_check.py`, `decode_divergence.py` and `weight_digest.py` (the decode check and the weight digest after a switch, [launch contracts](launch-safety.md#after-a-switch-the-decode-check)), `prepare_mtp_view.py`, `score_nll_set.py` (the NLL set `config/nll_set.json` scored on vLLM or TensorFold) |
 | `../.github/workflows/` | At the checkout root: CI (CPU tests and Ruff on Linux and Windows, run in `v1/`, in `v2/` and at the checkout root, and the publication audit at the checkout root) and the tag-driven GitHub Release |

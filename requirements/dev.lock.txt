@@ -1,0 +1,2 @@
+# The repository's check tools, the same for every line: CI and CONTRIBUTING install it first.
+ruff==0.16.0

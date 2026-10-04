@@ -64,7 +64,7 @@
 | `examples/zcode-hooks/` | ZCodeの既存ファイルガードhookと導入手順（[ハーネス](harnesses.ja.md)） |
 | `overlays/` | 公開した任意設定のcheckpointが要するvLLM source overlay 2件と、その台帳（[overlays/README.md](../overlays/README.md)） |
 | `docker/` | imageの構築。base digestはビルドコマンドがロックから渡す |
-| `requirements/` | ホスト側ツールの固定した依存 |
+| `requirements/` | 固定した依存：ホスト側ツールの（`huggingface.lock.txt`）、テストの（`test.lock.txt`）、任意のCIのjobのCPU向けtorch（`cpu-torch.lock.txt`）。検査の道具はcheckoutのルートの `requirements/dev.lock.txt` |
 | `tests/` | CPU契約 |
 | `tools/` | `kernel_hashes.py`（indexerのkernelを各配信workerの中でhash）、`assess_benchmark.py`、`check_prefix_cache.py`、`decode_check.py`・`decode_divergence.py`・`weight_digest.py`（切替の後のdecode検査と重みのdigest、[起動契約](launch-safety.ja.md#切替の後のdecode検査)）、`prepare_mtp_view.py`、`score_nll_set.py`（NLL採点セット `config/nll_set.json` をvLLMまたはTensorFoldで採点） |
 | `../.github/workflows/` | checkoutのルート：CI（LinuxとWindowsでのCPUテストとRuffを `v1/`・`v2/`・checkoutのルートで、公開監査をcheckoutのルートで実行）と、tagで起動するGitHub Release |

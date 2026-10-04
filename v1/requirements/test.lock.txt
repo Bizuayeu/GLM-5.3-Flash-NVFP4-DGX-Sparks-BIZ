@@ -1,0 +1,2 @@
+# This line's tests' own dependencies (the root's requirements/dev.lock.txt holds the check tools).
+numpy==2.2.6
