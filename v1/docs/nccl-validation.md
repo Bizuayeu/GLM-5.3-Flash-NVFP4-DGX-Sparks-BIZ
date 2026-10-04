@@ -93,6 +93,6 @@ Decode-sized messages do not change, because NCCL already uses fewer channels fo
 | 9000 | 8 | 503.2 | 5.81 GiB | 8.08 GiB |
 | 9000 | 16 | 497.3 | 5.39 GiB | 7.57 GiB |
 
-Each engine opens two communicators, so 8 channels return about 3 GiB per rank; prefill is within 1% either way. Decode varied more between runs of one setting (about ±15%) than between settings.
+Each engine opens two communicators, so 8 channels return about 3 GiB per rank; prefill is within 1% either way. At 8 channels and MTU 1500 the full model's lowest free memory rose by 2.8 GiB on the head and 3.0 GiB on the peer, while prefill did not slow. Decode varied more between runs of one setting (about ±15%) than between settings.
 
 **MTU.** 9000 (RoCE active MTU 4096) raised prefill by at most 2.3–2.6%, an upper bound because only the MTU 1500 runs carried the dashboard, and lowered free memory by 1.1–1.7 GiB per host. An idle host without the model showed the same 1.4 GiB, which fits larger NIC receive buffers (four interfaces × 20 queues × 1,024 descriptors). The reference pair stays at MTU 1500. A prefill figure taken before the reboot (446 tok/s at MTU 1500) was lower from host state, not MTU, and is left out of the table.

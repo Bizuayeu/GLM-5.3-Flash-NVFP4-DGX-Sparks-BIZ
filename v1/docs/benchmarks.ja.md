@@ -439,6 +439,8 @@ runtimeが報告したKV収容容量は301,645 tokenです。同じ固定LLM-jp 
 
 この限定した検証を根拠に、当時の配布既定を**256K・KV各3 GiB**へ更新しました（現在はテキスト専用の代替で、画像入力を含む現在の既定は[画像入力](vision.ja.md)）。従来の200Kでの速度・tool-eval・FreedomBenchの点数を新構成で再測定したとは扱いません。一般的な長文品質、すべての履歴編集、多系列、実ハーネス、長時間信頼性の検収は別です。試験のtimeoutとクライアント既定値は別なので、長文の初回入力ではクライアント側にも十分な待ち時間が必要です。
 
+これらの確認の外では、256K テキスト専用 profile は実測 121 GiB のホストでメモリの保護に接していました。available は 4.5 GiB 前後で推移し、保護余裕 4 では監視停止（`stop-reason: memory-reserve`）が 2 回発生し（2 回目は 16,859 token の近似要求の最中）、その後 3 へ下げました。
+
 ## 1.5.0での測定
 
 2026-09-17〜18（Asia/Tokyo）に1.5.0の既定を測りました。画像入力・262,144 token、FP8 KV各rank 3 GiB、保護余裕3 GiBで、それ以外はchunk 2048とNCCL 8チャネルを含め1.4.0と同じです（fingerprint `8a63dc2f3f8aa9349bb1496e9e48f4768ffdd02824c96bfe1176aa5a8170a091`）。ペアは1.4.0のsource `f593f38` で動いており、1.5.0が変えるのはテンプレート・テスト・文書だけです。監視ダッシュボードは起動・prefill/decode・画像・256Kの確認では止め、それを使うsparkDashと200Kの再計測では動かしました。他のクライアントはモデルを使っておらず、どのケースでもpreemptionは増えず、`/health` は200のままでした。
@@ -695,6 +697,8 @@ indexerのkey正規化のInductor configだけを指定すると、状態2（ran
 
 ## 1.10.2での測定
 
+参照対では固定の重みがKV 3 GiBでheadに5.5 GiBを残し（保護は3 GiB）、再パックした重みは10.5 GiBを残します。2ノードでランチャーが再パックしたcheckpointなしで3 GiBを超えるKVを拒むのはこのためです（[サーバー設定](server-configuration.ja.md)）。
+
 ### 公開した任意設定での同時2系列（2026-09-23）
 
 参照対は[AXLの例](../examples/server.axl.example.toml)の設定（再パックした重み、dedup、`max_num_seqs = 2`、rankあたりKV 6 GiB。配信profileはこれにmemory probeとdev経路を足したもの）を、image `76a1172b…`、1起動（[1.9.0](#新imageの6起動5回は同じcompletion1回は違うcompletion)の状態2）で配信した。以下の要求はすべて02:15〜02:27（Asia/Tokyo）に稼働中の対へ送り、何も再起動していない。samplerが `/metrics` とheadの `MemAvailable` を2秒ごとに読んだ（`records/20260923-two-sequence/`）。どの段でもpreemptionは起きなかった。
@@ -925,7 +929,7 @@ READMEの主要な測定値は、この枠の値です。1.19.0のimage（`sha25
 
 ### 3台のTP=3（2026-09-29と10-01）
 
-スイッチなしのQSFPリングでつないだ3台のGB10（[ネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）で、[起動設定](server-configuration.ja.md#3ノード)にあるゼロ詰めでTP=3を配信しました。制御通信は、ホストごとの/32と直結リンク越しの静的経路で流しました（2026-10-01から。2026-09-29は試験設定として管理用Wi-Fi）。どのprofileもMTP k=3、FA2のprefill、expert順の固定、indexerの同点の規則、Inductorの決定的な設定、画像入力on、3台とも `cpuset_cpus = "5-9,15-19"` です。decodeは約2,048 tokenの固定promptの後の512 tokenを3回（tok/sの中央値、括弧内は受理長の平均）。
+スイッチなしのQSFPリングでつないだ3台のGB10（[ネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）で、[起動設定](server-configuration.ja.md#3ノード)にあるゼロ詰めでTP=3を配信しました。単一ホストのfixtureでは、埋めたheadは厳密にゼロ、本来のheadは前とbit単位で同じでした。制御通信は、ホストごとの/32と直結リンク越しの静的経路で流しました（2026-10-01から。2026-09-29は試験設定として管理用Wi-Fi）。どのprofileもMTP k=3、FA2のprefill、expert順の固定、indexerの同点の規則、Inductorの決定的な設定、画像入力on、3台とも `cpuset_cpus = "5-9,15-19"` です。decodeは約2,048 tokenの固定promptの後の512 tokenを3回（tok/sの中央値、括弧内は受理長の平均）。
 
 | 項目 | 配布既定、TP=3 | 公開した任意設定、TP=3 | 配布既定、TP=2（1.19.0） |
 |---|---|---|---|

@@ -439,6 +439,8 @@ Neither request increased preemption. A short arithmetic request passed afterwar
 
 These scoped checks supported the then-distributed **256K / 3 GiB-per-rank** defaults, now the text-only alternative; the current defaults with image input are recorded in [image input](vision.md). They do not rerun or transfer the earlier 200K speed, tool-eval or FreedomBench scores to this profile, or qualify general long-context quality, every history-edit pattern, multiple sequences, actual harness behavior or long-term reliability. The test timeout is separate from client defaults; long cold requests need enough client waiting time.
 
+Outside these checks, the 256K text-only profile ran close to the memory guard on the measured 121 GiB hosts: available memory sat near 4.5 GiB and two supervised stops (`stop-reason: memory-reserve`) occurred at a reserve of 4, the second while serving one 16,859-token approximated request; the reserve then moved to 3.
+
 ## Measurements on 1.5.0
 
 On 2026-09-17 and 18 (Asia/Tokyo) the 1.5.0 defaults were measured: image input at 262,144 tokens, FP8 KV 3 GiB per rank and a 3 GiB reserve, with everything else as in 1.4.0, including chunk 2048 and eight NCCL channels (fingerprint `8a63dc2f3f8aa9349bb1496e9e48f4768ffdd02824c96bfe1176aa5a8170a091`). The pair ran the 1.4.0 source `f593f38`; 1.5.0 changes only the template, tests and documents. The monitoring dashboard was stopped for the startup, prefill/decode, image and 256K checks, and ran for sparkDash and the 200K repeat, which use it. No other client used the model, no case added a preemption and `/health` stayed 200.
@@ -695,6 +697,8 @@ Pinning only the Inductor config of the indexer's key norm reproduced state 2 (8
 
 ## Measurements on 1.10.2
 
+On the reference pair the pinned weights leave the head 5.5 GiB at 3 GiB of KV against a 3 GiB reserve, the repacked ones 10.5 GiB; this is why the launcher refuses more than 3 GiB of KV on two nodes without the derived checkpoint ([server configuration](server-configuration.md)).
+
 ### Two active sequences on the published option (2026-09-23)
 
 The reference pair served the [AXL example's](../examples/server.axl.example.toml) settings (repacked weights, dedup, `max_num_seqs = 2`, 6 GiB of KV per rank; the served profile adds the memory probe and the dev routes), image `76a1172b…`, one launch (state 2 of [1.9.0](#six-launches-of-the-new-image-the-same-completions-five-times-different-once)). Every request below went to the running pair between 02:15 and 02:27 Asia/Tokyo with nothing restarted; a sampler read `/metrics` and the head's `MemAvailable` every two seconds (`records/20260923-two-sequence/`). No preemption occurred in any step.
@@ -925,7 +929,7 @@ The gate intervened once per run, on TC-43 (the user asks to "just call web_sear
 
 ### Three hosts at TP=3 (2026-09-29 and 10-01)
 
-Three GB10 hosts cabled as a switchless QSFP ring ([network](qsfp-network.md#8-three-hosts-in-a-ring)) served TP=3 with the zero-padding described in [server configuration](server-configuration.md#three-nodes). Control traffic ran over one /32 per host with static routes on the direct links (from 2026-10-01; on 2026-09-29 over the management Wi-Fi as a test setting). Every profile: MTP k=3, FA2 prefill, the fixed expert order, settled indexer ties, deterministic Inductor configs, image input on, `cpuset_cpus = "5-9,15-19"` on all three hosts. Decode is three samples of 512 tokens after a fixed ~2,048-token prompt (median tok/s, mean acceptance length).
+Three GB10 hosts cabled as a switchless QSFP ring ([network](qsfp-network.md#8-three-hosts-in-a-ring)) served TP=3 with the zero-padding described in [server configuration](server-configuration.md#three-nodes). On a single-host fixture the padded heads came out exactly zero and the real heads bit for bit as before. Control traffic ran over one /32 per host with static routes on the direct links (from 2026-10-01; on 2026-09-29 over the management Wi-Fi as a test setting). Every profile: MTP k=3, FA2 prefill, the fixed expert order, settled indexer ties, deterministic Inductor configs, image input on, `cpuset_cpus = "5-9,15-19"` on all three hosts. Decode is three samples of 512 tokens after a fixed ~2,048-token prompt (median tok/s, mean acceptance length).
 
 | Measure | Distributed defaults, TP=3 | Published option, TP=3 | Distributed defaults, TP=2 (1.19.0) |
 |---|---|---|---|

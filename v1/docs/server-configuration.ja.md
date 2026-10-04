@@ -2,7 +2,7 @@
 
 [English](server-configuration.md)
 
-[コメント付きTOML](../examples/server.example.toml)を `state/server.toml` にコピーし、すべてのLinuxノードに同じ内容を置きます。このファイルをランチャーと専用送信コマンドが共通で読みます。公開した任意設定には専用の例 [server.axl.example.toml](../examples/server.axl.example.toml) があります：同じprofileに、再パックした重み（NVFP4 BIZ AXL）と同梱のoverlayの `runtime.derived_checkpoint` 表、`runtime.prefix_page_dedup`、同時2系列、rankあたり6 GiBのKVを足したものです。QSFPリングでつないだ3台には [`server.tp3.example.toml`](../examples/server.tp3.example.toml) があります（[3ノード](#3ノード)）。2ノードでは、ランチャーは再パックしたcheckpointなしで3 GiBを超えるKVを拒みます：参照対では固定の重みがKV 3 GiBでheadに5.5 GiBを残し（保護は3 GiB）、再パックした重みは10.5 GiBを残します。3ノードでは、profileに明示した `cache.kv_cache_memory_bytes` だけが上限です。
+[コメント付きTOML](../examples/server.example.toml)を `state/server.toml` にコピーし、すべてのLinuxノードに同じ内容を置きます。このファイルをランチャーと専用送信コマンドが共通で読みます。公開した任意設定には専用の例 [server.axl.example.toml](../examples/server.axl.example.toml) があります：同じprofileに、再パックした重み（NVFP4 BIZ AXL）と同梱のoverlayの `runtime.derived_checkpoint` 表、`runtime.prefix_page_dedup`、同時2系列、rankあたり6 GiBのKVを足したものです。QSFPリングでつないだ3台には [`server.tp3.example.toml`](../examples/server.tp3.example.toml) があります（[3ノード](#3ノード)）。2ノードでは、ランチャーは再パックしたcheckpointなしで3 GiBを超えるKVを拒みます。固定の重みでその倍のKVを取ると、headが保護余裕を割るためです（[1.10.2での測定](benchmarks.ja.md#1102での測定)）。3ノードでは、profileに明示した `cache.kv_cache_memory_bytes` だけが上限です。
 
 | カテゴリ | 管理するもの |
 |---|---|
@@ -60,8 +60,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 起動後、rankをstartedと記録する前にDockerの`HostConfig.CpusetCpus`を読み戻し、設定と一致しなければ新しいコンテナを停止します。
 この設定は配置を制御するもので、速度を保証するものではありません。
 全rankに設定してください。
-参照対（両ホストとも高性能コアは5〜9と15〜19）では、どちらか一方のrankが高効率コアにいるだけでdecodeが約3分の1になり、固定なしではスケジューラがたまたま両rankを高性能コアに置いていました。
-参照対は1.18.0への切替から、両rankに `5-9,15-19` を指定して配信しており、そこでpreflightの確認と読み戻しが通りました（[1.15.0での測定](benchmarks.ja.md#1150での測定)）。
+両rankは歩調をそろえて進むので、一方のrankが高効率コアにいるだけで両方のdecodeが遅くなり、固定しなければスケジューラが高性能コアに置き続ける保証はありません（[1.15.0での測定](benchmarks.ja.md#1150での測定)。参照対のCPU配置もそこにあります）。
 
 ## 公開した任意設定と配布既定の差
 
@@ -90,9 +89,9 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 `runtime.canonical_moe_order`（テンプレートは `true`。未指定はimageの既定に従い、1.6.0から作ったimageでは有効）は、全rankに `GLM53_CANONICAL_MOE_ORDER` を渡します。`true` にすると、参照imageがMarlinのMoE kernelの前に各expertのスロットをtoken id順に並べます。新規の起動には `GLM53_MOE_ORDER_API=2`（1.7.0から作ったimage）が要ります。marker 1は、切替の復旧先として残す稼働中の対にだけ認めます（[起動検査](operations.ja.md#フルモデルの起動検査)）。`false` は比較用のarmで、imageの対応は要りません。expert parallelには手を入れません。既定で有効にしているのは、今後のA/Bを読む物差しとして、再現できる基準が要るためです。
 
-`runtime.stable_indexer_topk`（テンプレートは `true`。未指定はimageの既定で、1.6.0から作ったimageではon）は、全rankに `GLM53_STABLE_INDEXER_TOPK` を設定します。kpool indexerは4 tokenを1 poolに畳み、query行ごとに512 poolを選びます。`true` の時、512位の境界の同点は低いpool indexに決まります。decodeは安定なsort（6行で計測して1回0.07〜0.25 ms。kernelは0.01〜0.02 ms。同期なし）、prefillはkernelのまま、512位の値を収まりきらない数のpoolが共有している行だけを選び直します（呼び出しごとに同期1回）。`GLM53_INDEXER_TOPK_API=1` が要ります。`false` は比較用のarmです。
+`runtime.stable_indexer_topk`（テンプレートは `true`。未指定はimageの既定で、1.6.0から作ったimageではon）は、全rankに `GLM53_STABLE_INDEXER_TOPK` を設定します。kpool indexerは4 tokenを1 poolに畳み、query行ごとに512 poolを選びます。`true` の時、512位の境界の同点は低いpool indexに決まります。decodeは安定なsort（同期なし。費用は[再現性](repeatability.ja.md)にあります）、prefillはkernelのまま、512位の値を収まりきらない数のpoolが共有している行だけを選び直します（呼び出しごとに同期1回）。`GLM53_INDEXER_TOPK_API=1` が要ります。`false` は比較用のarmです。
 
-`runtime.inductor_deterministic`（テンプレートは `true`。未指定か `false` はInductorの計測による選択）は、全rankに `TORCHINDUCTOR_DETERMINISTIC=1` を設定し、`TORCHINDUCTOR_CACHE_DIR` を `/root/.cache/torchinductor-deterministic` に移します。決定性モードのInductorはreductionのconfigを計測せずに、どのrankでも同じものに決めます。torch 2.13と2.12.1は最初にcompileしたframeの後でモードを切るので（[pytorch/pytorch#198563](https://github.com/pytorch/pytorch/issues/198563)。GB10では [vllm-project/vllm#58636](https://github.com/vllm-project/vllm/issues/58636) に報告）、launcherは `glm53_setup/runtime/inductor_pin.py` と一行の `.pth` をmountし、設定を強制値で保ちます。モードなしでcompileしたgraphは既存のcacheから計測の候補ごと戻ってくるので、モードは専用のcacheにcompileします。keyを付けた最初の起動ではindexerのleafを作り直します（rankごとに約45ファイル）。pointwiseのleafはrankごとに計測を続けますが、要素ごとに同じ命令で計算するのでblockの大きさはbitを変えません。imageの対応は要りません。
+`runtime.inductor_deterministic`（テンプレートは `true`。未指定か `false` はInductorの計測による選択）は、全rankに `TORCHINDUCTOR_DETERMINISTIC=1` を設定し、`TORCHINDUCTOR_CACHE_DIR` を `/root/.cache/torchinductor-deterministic` に移します。決定性モードのInductorはreductionのconfigを計測せずに、どのrankでも同じものに決めます。torch 2.13と2.12.1は最初にcompileしたframeの後でモードを切るので（[pytorch/pytorch#198563](https://github.com/pytorch/pytorch/issues/198563)。GB10では [vllm-project/vllm#58636](https://github.com/vllm-project/vllm/issues/58636) に報告）、launcherは `glm53_setup/runtime/inductor_pin.py` と一行の `.pth` をmountし、設定を強制値で保ちます。モードなしでcompileしたgraphは既存のcacheから計測の候補ごと戻ってくるので、モードは専用のcacheにcompileします。keyを付けた最初の起動ではindexerのleafを作り直します（[再現性](repeatability.ja.md)）。pointwiseのleafはrankごとに計測を続けますが、要素ごとに同じ命令で計算するのでblockの大きさはbitを変えません。imageの対応は要りません。
 
 これらのスイッチが扱うのは単独の要求です。`max_num_seqs` が2以上だと、他の要求とstepを共有した要求は、なお違うcompletionになりえます。その理由と、`max_num_seqs = 1` で配信すべき場合は[同時実行の範囲](validation.ja.md#同時実行の範囲)にあります。
 
@@ -100,7 +99,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ### attentionとcacheとcheckpoint
 
-`runtime.fa2_attention`（未指定はfalse、テンプレートは `true`）は、全rankに `GLM53_FA2_ATTENTION` を設定します。`true` にすると、候補を保持するNoPE attentionのうちquery行が6を超える呼び出しが、参照計算の代わりにFlashInferの `BatchMLAPagedAttentionWrapper`（backendは `fa2`、page sizeは1、各行の候補をその行のKV pageとして渡す）を通ります。packedの `fp8_ds_mla` cacheはそのままで、呼び出しが触る行だけをBF16に展開します。FlashInfer 0.6.18はSM90以外でFP8のMLA KVを受け付けないためです。選ばれた候補はすべて保持するので、この呼び出しより上流のprefix cache・unpack融合・候補の並びは変わりません。6行までの呼び出しは参照経路のままです。`plan()` は各行の長さをhost側に要求し、MLA層ごとに同期が1回入ります。prefillのchunkに対しては安く、decodeのstepに対しては高い費用です。閾値は呼び出し全体の行数で数えます。1系列のdecodeのstep（最大6行＝MTPの深さ5）はすべて参照経路ですが、2系列では深さ3の検証stepが8行になってFA2を通ります（[反復性への影響](validation.ja.md#同時実行の範囲)）。基準の2台では、38,962 tokenのprefillが約2.2倍速くなりました（[1.6.0での測定](benchmarks.ja.md#160での測定)）。unpack融合は要素数を実行時に受け取るので、256Kの系列で要素数ごとにTritonのkernelを一つcompileすることはもうありません。この経路はLPAと排他です。`server preflight` は、この経路を持つimage（`GLM53_FA2_ATTENTION_API=1`、行 `fa2_attention_support`）を、復旧先も含めて要求します。checkoutは今も、この経路・そのdispatch・上記のunpack融合をimageの上にmountします。
+`runtime.fa2_attention`（未指定はfalse、テンプレートは `true`）は、全rankに `GLM53_FA2_ATTENTION` を設定します。`true` にすると、候補を保持するNoPE attentionのうちquery行が6を超える呼び出しが、参照計算の代わりにFlashInferの `BatchMLAPagedAttentionWrapper`（backendは `fa2`、page sizeは1、各行の候補をその行のKV pageとして渡す）を通ります。packedの `fp8_ds_mla` cacheはそのままで、呼び出しが触る行だけをBF16に展開します。FlashInfer 0.6.18はSM90以外でFP8のMLA KVを受け付けないためです。選ばれた候補はすべて保持するので、この呼び出しより上流のprefix cache・unpack融合・候補の並びは変わりません。6行までの呼び出しは参照経路のままです。`plan()` は各行の長さをhost側に要求し、MLA層ごとに同期が1回入ります。prefillのchunkに対しては安く、decodeのstepに対しては高い費用です。閾値は呼び出し全体の行数で数えます。1系列のdecodeのstep（最大6行＝MTPの深さ5）はすべて参照経路ですが、2系列では深さ3の検証stepが8行になってFA2を通ります（[反復性への影響](validation.ja.md#同時実行の範囲)）。prefillへの効果は[1.6.0での測定](benchmarks.ja.md#160での測定)にあります。unpack融合は要素数を実行時に受け取るので、256Kの系列で要素数ごとにTritonのkernelを一つcompileすることはもうありません。この経路はLPAと排他です。`server preflight` は、この経路を持つimage（`GLM53_FA2_ATTENTION_API=1`、行 `fa2_attention_support`）を、復旧先も含めて要求します。checkoutは今も、この経路・そのdispatch・上記のunpack融合をimageの上にmountします。
 
 `runtime.prefix_page_dedup`（未指定はoff＝固定vLLMのpoolのまま。AXLの例で設定）は、全rankに `GLM53_PREFIX_PAGE_DEDUP` を設定し、`GLM53_PREFIX_DEDUP_API=1`（1.9.0から作ったimage）を要求します。固定vLLMのblock poolは、同じhashのblockが既にcacheにあっても、fullになったblockをそのhashで登録します。draftがあるとprefix lookupは一致した末尾blockをhitから外して再計算するので、同じ履歴を再送するたびにKV cache groupごとに1 blockが既にあるhashでLRU queueに加わり、その複製が古い履歴を先に追い出します。keyをonにすると、そのblockは登録されません。hashを持たず、要求が終わるとfree queueの先頭に戻り、lookupは先にcacheされた複製にhitし続けます。block idと数値は変わりません（[1.9.0での測定](benchmarks.ja.md#190での測定)）。
 
@@ -112,9 +111,9 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ### 並列化と通信
 
-`runtime.nccl_channels`（未指定はNCCLに任せる、テンプレートは8）は、全rankの `NCCL_MIN_NCHANNELS` と `NCCL_MAX_NCHANNELS` に同じ正の整数を渡します。参照機ではNCCL 2.30.7に任せると64本になります。MTU 1500で8本にすると、実モデルの最小空きメモリがheadで2.8 GiB、peerで3.0 GiB増え、prefillは遅くなりませんでした（[チャネル数の測定](nccl-validation.ja.md#チャネル数)）。1.3.1より前に書いたprofileにはキーが無く、NCCLの選択をそのまま保ちます。テンプレートの値を使うにはキーを足します。Mia PR #200を参考にしました。
+`runtime.nccl_channels`（未指定はNCCLに任せる、テンプレートは8）は、全rankの `NCCL_MIN_NCHANNELS` と `NCCL_MAX_NCHANNELS` に同じ正の整数を渡します。参照機でNCCL自身の選択に比べ、8本は両rankのメモリを空け、prefillを遅くしません（[チャネル数の測定](nccl-validation.ja.md#チャネル数)）。1.3.1より前に書いたprofileにはキーが無く、NCCLの選択をそのまま保ちます。テンプレートの値を使うにはキーを足します。Mia PR #200を参考にしました。
 
-`runtime.shm_spin_seconds`（未指定はvLLMの1秒。どのテンプレートも0.002、[施策台帳P29](optimization-catalog.ja.md#性能施策一覧)）は、vLLMの共有メモリbroadcastの読み手が、最後に読んでから `sched_yield()` で回り続ける時間を決めます。過ぎるとzmqのpollで眠ります。ランチャーはcheckoutから `glm53_setup/runtime/shm_spin.py` と1行の `.pth` をmountし、全rankに `GLM53_SHM_SPIN_SECONDS` を渡します。imageの対応は要りません。0.002〜1の外の値は拒否し、キーが無ければ何もmountも設定もしません。hostあたりGPU 1基では、固定vLLMの共有メモリの読み手はheadにしかいません（TP=2でもTP=3でも同じ）。worker 0の返答を読むEngineCoreと、schedulerのbroadcastを読むworker 0です。ほかのrankはどちらもzmqで読みます。参照機でspinしていたのはEngineCoreだけです。0.002秒がそのCPU負荷・headの温度・decodeに与えた効果は[1.25.0での測定](benchmarks.ja.md#1250での測定)にあります。TP=3のテンプレートの値は延長での適用で、TP=3での効果は測っていません。
+`runtime.shm_spin_seconds`（未指定はvLLMの1秒。どのテンプレートも0.002、[施策台帳P29](optimization-catalog.ja.md#性能施策一覧)）は、vLLMの共有メモリbroadcastの読み手が、最後に読んでから `sched_yield()` で回り続ける時間を決めます。過ぎるとzmqのpollで眠ります。ランチャーはcheckoutから `glm53_setup/runtime/shm_spin.py` と1行の `.pth` をmountし、全rankに `GLM53_SHM_SPIN_SECONDS` を渡します。imageの対応は要りません。0.002〜1の外の値は拒否し、キーが無ければ何もmountも設定もしません。hostあたりGPU 1基では、固定vLLMの共有メモリの読み手はheadにしかいません（TP=2でもTP=3でも同じ）。worker 0の返答を読むEngineCoreと、schedulerのbroadcastを読むworker 0です。ほかのrankはどちらもzmqで読みます。参照機でspinしていた読み手と、0.002秒がそのCPU負荷・headの温度・decodeに与えた効果は[1.25.0での測定](benchmarks.ja.md#1250での測定)にあります。TP=3のテンプレートの値は延長での適用で、TP=3での効果は測っていません。
 
 `runtime.expert_parallel=false` が既定です。有効にすると両rankへ `--enable-expert-parallel` を追加し、TP=2／DP=1、精度、固定KV予算を維持します。`GLM53_EXPERT_PARALLEL_API=1` が必要です。範囲はeager・1／2系列・MTP/LPA/fusion/APCなしです。全モデルで測って不採用としました（[Expert Parallel](performance-investigation.ja.md#expert-parallelp21)）。既存TOMLにもキーを明示し、欠落時のfallbackは設けません。
 
@@ -126,9 +125,9 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ### 3ノード
 
-`[[nodes]]` が3つなら、スイッチなしのQSFPリング上でTP=3を動かします（[QSFP直結](qsfp-network.ja.md)）。モデルのattentionとKDAのhead 64、routed・shared expertの幅2,048、語彙は3で割り切れないので、ランチャーが全rankに `GLM53_TP_PAD_MULTIPLE=3` を設定し、imageがロード時にゼロで埋めます：headは66（rankあたり22）、幅は2,112（rankあたり704）、語彙は192の倍数（154,880から154,944）に、MTPのdraftも同じように埋めます。単一ホストのfixtureでは、埋めたheadは厳密にゼロ、本来のheadは前とbit単位で同じでした。`GLM53_TP_PAD_API=1` が必要です（[イメージの契約](#現行イメージの契約)）。2ノードではknobを設定せず、patchは何も変えません。3ノードではランチャーはさらに：
+`[[nodes]]` が3つなら、スイッチなしのQSFPリング上でTP=3を動かします（[QSFP直結](qsfp-network.ja.md)）。モデルのattentionとKDAのhead 64、routed・shared expertの幅2,048、語彙は3で割り切れないので、ランチャーが全rankに `GLM53_TP_PAD_MULTIPLE=3` を設定し、imageがロード時にゼロで埋めます：headは66（rankあたり22）、幅は2,112（rankあたり704）、語彙は192の倍数（154,880から154,944）に、MTPのdraftも同じように埋めます（[1台での確認](benchmarks.ja.md#1240での測定)）。`GLM53_TP_PAD_API=1` が必要です（[イメージの契約](#現行イメージの契約)）。2ノードではknobを設定せず、patchは何も変えません。3ノードではランチャーはさらに：
 
-- 疎MLAのdecodeを、rankあたり22 headを受ける参照attentionで処理します。SM120のFlashInferのdecode kernelが受けるのは8・16・32・64・128 headだけです。`runtime.fa2_attention` はTP=3のどの測定でもonでした
+- 疎MLAのdecodeを、rankあたり22 headを受ける参照attentionで処理します。SM120のFlashInferのdecode kernelが受けるのは8・16・32・64・128 headだけです。`runtime.fa2_attention` はTP=3のどの測定でもonでした（[1.24.0での測定](benchmarks.ja.md#1240での測定)）
 - 視覚塔をdata parallelで動かします（`--mm-encoder-tp-mode data`）。16 headが3で割り切れないためです
 - `NCCL_IB_SUBNET_AWARE_ROUTING=1` を設定します
 - derived checkpoint（公開した任意設定）を受けます。そのoverlayは埋めた66 headをTPで分けます。PP2・EP・LPAは2ノードのままです（[起動契約](launch-safety.ja.md#3ノード)）
@@ -239,7 +238,7 @@ run_seconds = 0
 
 実行中に必要なcacheは、保持中の各要求の入力＋生成済みtokenに従ってpool内のblockを消費します。最大長を同時に保証したい場合は、出力予算も含む最大条件で検証します。GLMは疎MLA・IndexPool・系列ごとのKDA状態を併用するため、一般的なdense attentionの単純なbytes/token式をそのまま使わず、**固定runtimeのcache spec・block整列・各groupの容量と状態slot数**で見積もります。MTP等の追加状態も別途含めます。
 
-各ノードで、重み＋KV/cache状態＋activation・indexer等の一時領域＋MTP/Graph等の追加領域＋CPU/OS・他負荷＋運用余裕が、利用可能な統合RAMに収まる必要があります。KV poolを固定しても、context・chunk・同時数に依存する別の割当が増えることはあります。コンテナ上限と`reserve_gib`は保護手段であり、容量適合や無停止の保証ではありません。以前の 256K テキスト専用 profile は実測 121 GiB のホストでこの保護に接していました。available は 4.5 GiB 前後で推移し、保護余裕 4 では監視停止（`stop-reason: memory-reserve`）が 2 回発生し（2 回目は 16,859 token の近似要求の最中）、その後 3 へ下げました。画像入力構成の配信中の head の空きは、NCCL の 64 チャネルでは約 4.0〜4.2 GiB（[実測](vision.ja.md#メモリ最終構成)）、8 チャネルでは [1.3.1 の 200K 実入力](benchmarks.ja.md#131での200k実入力)で 6.97 GiB 以上、chunk 2048 で 6.40 GiB 以上でした。256K・KV 3 GiB では 5.82 GiB 以上で（[1.5.0 での測定](benchmarks.ja.md#150での測定)）、テンプレートは 3 です。値は小数でも指定できます。変える前に、この保護が捉えられる範囲を見積もってください。監視は `MemAvailable` を 2 秒ごとに読み、実測では割り込んだ標本からコンテナ終了まで約 9 秒かかりました。実行中のコンパイルで測った 0.15 GiB/秒の下降なら、reserve から約 1.6 GiB 下まで沈み得ます。参照ホストではカーネル・コンテナとも OOM kill の記録はなく、ホスト側のページは 16 GiB の swap が受けるため、reserve を割った先の危険はワーカー内の GPU 確保の失敗です。その場合は監視停止ではなく、エンジンが突然終了します。ドライバの `NV_ERR_NO_MEMORY` カーネルメッセージは空き 4 GiB 以上、主にロード中に出るもので、底の目印にはなりません。
+各ノードで、重み＋KV/cache状態＋activation・indexer等の一時領域＋MTP/Graph等の追加領域＋CPU/OS・他負荷＋運用余裕が、利用可能な統合RAMに収まる必要があります。KV poolを固定しても、context・chunk・同時数に依存する別の割当が増えることはあります。コンテナ上限と`reserve_gib`は保護手段であり、容量適合や無停止の保証ではありません。以前の 256K テキスト専用 profile はこの保護に接しており、その後保護余裕を 4 から 3 へ下げました（[256Kでの実入力確認](benchmarks.ja.md#256kでの実入力確認)）。head の空きの最小は、NCCL の 64 チャネルでは[画像入力](vision.ja.md#メモリ最終構成)に、8 チャネルでは [1.3.1 の 200K 実入力](benchmarks.ja.md#131での200k実入力)に、chunk 2048 では [1.4.0 の 200K 実入力](benchmarks.ja.md#140での200k実入力)に、256K・KV 3 GiB では [1.5.0 での測定](benchmarks.ja.md#150での測定)にあります。テンプレートは 3 です。値は小数でも指定できます。変える前に、この保護が捉えられる範囲を見積もってください。監視は `MemAvailable` を 2 秒ごとに読み、速い下降ならコンテナが終了する前に reserve の下まで沈み得ます（[どこまで沈むか](vision.ja.md#設定を選んだ経緯)）。参照ホストではカーネル・コンテナとも OOM kill の記録はなく、ホスト側のページは [swap](operations.ja.md#swap) が受けるため、reserve を割った先の危険はワーカー内の GPU 確保の失敗です。その場合は監視停止ではなく、エンジンが突然終了します。ドライバの `NV_ERR_NO_MEMORY` カーネルメッセージは主にロード中に出るもので、底の目印にはなりません（[出る条件](operations.ja.md#標本に記録するもの)）。
 
 KVが不足すれば起動が拒否される場合があり、実行時は待ちやpreemption・再計算により性能が落ちることがあります。固定KV poolが勝手に必要量まで拡張されるわけではありません。KV以外の割当やRAM予算が不足すればOOMやガード停止も起こり得ます。[vLLMのpreemption説明](https://docs.vllm.ai/en/latest/configuration/optimization/#preemption)
 
