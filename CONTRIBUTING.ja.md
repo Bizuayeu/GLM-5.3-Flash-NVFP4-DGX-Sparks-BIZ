@@ -13,7 +13,7 @@ ruff format --check glm53_setup tests tools
 python tools/check_publication.py
 ```
 
-GPUの検査はCPUテストとは別です。固定版イメージを使い、実効引数、出力の完全性、数値差、失敗を記録します。検証手順は[v1/docs/validation.ja.md](v1/docs/validation.ja.md)にあります。
+GPUの検査はCPUテストとは別です。固定版イメージを使い、実効引数、出力の完全性、数値差、失敗を記録します。検証手順は系列ごとにあります：[1.x系](v1/docs/validation.ja.md)、[2.x系](v2/docs/validation.ja.md)。
 
 - 認証情報、実機固有の設定、モデルの重み、生ログ、非公開の実験記録をコミットしません。
 - 推論中はモデル・cacheの成果物を読み取り専用に保ち、失敗した実行も残します。

@@ -13,7 +13,7 @@ ruff format --check glm53_setup tests tools
 python tools/check_publication.py
 ```
 
-GPU checks are separate from CPU tests. Use the pinned image and record effective arguments, output completeness, numerical differences and failures. The validation procedure is in [v1/docs/validation.md](v1/docs/validation.md).
+GPU checks are separate from CPU tests. Use the pinned image and record effective arguments, output completeness, numerical differences and failures. The validation procedures are each line's: [1.x](v1/docs/validation.md) and [2.x](v2/docs/validation.md).
 
 - Do not commit credentials, local site configuration, model weights, raw logs or private experiment records.
 - Keep model/cache artifacts read-only during inference and preserve failed runs.
