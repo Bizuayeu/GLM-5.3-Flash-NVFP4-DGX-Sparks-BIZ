@@ -6,7 +6,7 @@ One page showing which measure acts on which inference stage, where each one sta
 
 ## Baseline
 
-The baseline is the [catalog's dated reference point](optimization-catalog.md#baseline-and-source-ownership) measured at context 16K with 1 GiB KV per rank ([initial matrix](benchmarks.md#initial-matrix)); see the separate [32K sweep](benchmarks.md#independent-context-sweep-through-32k-p15) and [release candidate measurements](benchmarks.md#release-candidate-measurements) in the [records of earlier profiles](benchmarks.md#records-of-earlier-profiles) for the earlier 200K combination; [256K checks](benchmarks.md#real-input-checks-at-256k) cover the text-only alternative with KV 3 GiB per rank, and [image input](vision.md) the current defaults.
+The baseline is the [catalog's dated reference point](optimization-catalog.md#baseline-and-source-ownership), measured with the profile of the [initial matrix](benchmarks.md#initial-matrix); see the separate [32K sweep](benchmarks.md#independent-context-sweep-through-32k-p15) and [release candidate measurements](benchmarks.md#release-candidate-measurements) in the [records of earlier profiles](benchmarks.md#records-of-earlier-profiles) for the earlier 200K combination; [256K checks](benchmarks.md#real-input-checks-at-256k) cover the text-only alternative with KV 3 GiB per rank, and [image input](vision.md) the current defaults.
 
 ## Where each measure acts
 
@@ -31,8 +31,8 @@ flowchart LR
 | Measure | Mechanism | Status | Default | Owner |
 |---|---|---|---|---|
 | P19 APC | Register only exactly computed state in the shared cache and skip prefill for an identical prefix | Accepted, experimental, for measured serial long-prefix reuse ([catalog](optimization-catalog.md#performance-initiatives)) | on (`cache.prefix_caching=true`) | [P19](benchmarks.md#independent-full-model-prefix-caching-p19) / [correctness gate](correctness-gates.md#prefix-cache-correctness-gate) |
-| Checkpoint retention (`cache.prefix_cache_retention_interval`) | Keep KDA checkpoints at every scheduler block so more prefix H is restorable after a mid-history edit or branch | Adopted for the exact-primed serial mid-edit workload. The measured arm was the native interval 4,352; `dense` uses the same native KDA mask in the measured aligned layout, and its final combined integration is qualified separately | `dense` (omitting the key preserves runtime default 0) | [Retention A/B/A](benchmarks.md#apc-history-retention-baseline) / [contract](launch-safety.md#apc-history-qualification) |
-| P22 APC-first LPA | Approximate only beyond the restored H, and only when the remainder R = N − T − H exceeds threshold B; approximated state stays request-local | Completed ([catalog](optimization-catalog.md#performance-initiatives)); B = 128 is a conservative candidate threshold, not a universal crossover constant | APC on; LPA off (`lpa.break_even_tokens=128` applies when LPA is enabled) | [Design](apc-lpa-design.md) / [calibration](benchmarks.md#apc-first-lpa-crossover-measurement-p22) |
+| Checkpoint retention (`cache.prefix_cache_retention_interval`) | Keep KDA checkpoints at every scheduler block so more prefix H is restorable after a mid-history edit or branch | Adopted for the exact-primed serial mid-edit workload. The measured arm was the native interval; `dense` uses the same native KDA mask in the measured aligned layout, and its final combined integration is qualified separately | `dense` (omitting the key preserves runtime default 0) | [Retention A/B/A](benchmarks.md#apc-history-retention-baseline) / [contract](launch-safety.md#apc-history-qualification) |
+| P22 APC-first LPA | Approximate only beyond the restored H, and only when the remainder ([R](apc-lpa-design.md)) exceeds threshold B; approximated state stays request-local | Completed ([catalog](optimization-catalog.md#performance-initiatives)); B = 128 is a conservative candidate threshold, not a universal crossover constant | APC on; LPA off (`lpa.break_even_tokens=128` applies when LPA is enabled) | [Design](apc-lpa-design.md) / [calibration](benchmarks.md#apc-first-lpa-crossover-measurement-p22) |
 | P25 page dedup | Do not register a full block under a hash that already has a cached block, so a history re-sent under MTP stops evicting older ones | Adopted, 1.9.0 ([catalog](optimization-catalog.md#performance-initiatives)) | off; on in the published option (`runtime.prefix_page_dedup`) | [1.9.0](benchmarks.md#measurements-on-190) |
 
 ### Prefill
@@ -80,8 +80,8 @@ Client authentication, allocator propagation, rail checks and the two-rank switc
 
 Combined profiles are measured as combinations.
 
-- **P18** MTP3, fused unpack and async checks fixed; LPA off / on / restored compared. LPA adds about 15% / 19% at 2K / 8K with one output token and about 9% / 13% with 128 output tokens. Zero LPA-only regressions across 24 tasks. [P18](benchmarks.md#serial-integration-of-mtp-lpa-fused-unpack-and-async-checks-p18)
-- **P22 final combination** adds APC and LPA cut 32 / tail 512 / B 128 with 2 GiB KV per rank. Strict scores 21 / 24 / 23 of 24; held-out eight documents 7 / 8 / 8. [P22 combined](benchmarks.md#apclpa-with-mtp-fusion-and-asynchronous-checks-p22)
+- **P18** MTP3, fused unpack and async checks fixed; LPA off / on / restored compared: LPA shortened each of the four measured cases, with no LPA-only regression on the fixed tasks. [P18](benchmarks.md#serial-integration-of-mtp-lpa-fused-unpack-and-async-checks-p18)
+- **P22 final combination** adds APC and LPA cut 32 / tail 512 / B 128; neither the strict task scores nor the held-out documents showed an LPA-only regression. [P22 combined](benchmarks.md#apclpa-with-mtp-fusion-and-asynchronous-checks-p22)
 - **Final regression with retention** adds `dense` retention on the final image and measures 2K / 8K (H = 0) and 16K (H = 4,608) at 128 output tokens, three runs each. Its repetitions and comparison differ from the retention A/B/A, so it is a regression check, not an adoption basis. [Final regression](benchmarks.md#final-combined-retention-regression)
 
 ## Profiles by workload

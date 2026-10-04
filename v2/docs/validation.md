@@ -2,7 +2,7 @@
 
 [日本語](validation.ja.md) · [2.x overview](../README.md) · [Setup runbook](../SETUP.md)
 
-What a 2.x launch is accepted on, in the order to run it, with the reference values. The reference values were measured on the reference hosts on 2026-10-02 and 10-03 with development builds of the engine, and 2.0.0 was accepted against them on 2026-10-04 ([measured on the release](../README.md#measured-on-the-release)). A check that differs is a finding to explain before routine use, not a value to replace.
+What a 2.x launch is accepted on, in the order to run it, with the reference values. The reference values were measured on the reference hosts on 2026-10-02 and 10-03 with builds of the engine before the release, and 2.0.0 was accepted against them on 2026-10-04 ([measured on the release](../README.md#measured-on-the-release)). A check that differs is a finding to explain before routine use, not a value to replace.
 
 Run the tools from `v2/` of the checkout on rank 0, in its virtual environment ([setup §2](../SETUP.md#2-checkout-and-checkpoint)), against the engine on loopback (`http://127.0.0.1:8095`, model `glm-tf` unless the rank file sets others). Let the hosts cool between long requests ([GPU clock cap](../../docs/hosts.md#gpu-clock-cap)) and keep the memory guard running.
 
@@ -27,7 +27,7 @@ Before each sample it sends `TF_GLM_CACHE_ENTRIES` (default 8, the engine's) sho
 | prose | `e33450686f6b5624` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
 | code | `389d8fb9e3972b66` | `ac0a26c61c97838c` | `91f20cec01a74182` |
 
-The TP=2 hashes held across seven development builds and with one or two rails; the TP=3 hashes across ten launches, one or two rails and the three prefill exchanges. TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds: TP=2 41.16 / 26.82 / 34.87 tok/s, TP=3 52.90 / 38.29 / 48.66; acceptance length at TP=3 3.549 / 2.222 / 3.234.
+The TP=2 hashes held across seven engine builds and with one or two rails; the TP=3 hashes across ten launches, one or two rails and the three prefill exchanges. TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds: TP=2 41.16 / 26.82 / 34.87 tok/s, TP=3 52.90 / 38.29 / 48.66; acceptance length at TP=3 3.549 / 2.222 / 3.234.
 
 ## Drafted equals serial
 
@@ -56,11 +56,11 @@ Needs the `tokenizers` package in the environment that runs it; the Hugging Face
 
 ## Prefill and decode speed
 
-A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3. The measurement scripts are not part of this repository.
+A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, on a build before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3, below the heat wait's threshold and with the clock unchanged. The measurement scripts are not part of this repository.
 
 ## Long inputs
 
-A passphrase in the middle of 199,652 tokens of ledger lines, and three passphrases (start, middle, end) in 499,622 and 1,036,859 tokens. Reference at TP=3: 145.6 s and correct at 199,652; 454.1 s and 3 of 3 at 499,622; 3 of 3 at 1,036,859 with the first token after 1,364 s (an earlier build, before the `split` exchange and the indexer work; fitted to the 200K and 500K runs, the current build is predicted at about 1,112 s). The hottest host reached 89.6-90.1 °C during these, below the 94 °C at which the measurements stopped a run. The 1M prompt is not part of TP=2's window.
+A passphrase in the middle of 199,652 tokens of ledger lines, and three passphrases (start, middle, end) in 499,622 and 1,036,859 tokens. Reference at TP=3: 145.6 s and correct at 199,652; 454.1 s and 3 of 3 at 499,622; 3 of 3 at 1,036,859 with the first token after 1,364 s (on a build before the `split` exchange and the indexer work; fitted to the 200K and 500K runs, the build that ran them is predicted at about 1,112 s). The hottest host reached 89.6-90.1 °C during these, below the 94 °C of the [thermal watch](../../host/README.md#during-long-runs). The 1M prompt is not part of TP=2's window.
 
 ## Tools through the tool-argument gate
 
@@ -82,4 +82,4 @@ The release engine stops a decode on every rank within a round when the client d
 
 The memory guard's log (`~/glm53-tf/logs/hostwatch-<label>.log`) gives each host's lowest `MemAvailable` during the run. Reference at TP=3: 29-31 GiB on ranks 0 and 1 and 35 GiB on rank 2 during the 1M request; at TP=2 about 9 GiB on rank 0 with the extensions built ahead.
 
-The heat wait prints `[tensorfold] heat:` lines on every rank, one where a wait starts and one where it ends (and one a minute while it lasts), the same on every rank; the reply's `tensorfold` block gives `heat_wait_s`. Accepted when a long prompt finishes with no host at 94 °C, where the thermal watch stops the engine.
+The heat wait prints `[tensorfold] heat:` lines on every rank, one where a wait starts and one where it ends (and one a minute while it lasts), the same on every rank; the reply's `tensorfold` block gives `heat_wait_s`. Accepted when a long prompt finishes with no host at 94 °C, the [thermal watch](../../host/README.md#during-long-runs)'s limit.

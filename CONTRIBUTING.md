@@ -22,6 +22,8 @@ ruff format --check tools tests host/nccl_probe.py host/gb10-telemetry host/cool
 python tools/check_publication.py
 ```
 
+The audit applies its line rules to both lines (version, license, model pin, a changelog section for the version; 1.x also its document map, architecture page and README citations). `python tools/check_publication.py --duplicates` also lists measured-looking numbers found on more than one page of a line; it is a warning for whoever edits the documents, since a number has one owner page but may be cited deliberately.
+
 GPU checks are separate from CPU tests. Use the pinned image and record effective arguments, output completeness, numerical differences and failures. The validation procedures are each line's: [1.x](v1/docs/validation.md) and [2.x](v2/docs/validation.md).
 
 - Do not commit credentials, local site configuration, model weights, raw logs or private experiment records.

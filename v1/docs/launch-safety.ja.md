@@ -27,7 +27,7 @@ python -m glm53_setup server plan --config ../state/server.toml --launch ../stat
 
 ### 全レール検査
 
-各nodeの主レールは従来の `hca`・`interface`・`local_ip`・`gid_index`（port 1）です。任意の `additional_rails` に同じ項目と `port` を持つレコードを追加します。全レールで共通GID index、port／NIC／IPの重複排除、Ethernet portとlinkの稼働、IPv4対応RoCE v2 GID、当該NICへのIP割当を確認します。カンマ区切りのdevice文字列は受けず、構造化した設定を使います。NCCLには全HCA／portを完全一致指定し、socket bootstrapは主NICを使います。設定検査の成功と複数レール実通信の検収は別です。IPv4 対応 RoCE v2 の GID が設定した index から動いたレールは、NCCL が rank ごとに一つの index しか取らないので拒否します。起動前検査が示すヒント、原因、直し方は [GID indexが動く](../../docs/nccl-validation.ja.md#gid-indexが動く) にあります。
+各nodeの主レールは従来の `hca`・`interface`・`local_ip`・`gid_index`（port 1）です。任意の `additional_rails` に同じ項目と `port` を持つレコードを追加します。全レールで共通GID index、port／NIC／IPの重複排除、Ethernet portとlinkの稼働、IPv4対応RoCE v2 GID、当該NICへのIP割当を確認します。カンマ区切りのdevice文字列は受けず、構造化した設定を使います。NCCLには全HCA／portを完全一致指定し、socket bootstrapは主NICを使います。設定検査の成功と複数レール実通信の検収は別です。IPv4 対応 RoCE v2 の GID が設定した index から動いたレールは拒否します。理由と、起動前検査が示すヒント、原因、直し方は [GID indexが動く](../../docs/nccl-validation.ja.md#gid-indexが動く) にあります。
 
 単一レールでも `=hca:1` とport 1を明示します。portを省略すると、そのHCAの全portが対象となり、検査した範囲を超えるためです。[NVIDIAのNCCL HCA指定仕様](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-ib-hca)を参照してください。
 

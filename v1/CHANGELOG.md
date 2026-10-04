@@ -2,6 +2,17 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.3 — 2026-10-04
+
+### Added
+
+- `python tools/check_publication.py --duplicates` (at the checkout root) lists measured-looking numbers found on more than one English page of a line, outside changelogs and code spans. It is a warning for whoever edits the documents and does not change the exit status, since a page may cite a number on purpose ([CONTRIBUTING](../CONTRIBUTING.md)).
+
+### Documentation
+
+- About thirty facts still written on more than one page are now stated by the owner the [document map](docs/README.md) names and linked elsewhere: the image limits, the serving defaults, the aligned block, LPA's cache rule, the GID rule, the initial baseline, the tail ring slots, the NCCL channels, the clock cap's cost, the reasoning effort, the LPA threshold rule, the warmup rung, and the numbers in the README status table and the SETUP step 6 evidence. Numbers an owner lacked moved there: the stable top-k costs and [the NLL set on 1.26.0's defaults](docs/benchmarks.md#the-nll-set-on-1260s-distributed-defaults-2026-10-02).
+- Provenance: the prefix-cache restore figures in [server configuration](docs/server-configuration.md) were measured on 1.2.0, and the chunk-512 prefill times in [operations](docs/operations.md#warmup-ladder) predate 1.4.0, not 1.5.0.
+
 ## 1.29.2 — 2026-10-04
 
 ### Changed
