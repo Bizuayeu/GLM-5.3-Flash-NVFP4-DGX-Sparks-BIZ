@@ -997,7 +997,7 @@ The reference pair at TP=2 with the 1.29.0 image (`sha256:4d294272…`) and chec
 - The published option's extra wrong answer in the long gate (quoting Record 01524, answered with the line of Record 01523) is not caused by the key: sent alone with nothing cached, it came back the same with the drop as well (the fifth launch), together with the known Record 03008 answer. With the drop it had passed in the gate only because its request there read the prefix that a parallel request of the cold phase had written. On the defaults every task passed, cached and uncached, in both arms ([prefix-cache gate](correctness-gates.md#prefix-cache-correctness-gate)).
 - Not measured: the MTP acceptance rate on requests that hit the cache, which vLLM's warning concerns (the resends stopped at 64 tokens and the decode check reads nothing from the cache); TP=3; two requests in flight beyond the gate's parallel requests on the published option.
 
-No template sets the key; the [next action](../README.md#next-action) holds the acceptance measurement that comes first.
+No template sets the key: vLLM calls it experimental and it does not combine with LPA; the [next action](../README.md#next-action) names what would reopen it.
 
 ## Records of earlier profiles
 

@@ -997,7 +997,7 @@ spinしていたのはheadのEngineCoreだけでした。A1とA2のdumpではど
 - 任意設定のlongの関門で増えた誤答（Record 01524の行の引用に、Record 01523の行で答えた）は、keyのせいではありません。何もcacheされていない状態で1本だけ送ると、落とす設定（5回目の起動）でも、既知のRecord 03008の誤答と一緒に同じ答えが返りました。落とす設定の関門で当たったのは、その要求が、cold段階で並行して送られた別の要求の書いたprefixを読んだためです。配布既定は、両方の腕で、cacheの有無によらずすべての課題に正答しました（[prefix cacheの関門](correctness-gates.ja.md#prefix-cacheの正しさの関門)）。
 - 測っていないもの：vLLMの警告が対象とする、cacheが当たった要求でのMTPの受理率（送り直しは64 tokenで止め、decode検査はcacheを読まない）。TP=3。任意設定での、関門の並行要求を超える2系列の同時処理。
 
-このkeyはどのテンプレートも設定していません。先に測る受理率は[Next Action](../README.ja.md#next-action)にあります。
+このkeyはどのテンプレートも設定していません。vLLMが実験的とし、LPAと両立しないためで、考え直すきっかけは[Next Action](../README.ja.md#next-action)にあります。
 
 ## 旧profileの記録
 
