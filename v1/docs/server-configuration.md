@@ -256,13 +256,15 @@ Build the reference image from the checkout you launch (`python -m glm53_setup b
 | `GLM53_MOE_ORDER_API=2` | `runtime.canonical_moe_order` (`moe_order_support`; marker 1 only for a recovery target) | 1.7.0 (1 from 1.6.0) |
 | `GLM53_INDEXER_TOPK_API=1` | `runtime.stable_indexer_topk` (`indexer_topk_support`) | 1.6.0 |
 | `GLM53_FA2_ATTENTION_API=1` | `runtime.fa2_attention = true` (`fa2_attention_support`) | 1.6.0 |
-| `GLM53_SLOT_MAPPING_GUARD=1` | Never; without it requests above about 250K tokens fault on the published option ([operations](operations.md#full-model-launch-checks)) | 1.7.0 |
+| `GLM53_SLOT_MAPPING_GUARD=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.7.0 |
 | `GLM53_PREFIX_DEDUP_API=1` | `runtime.prefix_page_dedup` (`prefix_dedup_support`) | 1.9.0 |
 | `GLM53_KPOOL_SEED_STRIDE=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.13.0 |
 | `GLM53_KPOOL_RING=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.19.0 |
 | `GLM53_LOAD_CLONE=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.19.0 |
 | `GLM53_TP_PAD_API=1` | Three nodes, whose TP does not divide the heads, MoE width and vocabulary (`tp_padding_support`); the launcher then sets `GLM53_TP_PAD_MULTIPLE` on every rank, and the image zero-pads at load time (`glm53_setup/runtime/patch_tp_padding.py`) | 1.24.0 |
-| `GLM53_SAMPLER_VOCAB_BOUND=1` | Never; the samplers clamp a tile's argmax to the vocabulary ([operations](operations.md#full-model-launch-checks)) | 1.25.0 |
+| `GLM53_SAMPLER_VOCAB_BOUND=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.25.0 |
+
+An image without a marker that preflight never requires still launches and passes `cluster switch`.
 
 Images built from 1.14.0 through 1.17.0 also carry `GLM53_MLA_DECODE_CPB_API=1` and the unreachable patch of the removed `runtime.mla_decode_cpb`; no check reads them, and they are harmless.
 

@@ -267,13 +267,15 @@ KVが不足すれば起動が拒否される場合があり、実行時は待ち
 | `GLM53_MOE_ORDER_API=2` | `runtime.canonical_moe_order`（`moe_order_support`。marker 1は復旧先に限る） | 1.7.0（1は1.6.0から） |
 | `GLM53_INDEXER_TOPK_API=1` | `runtime.stable_indexer_topk`（`indexer_topk_support`） | 1.6.0 |
 | `GLM53_FA2_ATTENTION_API=1` | `runtime.fa2_attention = true`（`fa2_attention_support`） | 1.6.0 |
-| `GLM53_SLOT_MAPPING_GUARD=1` | 要求しない。無いと公開した任意設定で約25万tokenを超える要求が失敗する（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.7.0 |
+| `GLM53_SLOT_MAPPING_GUARD=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.7.0 |
 | `GLM53_PREFIX_DEDUP_API=1` | `runtime.prefix_page_dedup`（`prefix_dedup_support`） | 1.9.0 |
 | `GLM53_KPOOL_SEED_STRIDE=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.13.0 |
 | `GLM53_KPOOL_RING=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.19.0 |
 | `GLM53_LOAD_CLONE=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.19.0 |
 | `GLM53_TP_PAD_API=1` | ヘッド・MoE幅・語彙をTPが割り切らない3ノード（`tp_padding_support`）。そのときランチャーが全rankに `GLM53_TP_PAD_MULTIPLE` を設定し、imageが読み込み時にzero-padする（`glm53_setup/runtime/patch_tp_padding.py`） | 1.24.0 |
-| `GLM53_SAMPLER_VOCAB_BOUND=1` | 要求しない。samplerがtileのargmaxを語彙の範囲に収める（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.25.0 |
+| `GLM53_SAMPLER_VOCAB_BOUND=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.25.0 |
+
+preflightが要求しないmarkerは、無くてもimageは起動でき、`cluster switch` を通ります。
 
 1.14.0から1.17.0までに作ったimageは、取り除いた `runtime.mla_decode_cpb` の `GLM53_MLA_DECODE_CPB_API=1` と、届かないpatchも持ちます。どの検査もそれを読まず、害はありません。
 
