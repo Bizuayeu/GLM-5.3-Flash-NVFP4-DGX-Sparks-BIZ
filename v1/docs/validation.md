@@ -48,7 +48,7 @@ Before judging a difference, measure the unchanged arm at least twice and preser
 
 ## Evaluations and open items
 
-[FreedomBench](freedombench.md) (the pinned English suite, the reviewed Japanese translation and the framing and evidence-placement extension), [HLE](hle.md) (two 100-question subsets on both profiles, not comparable with published HLE values) and the [harness acceptance matrix](harnesses.md) (per-case status and the accepted route) own their results; the basic API smoke below feeds the matrix's API group and closes no client case. The [NCCL diagnostic](nccl-validation.md) covers transport and synthetic data correctness on two and three ranks, not the full model. Do not turn a fixture, API smoke or collective result into evidence for a scope the acceptance in [SETUP step 6](../SETUP.md#6-qualify-the-full-model) does not declare.
+[FreedomBench](freedombench.md) (the pinned English suite, the reviewed Japanese translation and the framing and evidence-placement extension), [HLE](hle.md) (two 100-question subsets on both profiles) and the [harness acceptance matrix](harnesses.md) (per-case status and the accepted route) own their results; the basic API smoke below feeds the matrix's API group and closes no client case. The [NCCL diagnostic](nccl-validation.md) covers transport and synthetic data correctness on two and three ranks, not the full model. Do not turn a fixture, API smoke or collective result into evidence for a scope the acceptance in [SETUP step 6](../SETUP.md#6-qualify-the-full-model) does not declare.
 
 Open, each with its owner:
 
@@ -78,7 +78,7 @@ Open, each with its owner:
 
 ### Loading, API and benchmark checks
 
-The reference image loaded all 45 language layers on two GB10 hosts with Marlin W4A16, eager execution, one active sequence, context 16,384 and 1 GiB KV per rank. The serial TP=2 four-layer fixture passed all existing state checks. With two active fixture sequences, one greedy path diverged at a near tie; that raw diagnostic remains failed and is separate from task-level acceptance.
+The reference image loaded all 45 language layers on two GB10 hosts with the profile of the [initial matrix](benchmarks.md#initial-matrix). The serial TP=2 four-layer fixture passed all existing state checks. With two active fixture sequences, one greedy path diverged at a near tie; that raw diagnostic remains failed and is separate from task-level acceptance.
 
 The full model passed basic served-ID, English/Japanese final-answer, OpenAI SSE, harmless automatic tool/argument/return, and Anthropic Messages/count_tokens smoke checks. Chat acceptance with low reasoning effort also passed these final-answer/tool criteria. Reasoning text differed on replay; it remains a diagnostic rather than a requirement for identical free-form wording. The unsupported thinking-off request caused parser/content mixing and is not an accepted configuration; see [harness settings](harnesses.md).
 

@@ -11,10 +11,9 @@
 | キー | 値 | 効果 |
 |---|---|---|
 | `runtime.vision` | `true` | 全rankから `--language-model-only` を外して視覚塔を読み込み、`--limit-mm-per-prompt '{"video": 0}'` を付ける |
-| `context.max_model_len` | 262144 | テキスト専用の代替と同じ長さ |
-| `cache.kv_cache_memory_bytes` | 3221225472（配布既定で各rank 3 GiB。[公開した任意設定](server-configuration.ja.md#公開した任意設定と配布既定の差)は6 GiB） | 配布既定の起動行の301,645 tokenは `max_model_len` の1.15倍、つまりpoolの最大同時実行数をtoken単位で表した値で、会話を何token保持できるかではない（[`server capacity`](server-configuration.ja.md#kv容量とramの条件)） |
 | `cache.mm_processor_cache_gb` | 0.1 | vLLM既定の4 GiBではなく `--mm-processor-cache-gb 0.1` |
-| `resources.reserve_gib` | 3.0 | 保護の見積もりは[KV容量とRAMの条件](server-configuration.ja.md#kv容量とramの条件) |
+
+コンテキスト長（テキスト専用の代替と同じ長さ）、rankあたりのKVのバイト数、保護余裕はテンプレートの値です（[配布用の既定設定](server-configuration.ja.md#配布用の既定設定)。[公開した任意設定](server-configuration.ja.md#公開した任意設定と配布既定の差)はKVを自分で設定します）。KVのpoolの起動行の値はpoolの最大同時実行数をtoken単位で表した値で、会話を何token保持できるかではありません。保護の見積もりも同じ所にあります（[KV容量とRAMの条件](server-configuration.ja.md#kv容量とramの条件)）。256Kでの配布既定の値は[256Kでの起動](benchmarks.ja.md#256kでの起動)にあります。
 
 クライアントは画像入力を宣言し、動画は宣言しません。ZCodeではモデルの `limit.context` を262144、`modalities.input` を `["text", "image"]` にします（[ZCodeのモデル上限](harnesses.ja.md#zcodeの権限モードモデル上限既存ファイルガード)）。テキスト専用の代替は[起動設定](server-configuration.ja.md#配布用の既定設定)にあります。
 
@@ -25,7 +24,7 @@
 3. **画像前処理キャッシュを0.1 GiBに制限した。** vLLMはAPIサーバとエンジンコアにそれぞれ持ち、どちらもrank 0だけで動くため、既定の4 GiBではheadのメモリを最大8 GiB使い得ます。上限より大きい画像はキャッシュせずに処理し、警告だけを出します。
 4. **headは他のrankより荷物が多く、リバランスできない。** APIサーバとエンジンコアはrank 0だけで動きます。無負荷時のPss（共有ページを按分したメモリ量）はAPIサーバ2,165 MiB、エンジンコア999 MiBで、rank 1のheadlessプロセスは1,056 MiBでした。ほぼすべてがプロセス専有の匿名メモリです。TPにはrank間でGPUメモリを寄せる設定がなく、vLLMは全rankのKVブロック数を最小のrankに揃え、`vllm serve` ではAPIサーバとエンジンコアを一つのプロセスにできず、headを他のホストへ移しても荷物が移るだけです。
 5. **JITキャッシュはマウント済みのruntime cacheに残る**（`TRITON_CACHE_DIR`・`TILELANG_CACHE_DIR`・`TORCHINDUCTOR_CACHE_DIR`。[保管場所](operations.ja.md#資材の保管場所とパス)）。コンテナ層に書いていた頃は起動のたびに約2,000件を作り直し、配信中のコンパイルでheadの空きが約26秒で4.11から2.88 GiBへ落ち、rank 0が監視停止したことがあります。キャッシュを残すと、起動中のheadの空きの最小は3.34から4.18 GiBに上がりました（各1回の起動）。
-6. **1.5.0から保護余裕3 GiB、KV各rank 3 GiB、262,144 token。** 最初の画像入力構成（2026-09-15）は、視覚塔と前処理のためにコンテキストを204,800に縮め、KVと保護余裕をそれぞれ0.5 GiB減らしていました。その後、NCCLの8チャネル化（1.3.1、[数値](nccl-validation.ja.md#チャネル数)）と、2026-09-16のpeerの監視停止がホストのデーモン由来と分かったこと（[運用](operations.ja.md#ホストのデーモン)）でheadの底が上がり、200Kの要求中にheadは6.40 GiBを保ち、256Kの起動中の実測は5.89 GiBで、進める条件（保護＋1.6 GiB）を満たしました。300K・KV 4 GiBは同じ見積もりで余白が0.3 GiBしかなく見送りました。保護余裕は床ではなく一時的な下降1回分の余白です。カーネル・コンテナのOOM killの記録はなく、保護を割った先の危険はワーカー内のGPU確保の失敗で、監視は2秒ごとに空きを読み、コンテナの停止に約9秒かかります。実行中のコンパイルで測った0.15 GiB/秒の下降なら、reserveから約1.6 GiB下まで沈み得ます。
+6. **1.5.0からテンプレートの保護余裕、KV、コンテキスト長（[値](server-configuration.ja.md#配布用の既定設定)）。** 最初の画像入力構成（2026-09-15）は、視覚塔と前処理のためにコンテキストを204,800に縮め、KVと保護余裕をそれぞれ0.5 GiB減らしていました。その後、NCCLの8チャネル化（1.3.1、[数値](nccl-validation.ja.md#チャネル数)）と、2026-09-16のpeerの監視停止がホストのデーモン由来と分かったこと（[運用](operations.ja.md#ホストのデーモン)）で、200Kの要求中（[1.4.0で](benchmarks.ja.md#140での200k実入力)）と256Kの起動中（[256Kでの起動](benchmarks.ja.md#256kでの起動)）のheadの底が上がり、進める条件（保護＋1.6 GiB）を満たしました。300K・KV 4 GiBは同じ見積もりで余白が0.3 GiBしかなく見送りました。保護余裕は床ではなく一時的な下降1回分の余白です。カーネル・コンテナのOOM killの記録はなく、保護を割った先の危険はワーカー内のGPU確保の失敗で、監視は2秒ごとに空きを読み、コンテナの停止に約9秒かかります。実行中のコンパイルで測った0.15 GiB/秒の下降なら、reserveから約1.6 GiB下まで沈み得ます。
 
 ## 実測
 
@@ -45,7 +44,7 @@
 
 ### 200Kのテキスト要求
 
-中央に合言葉を置いた199,652 prompt tokenの要求1本は、506.1秒（prefillを含む要求全体、1回）で `finish_reason: stop` とともに合言葉を正しく返しました。保護余裕とJITキャッシュを変更する前の画像入力構成での実施です。この間のheadの空きの最小は3.31 GiBで、監視停止はありませんでした。ZCodeのストリームidle timeout 700,000 msはこの時間を上回ります。
+中央に合言葉を置いた199,652 prompt tokenの要求1本は、`finish_reason: stop` とともに合言葉を正しく返しました（1回）。保護余裕とJITキャッシュを変更する前の画像入力構成での実施で、監視停止はありませんでした。prefillを含む要求全体の時間と、この間のheadの空きの最小は、1.3.1と比べた[1.3.1での200K実入力](benchmarks.ja.md#131での200k実入力)にあります。ZCodeのストリームidle timeout 700,000 msはこの時間を上回ります。
 
 ### メモリ（最終構成）
 
@@ -85,7 +84,7 @@
 
 ### 1.29.0（2026-10-04）
 
-1.29.0の参照imageは、[vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)を固定版のsourceに当てています（`patch_image_budget`）。参照機の対（TP=2）で、両profileの両rankが `Encoder cache will be initialized with a budget of 8000 tokens` を出しました（以前は7,921）。下の画像はそれぞれ、[#59539](https://github.com/vllm-project/vllm/issues/59539)の1行の要求と、画像に書いた大きさを読ませる要求の2つで送りました。
+1.29.0の参照imageは、[vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)を固定版のsourceに当てています（`patch_image_budget`）。参照機の対（TP=2）で、両profileの両rankが `Encoder cache will be initialized with a budget of 8000 tokens` を出しました（以前は `budget of 7921 tokens`）。下の画像はそれぞれ、[#59539](https://github.com/vllm-project/vllm/issues/59539)の1行の要求と、画像に書いた大きさを読ませる要求の2つで送りました。
 
 | 画像 | 1行の要求のprompt token | 1.29.0より前 | 公開した任意設定 | 配布既定 |
 |---|---:|---|---|---|
@@ -106,7 +105,7 @@
 
 ## 限界と未解決の事項
 
-- 合成画像での確認です。モデル自体の上限である8,000 tokenまでの画像と、8枚までの画像は読めましたが（上の1.29.0と1.19.0）、画像理解の品質全般は未計測です。1.29.0より前は、サーバーのencoder cacheが正方形の画像から大きさを決めていたため（7,921 = 89×89 token）、処理後の大きさが7,922〜8,000 tokenの画像（4:3のスマホの写真、4Kの画面、300 dpiのA4のスキャンなど）がHTTP 400で拒否されました（[vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)）。1.29.0はその修正の[vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)を固定版のsourceに当てています。上限より大きい画像は、processorが上限に収まるよう縮小します。
+- 合成画像での確認です。モデル自体の上限である8,000 tokenまでの画像と、8枚までの画像は読めましたが（上の1.29.0と1.19.0）、画像理解の品質全般は未計測です。1.29.0より前は、サーバーのencoder cacheがprocessorの正確な上限（既定の予算で8,000 = 80 × 100 token）ではなく正方形の画像から大きさを決めていたため（7,921 = 89×89 token）、処理後の大きさが7,922〜8,000 tokenの画像（4:3のスマホの写真、4Kの画面、300 dpiのA4のスキャンなど）がHTTP 400で拒否されました（[vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)）。1.29.0はその修正の[vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)を固定版のsourceに当てています。上限より大きい画像は、processorが上限に収まるよう縮小します。
 - TP=3での262,144 token超の画像は未計測です。
 - MTPのdraftはテキスト専用です。画像を含む要求での受理率は1.19.0で各profile 1回だけ測りました（上）。画像とLPAの併用も未検証です（LPAは配布既定で無効）。
 - ZCodeのターミナル版の会話1回（2026-09-15）で、モデルがシェルコマンドでスクリーンショットを保存し、ファイル読み取りツールで読み、画像の中にしかない文言を正しく説明しました。ZCodeのプロンプトへ画像を直接添付する操作は未確認です（Claude Codeは範囲外、[ハーネス](harnesses.ja.md#受け入れ試験一覧と実施状態)）。上の実測はAPIへ直接送りました。

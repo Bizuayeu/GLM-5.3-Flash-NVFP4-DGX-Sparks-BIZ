@@ -542,7 +542,7 @@ prefillは1.5.0の2.2倍で、FA2経路によるものです。decodeは速く�
 
 3か所参照は、1.5.0から「不安定」と報告してきました（2026-09-19は3回中2回、2026-09-20の最初の系列は3回中1回が正答）。原因は長文の読みではなく、promptでした。旧いpromptは、13万tokenの記事それぞれの前に `REGISTRY 名前 = コード` の行を置き、「3つのREGISTRYの値」を求めていましたが、recordがその1行であるとは書いていませんでした。保存してある全ての回で、正答した回も含めて、reasoningは3つの行の位置を正しく読んだうえで「値」を後ろに続く記事だと解釈し、コードを答えるか記事を書き写し始めるかで正誤が分かれていました。archiveはそのままで枠の文だけを明示する（recordは1行、値は短いコード、記事はどのrecordにも属さない）と、同じprofileで3回とも正答しました。同じセッションの旧い枠は2回とも正答でしたが、reasoningには同じ読み違えが残っています（237.0・241.1 s、出力79・207 token）。
 
-同点の規則は、prefillのchunkごとに検査を一つ足します。下の配信profileでは、199,652 tokenで2.9%の費用でした（169.1 s対164.3 s、各1回）。この既定の上では、255,950 tokenの要求が規則ありで217.3 s、前日の規則なしで207.4 sでした。各1回で、imageも違います。したがって4.8%は費用の上側の読みで、規則だけを切り分けた値ではありません。
+同点の規則は、prefillのchunkごとに検査を一つ足します。下の配信profile（image `1b7dc6fa…`、深さ4）では、199,652 tokenで2.9%の費用でした（169.1 s対164.3 s、各1回）。同じprofileでdecodeはproseで24.68 tok/s、countingで45.99（修正前は24.28と45.13。短いpromptは38.82）、prefillは38,962 tokenで1,248.1 tok/s（修正前1,255.5）でした。この既定の上では、255,950 tokenの要求が規則ありで217.3 s、前日の規則なしで207.4 sでした。各1回で、imageも違います。したがって4.8%は費用の上側の読みで、規則だけを切り分けた値ではありません。
 
 ### 基準の2台の配信profile
 
@@ -589,17 +589,17 @@ prefillは1.5.0の2.2倍で、FA2経路によるものです。decodeは速く�
 
 長い入力の2行は、同じ夜に同じprofile（fingerprintは同じ）を起動し直して取ったものです。最初の起動では、合言葉要求の途中で、同じhostで走っていた無関係のプロセス（常駐11 GiB）のためにheadの監視がメモリ保護余裕で停止しました。起動し直した対は最初の起動のdecodeの完了文を反復し、長い要求2本に正答し、合言葉要求の後のheadの空きは10.6 GiBでした。配信hostでメモリを大きく使う作業を走らせてはいけません。
 
-10入力（各3回、中央値のtok/s、平均の採択長。[深さの掃引](speculative-decoding.ja.md#両方のcheckpointで深さ32026-09-21)と同じ入力と道具）を、同じ深さのattentionだけの再パックと比べます。
+10入力（各3回、中央値のtok/s、平均の採択長。[深さの掃引](speculative-decoding.ja.md#両方のcheckpointで深さ32026-09-21)と同じ入力と道具）での値です。比べる相手の同じ深さのattentionだけの再パックは、その掃引のk=3の列にあります。
 
-| 入力 | 再パック `l`、k=3 | 再パック `g`、k=3 |
-|---|---|---|
-| 数え上げ、2,048 tokenのprompt／短いprompt | 46.16（3.68）／38.44（3.04） | 42.24（3.79）／27.82（2.47） |
-| 散文、2,048 tokenのprompt | 28.78（2.16） | 25.15（2.15） |
-| 日本語散文、調整用／評価用 | 30.16（2.22）／31.30（2.37） | 26.68／28.94 |
-| コード、2,048 tokenのprompt | 38.13（3.04） | 34.77（3.15） |
-| コード、調整用／評価用 | 41.18（3.28）／40.02（3.24） | 36.60／36.19 |
-| tool往復、調整用／評価用 | 35.44（2.80）／34.62（2.74） | 28.75／30.77 |
-| 10入力の平均step時間（ms） | 78.0 | 88.2 |
+| 入力 | 再パック `l`、k=3 |
+|---|---|
+| 数え上げ、2,048 tokenのprompt／短いprompt | 46.16（3.68）／38.44（3.04） |
+| 散文、2,048 tokenのprompt | 28.78（2.16） |
+| 日本語散文、調整用／評価用 | 30.16（2.22）／31.30（2.37） |
+| コード、2,048 tokenのprompt | 38.13（3.04） |
+| コード、調整用／評価用 | 41.18（3.28）／40.02（3.24） |
+| tool往復、調整用／評価用 | 35.44（2.80）／34.62（2.74） |
+| 10入力の平均step時間（ms） | 78.0 |
 
 stepは同じ深さで全入力10 ms短くなりました（同じ再パックの深さ4では12〜13 ms：数え上げ102.7→89.7 ms、コード104.0→91.8、日本語散文96.0→83.8。BF16の `lm_head` はdraftの段ごとに読まれるので、短縮は深さとともに伸びます）。tok/sがそれ以上に上がった入力は、`lm_head` の再パックでcompletionが変わってdraftが長く通るようになったものです（短い数え上げと調整用のtool。再パック `g` のk=3では、短くしかdraftが通らない側の文章でした）。教師強制NLLは2026-09-21朝の深さ4の値と小数4桁まで同じです。深さはNLLに入らないので、そうなるべき値です。
 
@@ -835,7 +835,7 @@ decodeの速度は動かなかった。servingで一度も実行されないkey�
 
 `runtime.mla_decode_cpb` はservingで一度も実行されず、上の参照対には効いていなかった。稼働中の対（上と同じ2系列の公開した任意設定、memory probeはon。再起動なし。`records/20260926-cpb-reachability/`）のtraceで、sparse MLAのforwardを全部数えた：単独の要求で434、2本の組で448。DSAの11層とMTPのdraft層のattentionのhookと同じ数で、どれも参照のNoPE attentionを通ってreturnした。imageは `GLM53_REFERENCE_ATTENTION=1` を設定し、backendはkeyのpatchが変えるFlashInferのdecodeの呼び出しより前にその経路でreturnする。上のkernel単体は、このflagを手で切っていた。この節の結果（単独のcompletion・decodeの速度・NLLが変わらず、2系列のcompletionが1.13.0とbyte一致）は、効果が無かったことと整合する。flashinfer#5553が書くのはFlashInfer自身の挙動で、このservingはそこを通らない。
 
-相方がいると変わるとtraceが示したのは、attentionの経路だった。参照attentionはquery行が6を超える呼び出しをFA2へ送る（`runtime.fa2_attention`）：深さ3の検証stepは単独で4行（eagerのFP32）、相方ありで8行（BF16 KVのFA2）。GB10一台の合成入力のkernel単体で、eagerはある系列の行を、呼び出しが4行でも5〜8行でも12行でも、系列の位置、paddingのある相方、cache pageの交互配置に依らずbit一致で計算した。FA2は相方の行数と長さで全行を1 BF16 ulp動かし（中身・順序・pageには依らない）、反復はbit一致だった。この切り替わりは2系列の差の主因ではない：稼働中の対でattentionの呼び出しを全部eagerにしても（memory probeの `fa2_stage("off")` を約8分、その後に戻して確認）、2系列のcompletion 8本のうち7本が単独のものと違ったままで（1本は一致、5本は最初に違うtokenが動き、2本は同じ位置）、どの組も反復した。容疑者の先頭は、呼び出しの中の他の要求の行で行が変わるMoE（上記）と、prefillと共有したstepのprefill用のkernel。[同時実行の範囲](validation.ja.md#同時実行の範囲)の運用の結論は変わらない。
+相方がいると変わるとtraceが示したのは、attentionの経路だった。参照attentionは行数が閾値を超える呼び出しをFA2へ送る（[`runtime.fa2_attention`](server-configuration.ja.md#attentionとcacheとcheckpoint)）：深さ3の検証stepは単独で4行（eagerのFP32）、相方ありで8行（BF16 KVのFA2）。GB10一台の合成入力のkernel単体で、eagerはある系列の行を、呼び出しが4行でも5〜8行でも12行でも、系列の位置、paddingのある相方、cache pageの交互配置に依らずbit一致で計算した。FA2は相方の行数と長さで全行を1 BF16 ulp動かし（中身・順序・pageには依らない）、反復はbit一致だった。この切り替わりは2系列の差の主因ではない：稼働中の対でattentionの呼び出しを全部eagerにしても（memory probeの `fa2_stage("off")` を約8分、その後に戻して確認）、2系列のcompletion 8本のうち7本が単独のものと違ったままで（1本は一致、5本は最初に違うtokenが動き、2本は同じ位置）、どの組も反復した。容疑者の先頭は、呼び出しの中の他の要求の行で行が変わるMoE（上記）と、prefillと共有したstepのprefill用のkernel。[同時実行の範囲](validation.ja.md#同時実行の範囲)の運用の結論は変わらない。
 
 同じ日の後刻、配信中の対を、decode規模の呼び出しでMarlin MoEの分け方を固定し、shared expertとrouterのGEMMを系列ごとに計算し、FA2を切って動かした。スイッチは効いたが、2系列のcompletionは8本中8本が単独のものと違ったままで、どれも採らなかった（採否は[施策台帳P26](optimization-catalog.ja.md#性能施策一覧)）。
 
@@ -940,7 +940,7 @@ READMEの主要な測定値は、この枠の値です。1.19.0のimage（`sha25
 | NLL：日本語／英語／コード／数学 | 1.6250／2.0395／0.9316／0.5843 | 1.6388／2.0137／0.9803／0.6355 | 1.5963／2.0241／0.9479／0.5931 |
 | 約200Kの合言葉（199,652 token）、最初のtokenまで | 157.96 s、正答 | 150.5 s、正答 | 約178 s、正答 |
 
-各rank 3 GiBで配布既定は323,824 token（TP=2は301,645）を、3,072 tokenのblock（TP=2は4,608）で持ちました。1 GiBあたり約42 block、要求1本にceil(L / 3,072) + 16 blockです。24 GiBでは2,606,019 token。RecoverSSM（[施策台帳P30](optimization-catalog.ja.md#性能施策一覧)）があれば、MTP k=3で要求あたりのKDAの上乗せが16 blockから7 blockに減り、TP=3の256K×12本でrankあたり約2.6 GiBが空く（固定版のallocatorからの見積もりで、未測定）。読み込みは本体約120 s・MTPのdraft約102 sで、page cacheが冷えていた3台目は150 sと105 sでした。各起動の中で、課題ごとの3回は1種類のcompletionになりました。同じホストごとのruntime cacheで配布既定をもう一度起動すると、decodeのcompletionと教師強制の記録は1回目とbit単位で一致しました。prefillの上限なしでのリング上の配布既定のdecode検査のcompletion（初出2026-09-29）は、counting `b00a842f`、prose `03184d52`、code `e9175d9b` で、ホストごとのruntime cacheが同じときだけ保たれます（[起動契約](launch-safety.ja.md#3ノード)）。
+各rank 3 GiBで配布既定は323,824 token（TP=2は301,645）を持ちました（3ノードでのblockの計算は[KV容量](server-configuration.ja.md#kv容量とramの条件)）。24 GiBでは2,606,019 token。RecoverSSM（[施策台帳P30](optimization-catalog.ja.md#性能施策一覧)）があれば、MTP k=3で要求あたりのKDAの上乗せが16 blockから7 blockに減り、TP=3の256K×12本でrankあたり約2.6 GiBが空く（固定版のallocatorからの見積もりで、未測定）。読み込みは本体約120 s・MTPのdraft約102 sで、page cacheが冷えていた3台目は150 sと105 sでした。各起動の中で、課題ごとの3回は1種類のcompletionになりました。同じホストごとのruntime cacheで配布既定をもう一度起動すると、decodeのcompletionと教師強制の記録は1回目とbit単位で一致しました。prefillの上限なしでのリング上の配布既定のdecode検査のcompletion（初出2026-09-29）は、counting `b00a842f`、prose `03184d52`、code `e9175d9b` で、ホストごとのruntime cacheが同じときだけ保たれます（[起動契約](launch-safety.ja.md#3ノード)）。
 
 **TP=2と位置ごとに比べたNLL。** 配布既定の記録を、同じ重みのTP=2の記録とtokenごとに比べました。argmax一致は0.947、実際のtokenのlog確率の動きの平均は、数値状態だけが違う同じ重みのTP=2の起動同士（argmax一致0.948〜0.956）の0.61〜1.30倍で、動きは上下に偏っていません。重みを変えるとおよそ2倍動きます。公開した任意設定はTP=2の公開した任意設定と比べて、argmax一致0.947、動きは自分のTP=2の起動同士（0.936〜0.963、NLLで最大+0.043）と同じ大きさです。TP=3の許容は、argmax一致0.93以上、動きの平均が同じ重みのTP=2の起動同士の1.5倍以内で、どちらのprofileも収まります。
 
@@ -976,6 +976,10 @@ READMEの主要な測定値は、この枠の値です。1.19.0のimage（`sha25
 spinしていたのはheadのEngineCoreだけでした。A1とA2のdumpではどれも `SpinCondition.wait` の下の `sched_yield` に、Bのdumpではどれもzmqのpollにいました。worker 0はどのdumpでも計算中で、両workerのCPU（どちらも約2スレッドが埋まる）は腕で変わりませんでした。peerは9回のdumpで一度もspinしていません。0.002秒ではheadのSoCの平均がAの腕より2.2〜3.1 °C低く、同じ時間に対照のpeerは0.95〜1.85 °C高くなりました。countingのdecodeは1.4%下がり、A1とA2の幅の外です（範囲がBと重ならない）。proseとcodeは幅の中に収まりました。第一の容疑はzmqのpollからの起床の遅れで、countingにだけ出る理由は確かめていません。
 
 窓の前に書いた線に照らした採否は[施策台帳P29](optimization-catalog.ja.md#性能施策一覧)にあります。測っていないもの：キーを付けた配布既定、TP=3、2本の要求を同時に流している間。
+
+### 1.26.0の配布既定でのNLL採点セット（2026-10-02）
+
+`tools/score_nll_set.py` はNLL採点セット（`config/nll_set.json`、領域ごとに4本）を教師強制で採点し、位置数で重み付けした領域ごとのNLLを出します。2026-10-02にTP=2で同じtoken idから採点した値は、1.26.0の配布既定が2.5412／2.9079／1.3145／0.6285（日本語／英語／コード／数学）でした。
 
 ## 1.29.0での測定
 

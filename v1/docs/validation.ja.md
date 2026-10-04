@@ -48,7 +48,7 @@ vLLMは[既定での再現性を保証していません](https://github.com/vll
 
 ## 評価と未解決の事項
 
-[FreedomBench](freedombench.ja.md)（固定した英語の設問、確認済みの日本語訳、言い回しと証拠配置の追加試験）、[HLE](hle.ja.md)（100問の部分集合二つを両profileで。公開されているHLEの値とは比べられない）、[ハーネス受け入れ一覧](harnesses.ja.md)（ケース別の状態と受け入れた経路）がそれぞれ結果の正典です。後述の基礎APIスモークは一覧のAPI群に反映され、クライアントのケースを終わらせません。[NCCL診断](nccl-validation.ja.md)の範囲は2 rankと3 rankでのtransportと合成データの正当性で、フルモデルではありません。fixture、APIスモーク、collectiveの結果を、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)の受け入れが宣言していない範囲の証拠に変えないでください。
+[FreedomBench](freedombench.ja.md)（固定した英語の設問、確認済みの日本語訳、言い回しと証拠配置の追加試験）、[HLE](hle.ja.md)（100問の部分集合二つを両profileで）、[ハーネス受け入れ一覧](harnesses.ja.md)（ケース別の状態と受け入れた経路）がそれぞれ結果の正典です。後述の基礎APIスモークは一覧のAPI群に反映され、クライアントのケースを終わらせません。[NCCL診断](nccl-validation.ja.md)の範囲は2 rankと3 rankでのtransportと合成データの正当性で、フルモデルではありません。fixture、APIスモーク、collectiveの結果を、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)の受け入れが宣言していない範囲の証拠に変えないでください。
 
 未解決の事項と、それぞれの正典：
 
@@ -78,7 +78,7 @@ vLLMは[既定での再現性を保証していません](https://github.com/vll
 
 ### 読み込み・API・ベンチマークの確認
 
-reference imageは、2台のGB10ホストで45層の言語層すべてを、Marlin W4A16、eager実行、同時1系列、context 16,384、rankあたり1 GiBのKVでロードしました。直列TP=2の4層fixtureは、既存の状態検査をすべて通過しました。fixtureを同時2系列にした場合、greedy経路の1本がほぼ同値の箇所で分岐しました。この生の診断は失敗のままであり、課題水準の受け入れとは別です。
+reference imageは、2台のGB10ホストで45層の言語層すべてを、[初期の測定条件](benchmarks.ja.md#初期の測定条件)のprofileでロードしました。直列TP=2の4層fixtureは、既存の状態検査をすべて通過しました。fixtureを同時2系列にした場合、greedy経路の1本がほぼ同値の箇所で分岐しました。この生の診断は失敗のままであり、課題水準の受け入れとは別です。
 
 フルモデルは、served IDの基礎確認、英語・日本語の最終回答、OpenAIのSSE、無害な自動ツールの呼出し・引数・戻り、AnthropicのMessages／count_tokensのスモーク検査に合格しました。reasoning effortを低くしたチャットの受け入れ試験も、これらの最終回答・ツールの基準を満たしました。再実行では推論文が異なりました。これは診断として残すものであり、自由記述の逐語一致を要求するものではありません。未対応のthinking offを指定した要求ではparserと本文が混ざったため、受け入れ済みの構成ではありません。[ハーネスの設定](harnesses.ja.md)を参照してください。
 

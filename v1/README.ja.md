@@ -33,7 +33,7 @@
 
 NVFP4は取得する重みの形式です。検証済みの参照構成はMarlin **W4A16**で実行しており、NVIDIAのW4A4 recipeとは演算精度が異なります。NVIDIAのモデルカードの精度表はそのrecipeで、別の機体・別のengine経路で測ったもので、この配信の品質の主張ではありません。モデルカードの数値が何を記述し、どの数値がこのスタックを記述するかは[精度と検証範囲](docs/validation.ja.md#証拠であり本番認定ではない)を参照してください。
 
-[LPA（後段Prefill近似）](docs/lpa.ja.md)は配布テンプレートでは無効で、バッチ用のopt-inです（近似した要求は共有prefix cacheに登録されないため）。教師状態の復元・コーパス採取・補助器学習の道具はその経路向けに同梱しています。その品質・速度の検収は、下記の確認した範囲とは別に扱います。
+[LPA（後段Prefill近似）](docs/lpa.ja.md)は配布テンプレートでは無効で、バッチ用のopt-inです（[理由](docs/lpa.ja.md#使用範囲)）。教師状態の復元・コーパス採取・補助器学習の道具はその経路向けに同梱しています。その品質・速度の検収は、下記の確認した範囲とは別に扱います。
 
 ## 必要な環境
 
@@ -78,7 +78,7 @@ python -m glm53_setup build-reference
 
 ## 確認した範囲
 
-**配布既定は、画像入力を受ける256K（262,144 token）・KV各3 GiB・保護3 GiB・時間制限なしの直列最適化構成です（動画入力は拒否）。** この既定の裏付けは[画像入力](docs/vision.ja.md)と[1.6.0での測定](docs/benchmarks.ja.md#160での測定)、テキスト専用の代替は[256Kの実入力確認](docs/benchmarks.ja.md#256kでの実入力確認)が保持しています。
+**配布既定は、画像入力を受ける時間制限なしの直列最適化構成です（動画入力は拒否）。** contextとKVと保護の値は[配布用の既定設定](docs/server-configuration.ja.md#配布用の既定設定)にあります。この既定の裏付けは[画像入力](docs/vision.ja.md)と[1.6.0での測定](docs/benchmarks.ja.md#160での測定)、テキスト専用の代替は[256Kの実入力確認](docs/benchmarks.ja.md#256kでの実入力確認)が保持しています。
 
 ### 主要な測定値（1.29.0）
 
@@ -119,28 +119,28 @@ MTPのdecodeの速さは、文がどれだけ予測しやすいかで決まり�
 |---|---|---|
 | ツール | 固定checkpointの取得・公式checksum確認。公式ARM64イメージの準備・参照イメージのbuild | 実装済み |
 | fixture | 候補tokenを削らないNoPE参照attention | GPU検証済み |
-| fixture | Marlin W4A16による4層・GPU 1台のfixture | 生成・状態比較を通過。8,705-token入力も確認。[検証範囲](docs/validation.ja.md) |
+| fixture | Marlin W4A16による4層・GPU 1台のfixture | 生成・状態比較を通過。[検証範囲](docs/validation.ja.md) |
 | fixture | 固定SM120 sparse MLAでのbatch-invariant mode | 非対応 |
 | 全モデル | 固定ベースによる2 rank・3 rankのNCCL collective | 対と3台のリングで、RoCE経路の試験パターン合格。[実測条件と制約](docs/nccl-validation.ja.md) |
 | 全モデル | 45層TP=2の参照profile | ロード・基礎APIのテキスト／ツールを確認。[ベンチマーク](docs/benchmarks.ja.md) |
 | 全モデル | スイッチなしのQSFPリングでつないだ3台のTP=3 | [SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で通常運用として受け入れ済み。[1.24.0での測定](docs/benchmarks.ja.md#1240での測定) |
 | 全モデル | temperature 0での同一要求 | `max_num_seqs = 1` の配信では、同じ起動の中でbit一致で反復し、起動を跨いでも同じ（どのテンプレートでもonの[再現性のスイッチ](docs/server-configuration.ja.md#再現性のスイッチ)による）。切替後の起動は今も毎回確かめる（重みのdigest、decode検査、kernel hash）。同時2系列以上が処理中の間は反復を主張しない（[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)）。[それぞれの原因を見つけた経緯](docs/repeatability.ja.md) |
-| 全モデル | 256Kでの画像入力（Vision） | 合成画像1枚に正答、テキスト・ツールの回帰は合格、動画は拒否。1.19.0では両profileで回帰7項が合格し、1枚7,776 tokenまでの大きな画像と8枚までの画像にも順番どおり正答。1.29.0からは両profileでモデルの上限の8,000 tokenまでの画像に答える。ハーネス画面への直接添付は未確認。[実測と限界](docs/vision.ja.md) |
-| 全モデル | 日本語・韓国語の長い出力 | 852〜1,024文字の回答6件で化け文字なし。sampledの回答12件（両profile、1.25.0）とTP=3の両profileも同じ。reasoningの文字列は未検査。[検査と限界](docs/correctness-gates.ja.md#マルチバイト出力) |
+| 全モデル | 256Kでの画像入力（Vision） | 合成画像1枚に正答、テキスト・ツールの回帰は合格、動画は拒否。1.19.0では両profileで回帰7項が合格し、大きな画像と複数の画像にも順番どおり正答。1.29.0からは両profileでモデルの上限までの画像に答える。ハーネス画面への直接添付は未確認。[実測と限界](docs/vision.ja.md) |
+| 全モデル | 日本語・韓国語の長い出力 | temperature 0でもsampledでも、両profileでもTP=3でも化け文字なし。reasoningの文字列は未検査。[検査と限界](docs/correctness-gates.ja.md#マルチバイト出力) |
 | 同時実行 | 同時2系列以上 | 配布既定では**非対応**（`max_num_seqs = 1`。要求は順番待ち）。公開した任意設定の例はrankあたり6 GiBから同時2系列を配信し、[SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で**通常運用として受け入れ済み**。この範囲では反復を主張しない。それを超える同時数はrankを増やす：TP=3は上の行。[同時実行の範囲](docs/validation.ja.md#同時実行の範囲) |
 | 評価 | FreedomBench：英語原版、日本語訳（FB-04）、言い回しと証拠配置（FB-05） | 英語原版と日本語訳は両profileで実施。FB-05は公開した任意設定で実施。そのLPAの部分は未実施。[結果と限界](docs/freedombench.ja.md) |
 | 評価 | HLE、テキストと画像の100問の部分集合を両profileで、予算を限って | 2026-09-28〜10-03に実施。公開されたHLEの値とは比べられない。[結果と限界](docs/hle.ja.md) |
 | ハーネス | ZCode／Claude Codeの連携 | 基礎API群と共通群のHケースは、受け入れた経路であるnpm版ZCode CLIで合格。他の経路とケース別の状態は[受け入れ試験一覧](docs/harnesses.ja.md#受け入れ試験一覧と実施状態) |
-| テンプレートで有効 | prefillのFA2（`runtime.fa2_attention`） | 採用。prefillは1.5.0の2.2倍、1系列のdecodeは参照経路のまま、LPAとは排他。[測定](docs/benchmarks.ja.md#160での測定) |
+| テンプレートで有効 | prefillのFA2（`runtime.fa2_attention`） | 採用。prefillが速くなり、1系列のdecodeは参照経路のまま、LPAとは排他。[測定](docs/benchmarks.ja.md#160での測定) |
 | テンプレートで有効 | BF16 draftのMTP k=3 | 10入力で、再量子化したcheckpointでは深さ1〜5を、固定のcheckpointでは1・3・4を測定。k=3を両方に採用。[投機デコード](docs/speculative-decoding.ja.md#両方のcheckpointで深さ32026-09-21) |
 | テンプレートで有効 | Prefix caching（APC） | 実測した直列の長文prefix再利用の実験用途で受入。[実測](docs/benchmarks.ja.md#全モデルのprefix-caching独立評価p19)。cold／warmの正しさの関門は配布既定で合格、任意設定でもcacheの不具合は見つからなかった。[関門](docs/correctness-gates.ja.md#prefix-cacheの正しさの関門) |
-| テンプレートで有効 | checkpoint保持 | 履歴試験とA/B/Aを経て、通常priming済みの途中編集用途で採用（実測は標準の間隔4,352。block幅に依存しない`dense`は実測した配置で同等、最終併用の検収は別）。[契約](docs/launch-safety.ja.md) |
+| テンプレートで有効 | checkpoint保持 | 履歴試験とA/B/Aを経て、通常priming済みの途中編集用途で採用（実測は標準の間隔、[保持のA/B/A](docs/benchmarks.ja.md#apcの履歴保持の基準検査)。block幅に依存しない`dense`は実測した配置で同等、最終併用の検収は別）。[契約](docs/launch-safety.ja.md) |
 | テンプレートで有効 | unpack融合・非同期index検査 | それぞれ独立に実測して有効化。[全体像](docs/optimization-overview.ja.md) |
 | テンプレートで有効 | 共有メモリの読み手のspin 0.002秒（`runtime.shm_spin_seconds`、P29） | headの温度のために採用。代価はdecodeのわずかな低下で、TP=2の対で測定。TP=3は延長での適用で未測定。[測定](docs/benchmarks.ja.md#1250での測定) |
 | 任意・既定off | 再量子化したattention projectionと `lm_head`（`runtime.derived_checkpoint`、P23） | 上の公開した任意設定。shared expertsを足す変種は測って不採用。[実測](docs/benchmarks.ja.md#基準の2台の配信profileattentionと-lm_head-の再パック深さ3)／[施策台帳](docs/optimization-catalog.ja.md) |
 | 任意・既定off | APC優先LPA（P22） | 校正・MTP／融合／非同期検査との併用・held-out文書での確認まで完了。バッチ用opt-in。[契約](docs/apc-lpa-design.ja.md) |
 | 測って不採用 | Expert Parallel、PP2、decodeのCUDA Graphs、採択履歴による深さ、draftの確信度の関門、draft側の設定二つ | それぞれ全モデルで測り、数値は所有文書にある。[全体像](docs/optimization-overview.ja.md)、[投機デコード](docs/speculative-decoding.ja.md#固定の深さの先2026-09-21) |
-| 測って不採用 | 層間のindexer再利用（CSA2、P16） | コストの門で中止。indexerはfixtureでprefillの1%未満、全モデルの射影で200Kでも約4%。[設計と結果](docs/indexer-reuse.ja.md) |
+| 測って不採用 | 層間のindexer再利用（CSA2、P16） | コストの門で中止。[設計と結果](docs/indexer-reuse.ja.md) |
 | 未検証 | 動画入力・アプリ全体の品質・本番信頼性・最大性能 | **未検証** |
 
 fixtureは元の幅・experts・選択したtensor bytesを保持しますが、層を切り詰めたモデルです。言語品質の評価には使えません。Marlin W4A16とNVIDIAのW4A4 recipeも同一の演算ではありません。[検証結果と限界](docs/validation.ja.md)を区別して利用してください。
@@ -185,7 +185,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 
 - **BIZは意図であり、約束ではありません**（[リポジトリのREADME](../README.ja.md#biz)）。この系列が業務利用に適するかは、宣言した範囲についての検収です（[範囲ごとの状態](#範囲ごとの状態)）。
 - **kpool tail ringの修正は部分的です。** [vLLM #58454](https://github.com/vllm-project/vllm/pull/58454) の移植（`patch_kpool_ring`）は上流自身が部分的な修正としており、続く変更が予定されています（[運用手順](docs/operations.ja.md#フルモデルの起動検査)）。
-- **tail ringはMTPの深さで変わります。** blockはMTPなしで4 slot、深さ1〜4で8、深さ5で16です。そのため、KV容量の分解と起動から記録する値は深さによって変わります（[KV容量](docs/server-configuration.ja.md#kv容量とramの条件)）。
+- **tail ringはMTPの深さで変わります。** blockは深さとともに大きくなるため、KV容量の分解と起動から記録する値は深さによって変わります（[KV容量](docs/server-configuration.ja.md#kv容量とramの条件)）。
 - **文脈が2,048 tokenを超えるdecodeの再現性の基準値は、1.19.0で取り直しました。** indexerの `index_topk`（2,048）を超えると、ringの修正はMTPありのdecode中に作られるpoolの圧縮keyを変え得るため、以前のimageで記録した基準hashは基準になりません。promptで超える要求は、両profileのdecode検査のhashが基準です（[1.19.0での測定](docs/benchmarks.ja.md#1190での測定)）。出力で2,048を超える要求の基準値は取っていません。
 - **`runtime.stable_indexer_topk = false` にすると、[vLLM #58785](https://github.com/vllm-project/vllm/pull/58785) が直す不具合の影響を受けます。** このpull requestは上流でまだopenで、persistent top-kがoverflow時に候補を失い得ます。このkeyは有効のままにしてください（どのテンプレートでも有効）。
 
@@ -207,8 +207,8 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 - vLLMの固定が[#56960](https://github.com/vllm-project/vllm/pull/56960)（GLM-5.3-FlashのKDAのprefill checkpoint）より後へ動く → 新しい固定が[vLLM #59759](https://github.com/vllm-project/vllm/pull/59759)を含むことを確かめるか、移植する：#56960以降は、MTPとprefix cachingで、chunkの途中に線形attentionのcheckpointを保存するprefillのstepが壊れた出力を返し得る。固定版のvLLMはGLMにprefill checkpointのblockを設定しないので、1.29.0はその経路に入らない。
 - [vLLM #48032](https://github.com/vllm-project/vllm/pull/48032)（Marlin MoEのrouteの整列を決定的にする、[#52525](https://github.com/vllm-project/vllm/issues/52525) 向け）がmergeされ固定に入る → 手元のexpert内のtoken順（`runtime.canonical_moe_order`、`patch_moe_order`）をこれに置き換えるかを検討する（fixtureでの比較は[再現性](docs/repeatability.ja.md)が記録）。
 - sampledの `server mojibake`（`--temperature`・`--top-p`）で化け文字が見つかる → UTF-8のガードを別の計画で作る。
-- warmupの後でも、利用者の要求でサンプリングのkernelがコンパイルされる → その要求のサンプリング設定で段を足す。利用者の最初の要求がコンパイルしていたkernelのために、checkpointのサンプリング（temperature 1.0・top_p 0.95）の段を足したのと同じ形（[warmup ladder](docs/operations.ja.md#warmup-ladder)）。
-- KDAのblockより小さいblockのdraftのKV cache groupが加わる（独自の層を持つDFlash型のdraftなど） → prefix cacheとともに配信する前に、prefix cacheのhitがKDAのcheckpointと揃ったままかを確かめる（起動ログの `kv cache group sizes` と、workerの `Setting attention block size` の行。knapcioのissue #2）。固定vLLMはprefix cacheに載るgroupのうち最小のblockをschedulerのblockにするので、今はどちらも4,608 token（TP=3では3,072）で揃っています。`mamba_block_size` は `/metrics` から読まないでください：engineのプロセスはalignモードの大きさの変更を適用しないので、workerがKDAの状態を4,608 tokenごとに書いていても、要求した256を報告します。
+- warmupの後でも、利用者の要求でサンプリングのkernelがコンパイルされる → その要求のサンプリング設定で段を足す。利用者の最初の要求がコンパイルしていたkernelのために、checkpointのサンプリングの段を足したのと同じ形（[warmup ladder](docs/operations.ja.md#warmup-ladder)）。
+- KDAのblockより小さいblockのdraftのKV cache groupが加わる（独自の層を持つDFlash型のdraftなど） → prefix cacheとともに配信する前に、prefix cacheのhitがKDAのcheckpointと揃ったままかを確かめる（起動ログの `kv cache group sizes` と、workerの `Setting attention block size` の行。knapcioのissue #2）。固定vLLMはprefix cacheに載るgroupのうち最小のblockをschedulerのblockにするので、今はどちらも[揃えたblock](docs/server-configuration.ja.md#kv容量とramの条件)で揃っています。`mamba_block_size` は `/metrics` から読まないでください：engineのプロセスはalignモードの大きさの変更を適用しないので、workerがKDAの状態を揃えたblockごとに書いていても、要求した256を報告します。
 - TP=3で測ったrankあたり3.7M tokenより大きいKVのpool → 先に本stackが通すkernelの32 bitの行offsetを監査する（[施策台帳のP28](docs/optimization-catalog.ja.md#性能施策一覧)）。1,048,576 tokenの要求6本の同時は3台では届かない。
 
 ## ローカルデータと開発

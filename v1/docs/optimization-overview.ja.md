@@ -6,7 +6,7 @@
 
 ## 基準構成
 
-基準は[施策台帳の基準点](optimization-catalog.ja.md#今回の基準点と文書の役割)と同じで、context 16K・KV各rank 1 GiBで測定しています（[初期の測定条件](benchmarks.ja.md#初期の測定条件)）。32Kまでの独立容量評価は[32K sweep](benchmarks.ja.md#32kまでの独立コンテキスト評価p15)、従来の200K併用結果は[旧profileの記録](benchmarks.ja.md#旧profileの記録)の[リリース候補の測定](benchmarks.ja.md#リリース候補の測定)を参照してください。256K・KV各3 GiBのテキスト専用構成は[256Kの実入力確認](benchmarks.ja.md#256kでの実入力確認)、現在の配布既定（画像入力あり）は[画像入力](vision.ja.md)を参照してください。
+基準は[施策台帳の基準点](optimization-catalog.ja.md#今回の基準点と文書の役割)と同じで、[初期の測定条件](benchmarks.ja.md#初期の測定条件)のprofileで測定しています。32Kまでの独立容量評価は[32K sweep](benchmarks.ja.md#32kまでの独立コンテキスト評価p15)、従来の200K併用結果は[旧profileの記録](benchmarks.ja.md#旧profileの記録)の[リリース候補の測定](benchmarks.ja.md#リリース候補の測定)を参照してください。256K・KV各3 GiBのテキスト専用構成は[256Kの実入力確認](benchmarks.ja.md#256kでの実入力確認)、現在の配布既定（画像入力あり）は[画像入力](vision.ja.md)を参照してください。
 
 ## 段階別の位置づけ
 
@@ -31,8 +31,8 @@ flowchart LR
 | 施策 | 仕組み | 状態 | 既定 | 正典 |
 |---|---|---|---|---|
 | P19 APC | 通常計算由来の状態だけを共有cacheに登録し、同一prefixのprefillを省略する | 実測した直列・長文prefix再利用の用途で受入、実験用（[台帳](optimization-catalog.ja.md#性能施策一覧)） | on（`cache.prefix_caching=true`） | [P19](benchmarks.ja.md#全モデルのprefix-caching独立評価p19)／[正しさの関門](correctness-gates.ja.md#prefix-cacheの正しさの関門) |
-| checkpoint保持（`cache.prefix_cache_retention_interval`） | KDA checkpointをscheduler blockごとに保持し、途中編集・分岐後に復元できるHを伸ばす | 通常priming済み・直列の途中編集用途で採用。実測したarmは標準の間隔4,352。`dense`は実測した整列配置で同じ標準KDA maskになるが、最終併用の検収は別 | `dense`（キー省略時のruntime既定は0） | [保持A/B/A](benchmarks.ja.md#apcの履歴保持の基準検査)／[契約](launch-safety.ja.md#apcの履歴検証) |
-| P22 APC優先LPA | 復元したHの先を、残余R＝N−T−Hが閾値Bを超えるときだけ近似する。近似状態は要求内に閉じる | 完了（[台帳](optimization-catalog.ja.md#性能施策一覧)）。B=128は保守的な候補閾値で、普遍的な損益分岐定数ではない | APCはon、LPAはoff（有効化時に `lpa.break_even_tokens=128` を適用） | [設計](apc-lpa-design.ja.md)／[校正](benchmarks.ja.md#apc優先lpaの損益分岐計測p22) |
+| checkpoint保持（`cache.prefix_cache_retention_interval`） | KDA checkpointをscheduler blockごとに保持し、途中編集・分岐後に復元できるHを伸ばす | 通常priming済み・直列の途中編集用途で採用。実測したarmは標準の間隔。`dense`は実測した整列配置で同じ標準KDA maskになるが、最終併用の検収は別 | `dense`（キー省略時のruntime既定は0） | [保持A/B/A](benchmarks.ja.md#apcの履歴保持の基準検査)／[契約](launch-safety.ja.md#apcの履歴検証) |
+| P22 APC優先LPA | 復元したHの先を、残余（[R](apc-lpa-design.ja.md)）が閾値Bを超えるときだけ近似する。近似状態は要求内に閉じる | 完了（[台帳](optimization-catalog.ja.md#性能施策一覧)）。B=128は保守的な候補閾値で、普遍的な損益分岐定数ではない | APCはon、LPAはoff（有効化時に `lpa.break_even_tokens=128` を適用） | [設計](apc-lpa-design.ja.md)／[校正](benchmarks.ja.md#apc優先lpaの損益分岐計測p22) |
 | P25 page重複排除 | 既にcache済みのblockを持つhashで満杯のblockを登録せず、MTP下で再送した履歴が古い履歴を追い出さないようにする | 採用、1.9.0（[台帳](optimization-catalog.ja.md#性能施策一覧)） | off。公開した任意設定ではon（`runtime.prefix_page_dedup`） | [1.9.0](benchmarks.ja.md#190での測定) |
 
 ### prefill
@@ -80,8 +80,8 @@ flowchart LR
 
 併用状態は併用状態として実測しています。
 
-- **P18** MTP3＋unpack融合＋非同期検査を固定し、LPA off／on／復帰を比較。LPA追加分は2K／8Kの1出力で約15%／19%、128出力で約9%／13%。24課題でLPAだけが落ちる回帰は0件。[P18](benchmarks.ja.md#直列併用の評価p18)
-- **P22最終併用** 上記にAPC・LPA cut32／tail512／B128を加え、KV各rank 2 GiB。24課題は通常21／LPA24／復帰23、held-out 8文書は7／8／8。[P22併用](benchmarks.ja.md#apclpamtp融合非同期検査の併用p22)
+- **P18** MTP3＋unpack融合＋非同期検査を固定し、LPA off／on／復帰を比較。LPAは測った4条件のどれでも短くなり、固定課題でLPAだけが落ちる回帰はなし。[P18](benchmarks.ja.md#直列併用の評価p18)
+- **P22最終併用** 上記にAPC・LPA cut32／tail512／B128を加える。厳密な課題採点でもheld-outの文書でもLPAだけが落ちる回帰はなし。[P22併用](benchmarks.ja.md#apclpamtp融合非同期検査の併用p22)
 - **保持を含む最終回帰** さらに`dense`保持を加えた最終imageで、2K／8K（H=0）と16K（H=4,608）の128出力を3回測定。保持A/B/Aとは反復数・比較対象が異なるため、性能採用の根拠ではなく回帰確認です。[最終回帰](benchmarks.ja.md#保持候補を含む最終併用の回帰)
 
 ## 用途別の構成

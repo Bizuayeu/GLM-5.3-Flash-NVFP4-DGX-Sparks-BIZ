@@ -32,7 +32,7 @@
 | prefillのattention | `fa2_attention = true`：query行が6を超えるNoPE attentionの呼び出し（prefillと、2系列が共有するdecodeのstep）をFlashInfer FA2へ、1系列のdecodeは参照経路。LPAとは排他 |
 | 投機・近似 | MTP k=3（[深さ1〜5](speculative-decoding.ja.md#深さ152026-09-1920)）。LPA無効（有効時はcut32／tail512／B128、未使用MLA query省略） |
 | 検査・並列 | 非同期index検査、EP無効、PP分割なし |
-| NCCL | 全rankで `nccl_channels = 8`（NCCLに任せると参照機では64） |
+| NCCL | 全rankで `nccl_channels = 8`（NCCLに任せたときの参照機での値は[チャネル数](nccl-validation.ja.md#チャネル数)） |
 | 共有メモリの読み手のspin | `shm_spin_seconds = 0.002`（未指定はvLLMの1秒。[並列化と通信](#並列化と通信)） |
 | 再現性 | `canonical_moe_order`・`stable_indexer_topk`・`inductor_deterministic` をすべて `true`：同一要求はbit一致で反復し、どの起動も同じ数値状態で計算する（[再現性のスイッチ](#再現性のスイッチ)） |
 | 生成 | temperature=0、max_tokens=4096、reasoning_effort=low、clear_thinking=true |
@@ -133,7 +133,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 - derived checkpoint（公開した任意設定）を受けます。そのoverlayは埋めた66 headをTPで分けます。PP2・EP・LPAは2ノードのままです（[起動契約](launch-safety.ja.md#3ノード)）
 - derived checkpointなしのKVを3 GiBまでとする2ノードの制限を適用しません
 
-各ノードは単一レールの項目の代わりに、他のノード1台につき `links` を1項目書きます（`peer`・`hca`・`interface`・`local_ip`・`peer_ip`・`gid_index`）。ランチャーはリングが閉じていること、各 /30 の両端が食い違わないこと、ノードごとにGID indexが一つであることを確かめ、リンクのHCAをすべて `NCCL_IB_HCA` に並べます。全ノードに `host_address`（他のランクが届く固定の /32）と `host_interface`（それを載せるinterface）を書いてください。Gloo・TCPStore・NCCL bootstrapがこれを使います（[QSFPネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）。書かなければ、各rankはheadとの直結リンクのhead側でheadに会い、headとのリンクの自分側を広告しますが、3台目からは経路なしにそこへ届きません。ランチャーは省略を受け付けます。Wi-Fiの `host_interface` は、そのノードが `host_interface_wifi_test = true` も書かない限り拒否します。これは**試験用の設定**で、これらのsocketだけを管理用Wi-Fiに載せ、データは直結リンクのままです。
+各ノードは単一レールの項目の代わりに、他のノード1台につき `links` を1項目書きます（`peer`・`hca`・`interface`・`local_ip`・`peer_ip`・`gid_index`）。ランチャーはリングが閉じていること、各 /30 の両端が食い違わないこと、ノードごとにGID indexが一つであること（[理由](nccl-validation.ja.md#gid-indexが動く)）を確かめ、リンクのHCAをすべて `NCCL_IB_HCA` に並べます。全ノードに `host_address`（他のランクが届く固定の /32）と `host_interface`（それを載せるinterface）を書いてください。Gloo・TCPStore・NCCL bootstrapがこれを使います（[QSFPネットワーク](qsfp-network.ja.md#8-3台をリングにつなぐ)）。書かなければ、各rankはheadとの直結リンクのhead側でheadに会い、headとのリンクの自分側を広告しますが、3台目からは経路なしにそこへ届きません。ランチャーは省略を受け付けます。Wi-Fiの `host_interface` は、そのノードが `host_interface_wifi_test = true` も書かない限り拒否します。これは**試験用の設定**で、これらのsocketだけを管理用Wi-Fiに載せ、データは直結リンクのままです。
 
 起動順、rank数の変わる切替の拒否、ホストごとのruntime cacheは[起動契約](launch-safety.ja.md#3ノード)にあります。
 
@@ -145,7 +145,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 `api.prompt_tokens_details`（未指定は無効、テンプレートは `true`）は `--enable-prompt-tokens-details` を付け、`usage.prompt_tokens_details.cached_tokens` で復元prefix長を返します。無いとvLLMは `null` を返し、cacheが当たっていてもハーネスの表示は0のままです。
 
-`api.default_reasoning_effort`（`low`・`high`・`max`のいずれか。未指定は何も送らない。テンプレートは `"high"`）は全rankに `--default-chat-template-kwargs '{"reasoning_effort": …}'` を付けます。checkpointのチャットテンプレートは `low` と `high` だけを読み、それ以外（未指定を含む）を `max` として扱います。`max` の思考には実質的な上限がありません（[reasoning設定](harnesses.ja.md#受け入れ試験で使うreasoning設定)）。このキーが無ければ、effortを指定しないクライアントは `max` になります。固定したvLLMは、サーバーの既定を要求自身の値の下に置きます：トップレベルの `reasoning_effort` が `chat_template_kwargs.reasoning_effort` に優先し、それがサーバーの既定に優先するので、`low` を求めたクライアントは `low` のままです。Chat Completions・AnthropicのMessages・Responses・`/tokenize` は同じ経路で解決するので、LPA要求のtokenizeもchatと一致したままです。ランチャー自身の要求のうち、canaryの段・`server ask`・`tools/decode_check.py` はeffort（`low`）を指定するので変わりません。warmupのほかの段・`apc-history`・`tools/check_prefix_cache.py` は指定しないので、サーバーの既定で動きます。稼働中の対は起動時のeffortのままです。このキーはprofileのfingerprintを変えるので、切替先のprofileに書きます。
+`api.default_reasoning_effort`（`low`・`high`・`max`のいずれか。未指定は何も送らない。テンプレートは `"high"`）は全rankに `--default-chat-template-kwargs '{"reasoning_effort": …}'` を付けます。checkpointのチャットテンプレートはeffortを指定しない要求を `max` で扱います（[reasoning設定](harnesses.ja.md#受け入れ試験で使うreasoning設定)）。このキーが無ければ、effortを指定しないクライアントは `max` になります。固定したvLLMは、サーバーの既定を要求自身の値の下に置きます：トップレベルの `reasoning_effort` が `chat_template_kwargs.reasoning_effort` に優先し、それがサーバーの既定に優先するので、`low` を求めたクライアントは `low` のままです。Chat Completions・AnthropicのMessages・Responses・`/tokenize` は同じ経路で解決するので、LPA要求のtokenizeもchatと一致したままです。ランチャー自身の要求のうち、canaryの段・`server ask`・`tools/decode_check.py` はeffort（`low`）を指定するので変わりません。warmupのほかの段・`apc-history`・`tools/check_prefix_cache.py` は指定しないので、サーバーの既定で動きます。稼働中の対は起動時のeffortのままです。このキーはprofileのfingerprintを変えるので、切替先のprofileに書きます。
 
 `api.dev_endpoints`（未指定はfalse）は全rankに `VLLM_SERVER_DEV_MODE=1` を渡し、loopbackのAPIにvLLMのdev経路（`/reset_prefix_cache`・`/reset_mm_cache`・`/collective_rpc`・`/sleep`・`/wake_up`・`/server_info`）を載せます。LPA・component・expertのprofileは元からこのモードで動きます。このキーは、LPA offのprofileでもベンチやwarmupの後始末のために再起動なしでprefix cacheを消せるようにするためのものです。これらの経路は無認証です（[起動契約](launch-safety.ja.md#モデルapiクライアント)）。他のローカル利用者がいる機体では off のままにします。
 
@@ -172,7 +172,7 @@ workerのメソッドが例外を出すとHTTP 500が返り、その次の `/col
 
 ### prefix cacheと併用するLPA
 
-P22のGPU状態隔離・校正・最終併用・held-out参照評価を、範囲を限って確認済みです。LPAとprefix cachingを両方有効にする場合は `GLM53_APC_LPA_API=1` のimageが必要です。schedulerが全状態を揃えて復元したprefixと `lpa.break_even_tokens` から適用を決めます。テンプレートは[P22の校正](benchmarks.ja.md#apc優先lpaの損益分岐計測p22)に基づく保守的な閾値128を使います。最初の近似以降は、通常計算する末尾・decodeを含めて共有登録を止めます。このモードの `server ask` は判断をサーバーへ任せ、APCなしの通常の `server ask` はH=0として同じ閾値を使います。テンプレートは `lpa.enabled = false` を既定とし、バッチ入力に限って用途ごとに有効化します（近似した要求は共有cacheに何も登録しないため）。有効にしている間、要求に `"vllm_xargs": {"glm53_lpa_mode": "off"}` を指定すると通常計算し、通常状態の共有cacheを育てられます。更新するTOMLには閾値キーを明示してください。[実装契約](apc-lpa-design.ja.md)と[LPA](lpa.ja.md)を参照してください。
+P22のGPU状態隔離・校正・最終併用・held-out参照評価を、範囲を限って確認済みです。LPAとprefix cachingを両方有効にする場合は `GLM53_APC_LPA_API=1` のimageが必要です。schedulerが全状態を揃えて復元したprefixと `lpa.break_even_tokens` から適用を決めます。テンプレートは[P22の校正](benchmarks.ja.md#apc優先lpaの損益分岐計測p22)に基づく保守的な閾値128を使います。最初の近似以降は、通常計算する末尾・decodeを含めて共有登録を止めます。このモードの `server ask` は判断をサーバーへ任せ、APCなしの通常の `server ask` はH=0として同じ閾値を使います。テンプレートは `lpa.enabled = false` を既定とし、バッチ入力に限って用途ごとに有効化します（[使用範囲](lpa.ja.md#使用範囲)）。有効にしている間、要求に `"vllm_xargs": {"glm53_lpa_mode": "off"}` を指定すると通常計算し、通常状態の共有cacheを育てられます。更新するTOMLには閾値キーを明示してください。[実装契約](apc-lpa-design.ja.md)と[LPA](lpa.ja.md)を参照してください。
 
 ## コマンド
 
@@ -242,7 +242,7 @@ run_seconds = 0
 
 KVが不足すれば起動が拒否される場合があり、実行時は待ちやpreemption・再計算により性能が落ちることがあります。固定KV poolが勝手に必要量まで拡張されるわけではありません。KV以外の割当やRAM予算が不足すればOOMやガード停止も起こり得ます。[vLLMのpreemption説明](https://docs.vllm.ai/en/latest/configuration/optimization/#preemption)
 
-起動行 `GPU KV cache size: N tokens, Maximum concurrency for L tokens per request: Cx` は、このhybridモデル（MLA・IndexPool tail・KDA state群・MTP draftが一つのblock poolを共有し、整列した区間ごとにgroup別のidを使う）では `N = C × L` です。`N` は同時実行数をtoken単位で表した値で、prefix cacheが保持できる会話tokenの数ではありません。`server capacity` が分解を表示し、group種別が分かる場合は会話本数の推定も出します。測った画像入力構成の二つでは、KV 1 GiBに4,608 tokenのblockが28個入り、長さLの要求1本はそのうちceil(L / 4608) + 16個を使いました。204,800 tokenと2.5 GiBでは70個のうち61個、262,144と3 GiBでは84個のうち73個で、どちらも1.15倍です。256Kの値は切替前にこの数え方で見積もったものです。他の長さ・KV量・group構成では、それぞれの起動行を確かめてください。`GLM53_KPOOL_RING=1` を持つimageでは、IndexPool tail groupのblockがMTPの深さで変わります。MTPなしは4、k = 1〜4は8、k = 5は16です（それ以前のimageはどのkでも4）。実行中の要求1本につき1 blockです。起動行の `kv cache group sizes` に表れます。整列したblockと要求1本あたりのblock数はこれと一緒には動きません。patchを持つ1.19.0のimageでも、配布既定の3 GiBでの `GPU KV cache size` は変わりませんでした（[測定](benchmarks.ja.md#両profileを同じ枠でgpuクロックの上限つきで2026-09-28)）。prefix cacheもblock単位で働くため、同じN tokenのpromptを繰り返したとき復元されるのは `(floor(N / block) - 1) x block` tokenで、2 block未満では一切復元されません。画像profileのscheduler block 4,608 tokenでの実測は、3,625 tokenで0、14,025 tokenで9,216、28,025 tokenで23,040でした。短い会話はこのprofileでは再利用の恩恵を受けません。
+起動行 `GPU KV cache size: N tokens, Maximum concurrency for L tokens per request: Cx` は、このhybridモデル（MLA・IndexPool tail・KDA state群・MTP draftが一つのblock poolを共有し、整列した区間ごとにgroup別のidを使う）では `N = C × L` です。`N` は同時実行数をtoken単位で表した値で、prefix cacheが保持できる会話tokenの数ではありません。`server capacity` が分解を表示し、group種別が分かる場合は会話本数の推定も出します。測った画像入力構成の二つでは、KV 1 GiBに4,608 tokenのblockが28個入り、長さLの要求1本はそのうちceil(L / 4608) + 16個を使いました。204,800 tokenと2.5 GiBでは70個のうち61個、262,144と3 GiBでは84個のうち73個で、どちらも1.15倍です。256Kの値は切替前にこの数え方で見積もったものです。他の長さ・KV量・group構成では、それぞれの起動行を確かめてください。`GLM53_KPOOL_RING=1` を持つimageでは、IndexPool tail groupのblockがMTPの深さで変わります。MTPなしは4、k = 1〜4は8、k = 5は16です（それ以前のimageはどのkでも4）。実行中の要求1本につき1 blockです。起動行の `kv cache group sizes` に表れます。整列したblockと要求1本あたりのblock数はこれと一緒には動きません。patchを持つ1.19.0のimageでも、配布既定の3 GiBでの `GPU KV cache size` は変わりませんでした（[測定](benchmarks.ja.md#両profileを同じ枠でgpuクロックの上限つきで2026-09-28)）。prefix cacheもblock単位で働くため、同じN tokenのpromptを繰り返したとき復元されるのは `(floor(N / block) - 1) x block` tokenで、2 block未満では一切復元されません。画像profileのscheduler block 4,608 tokenでの実測（1.2.0、2026-09-17）は、3,625 tokenで0、14,025 tokenで9,216、28,025 tokenで23,040でした。短い会話はこのprofileでは再利用の恩恵を受けません。
 
 3ノードでは整列したblockは3,072 token（2ノードは4,608）で、KV 1 GiBに約42 block入り、長さLの要求はceil(L / 3072) + 16 blockを使います。参照リングの起動行の容量（checkpointの `max_position_embeddings` である `max_model_len` 1,048,576まで）と、実際に同時に配信した要求は[1.24.0での測定](benchmarks.ja.md#1240での測定)にあります。
 

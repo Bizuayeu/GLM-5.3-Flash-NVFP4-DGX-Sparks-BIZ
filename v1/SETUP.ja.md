@@ -112,7 +112,7 @@ python -m unittest discover -s tests -t . -v
 
 実際にリンクしたEthernet interface、HCA、各IPv4に対応するRoCEv2 GIDを測り、[サイト設定](docs/operations.ja.md#ネットワークとサイト設定)へ反映します。サンプル値はすべて仮値です。MTU 9000も経路全体で成立する場合に限ります。双方向を確認し、SSH/IP到達性とRDMA転送を区別します。
 
-重みをフルロードする前に、[2 rankのNCCL診断](docs/nccl-validation.ja.md)を実施します。コマンド、ツール版、rank配置、transportログ、payloadサイズ、データ検査、帯域実測を残し、指定RDMA経路の使用とデータ検査合格を確認してください。**本番向けの帯域合格閾値はありません。フルモデルの通常運用としての受け入れは、ここで測る数値ではなく[手順6](#6-フルモデルの検証)に記録した証拠に拠ります。** 性能基準を先に決めて記録し、pingや基準のない帯域数値だけで性能合格にしません。
+重みをフルロードする前に、[2 rankのNCCL診断](docs/nccl-validation.ja.md)を実施します。コマンド、ツール版、rank配置、transportログ、payloadサイズ、データ検査、帯域実測を残し、指定RDMA経路の使用とデータ検査合格を確認してください。**フルモデルの通常運用としての受け入れは、ここで測る数値ではなく[手順6](#6-フルモデルの検証)に記録した証拠に拠ります。診断は[本番向けの帯域合格閾値を定めません](docs/nccl-validation.ja.md#合格条件と数値の読み方)。** 性能基準を先に決めて記録し、pingや基準のない帯域数値だけで性能合格にしません。
 
 **通過条件:** 実際の2 rank通信の正当性と経路を証明。未達なら根拠付きで未実施・失敗を明記。
 
@@ -155,7 +155,7 @@ python -m glm53_setup server preflight --rank 0
 
 | 上の項目 | 記録先 |
 |---|---|
-| 層、メモリ、保護、KV、OOMなし | [1.10.2での測定](docs/benchmarks.ja.md#1102での測定)：rankあたりKV 6 GiB（606,881 token）、約200Kの要求2本の同時でpreemptionなし、headの空き6.46 GiB。[1.10.4](docs/benchmarks.ja.md#1104での測定)のベンチ中は7.24 GiB |
+| 層、メモリ、保護、KV、OOMなし | [1.10.2での測定](docs/benchmarks.ja.md#1102での測定)：rankあたりKV 6 GiB、約200Kの要求2本の同時でpreemptionなし、headの最小空き。[1.10.4](docs/benchmarks.ja.md#1104での測定)にはベンチ中のheadのメモリ |
 | 短文・長文、context境界、繰り返し要求、キャンセル | 約200Kの合言葉要求2本の同時が両方正答。単独の要求は起動内でbit一致で反復し、他の要求とstepを共有したcompletionは単独時と異なる（宣言した挙動、[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)）。境界の要求2本の同時は未測定。キャンセルは配布既定と同じく[ハーネス](docs/harnesses.ja.md#受け入れ試験一覧と実施状態)のH-06 PASS |
 | ツール利用 | tool呼び出し2本の同時が両方正しい（[1.10.2](docs/benchmarks.ja.md#1102での測定)）。同profileでのtool-eval-benchは配布既定と同じ結果（[1.10.4](docs/benchmarks.ja.md#1104での測定)） |
 | 精度・backend、品質、throughput | 公開した任意設定の教師強制NLLとdecodeの行は[ベンチマーク](docs/benchmarks.ja.md)とREADMEの主要な測定値、同時2系列のdecodeは[1.10.2](docs/benchmarks.ja.md#1102での測定) |
