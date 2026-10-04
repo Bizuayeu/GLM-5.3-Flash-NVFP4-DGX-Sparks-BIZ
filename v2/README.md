@@ -134,7 +134,7 @@ The engine also routes `/v1/completions`, `/v1/models`, `/v1/responses`, Anthrop
 
 ## Measured on the Release
 
-Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the branch at `b44c2f1` (the release), at `2d4fa9b` (one printed line before it) or at `304109c` (before the heat wait, which only changes when prompt chunks run); the notes say which. The [validation page](docs/validation.md) has the commands and reference values.
+Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [1.x's changelog](../v1/CHANGELOG.md#1280--2026-10-04).
 
 | Measurement | TP=2 | TP=3 | 1.x |
 |---|---|---|---|
@@ -149,12 +149,12 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
 | tool-eval-bench through the tool-argument gate | 93/100, Safety Gate passed | 91/100, Safety Gate passed | TP=2 AXL 90/100 |
 | A client disconnect or a stop string mid-reply | stops within a round, the next request starts at once | same | — |
 
-- **Repeatability.** TP=2 and TP=3 do not give bit-identical outputs to each other or to 1.x, because the ranks split the sums differently. Each repeats itself: within a launch, across launches, with one or two rails, and with heat waits happening, the decode check gave one completion per task, the [reference hashes](docs/validation.md#decode-check). The NLL equals the development builds' at full precision.
+- **Repeatability.** TP=2 and TP=3 do not give bit-identical outputs to each other or to 1.x, because the ranks split the sums differently. Each repeats itself: within a launch, across launches, with one or two rails, and with heat waits happening, the decode check gave one completion per task, the [reference hashes](docs/validation.md#decode-check). The NLL equals the [reference values](docs/validation.md#teacher-forced-nll), taken on builds before the release, at full precision.
 - **Which engine.**
-  - The decode check ran on `b44c2f1` at TP=2 and on `2d4fa9b` at TP=3.
-  - The TP=3 prefill and the 1M-token prompt ran on `2d4fa9b`.
-  - The other rows ran on `304109c`.
-- **Heat.** During the 1M-token prompt the hottest host held at about 92 °C, waited about 80 times for a few seconds each, and peaked at 92.8 °C. Without the wait the same prompt reached 94 °C, where the [thermal watch](host/README.md#during-long-runs) stops the engine, after six and a half minutes. Prefill also slows as a host heats: three 38,960-token prompts back to back fell from 1,670 to 1,540 tok/s, below the wait's threshold and with the clock unchanged. Cool the hosts between long requests.
+  - The decode check ran on the release at TP=2 and on the build one printed line before it at TP=3.
+  - The TP=3 prefill and the 1M-token prompt ran on the build one printed line before the release.
+  - The other rows ran on the build before the heat wait.
+- **Heat.** During the 1M-token prompt the hottest host held at about 92 °C, waited about 80 times for a few seconds each, and peaked at 92.8 °C. Without the wait the same prompt reached 94 °C after six and a half minutes, and the [thermal watch](host/README.md#during-long-runs) stopped the engine. Prefill also slows as a host heats ([prefill and decode speed](docs/validation.md#prefill-and-decode-speed)). Cool the hosts between long requests.
 - **tool-eval-bench** used the same 69 scenarios and invocation as 1.x's. Both TP sizes failed TC-61 only.
 
 ## Limits
