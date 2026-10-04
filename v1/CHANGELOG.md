@@ -2,6 +2,25 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.0 — 2026-10-04
+
+### Fixed
+
+- **Images of 7,922 to 8,000 tokens are answered.** The pinned vLLM sized the image encoder cache from a square probe, which fits the model's 8,000-token ceiling as 89 × 89 = 7,921, and refused with HTTP 400 every image the processor turns into 7,922 to 8,000 tokens: a 4:3 phone photo, a 4K frame, an A4 scan at 300 dpi ([vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)). Reference images now carry the merged fix, [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565), on the pinned source (`glm53_setup/runtime/patch_image_budget.py`, marker `GLM53_IMAGE_BUDGET_EXACT=1`, required by no check). The pinned tree keeps the class in `glm5next/nvidia/multimodal.py` where upstream has `glm5next/common/multimodal.py`; the added method is upstream's, line for line. On the reference pair both profiles log a budget of 8,000 tokens and answered and read every image of the issue and the two 8,000-token canvases ([image input](docs/vision.md#1290-2026-10-04)).
+
+### Added
+
+- **`mtp.disable_eagle_block_drop`** (optional, absent = `false`, vLLM's default). With MTP the pinned vLLM drops the last matched block of every prefix-cache hit and recomputes it, 4,608 tokens at TP=2 and 3,072 at TP=3; `true` passes vLLM's own switch to keep it. Startup refuses it without MTP and prefix caching, and with LPA, where it is not measured. On both TP=2 profiles a 124,272-token cached resend reached its first token in 4.4 s instead of 8.5 s, with the same replies and decode-check completions ([measurements on 1.29.0](docs/benchmarks.md#measurements-on-1290)). vLLM calls the setting experimental for the draft's acceptance, so no template adopts it until that is measured ([next action](README.md#next-action)).
+
+### Documentation
+
+- [vLLM #59759](https://github.com/vllm-project/vllm/pull/59759) (garbage after a prefill step that saves a linear-attention checkpoint in the middle of a chunk, under MTP and prefix caching) does not reach this stack: the pinned vLLM sets no prefill checkpoint blocks for GLM, which [#56960](https://github.com/vllm-project/vllm/pull/56960) adds. The Next Action row becomes a trigger for the pin's move past #56960.
+- The published option's off-by-one answers in long context come back from requests that read nothing from the cache, and a third one changes with how a prompt's prefill is split ([validation](docs/validation.md#prefix-cache-correctness-gate)).
+
+### Reference image
+
+Built on 2026-10-04 from the tree of `3569b23`, whose `glm53_setup/`, Dockerfile and configuration are this release's (the `pyproject.toml` copied into it still reads 1.28.3): `sha256:4d294272ea545a72dcaf60fc23f335a5080fb1bb18fdc619304bd721ed3f6cc6` on the reference hosts. Against the 1.25.0 image (`b9ae6459…`) its vLLM differs in `glm5next/nvidia/multimodal.py` alone, and the AXL overlays' base files (`kda.py`, `model.py`) are unchanged. Both profiles' decode-check completions are the earlier image's.
+
 ## 1.28.4 — 2026-10-04
 
 ### Fixed

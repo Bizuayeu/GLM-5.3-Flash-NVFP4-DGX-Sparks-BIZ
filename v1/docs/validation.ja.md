@@ -95,7 +95,6 @@ python3 -m glm53_setup.validation.kpool_ring_repro --output /tmp/kpool-ring.json
 未解決の事項と、それぞれの正典：
 
 - FB-05のLPAの部分（近似を実際に通すA/B/A）は、LPAがoffの間は未実施（[FreedomBench](freedombench.ja.md)）。
-- 7,922〜8,000 tokenの画像は拒否される（[画像入力](vision.ja.md#限界と未解決の事項)）。
 - 長いcontextで、公開した任意設定は問われた記録の直前の記録で答えた。原因は切り分けていない（[prefix cacheの関門](#prefix-cacheの正しさの関門)）。
 - モデルのAPIではtool-eval-benchのSafety Gateを通らない。任意の[tool引数ゲート](harnesses.ja.md#tool引数ゲート)越しでは通る。
 - 持続的な混在負荷とbatchingの組合せは未検証。TP=3ではキャンセル、ツール利用、障害からの復旧を実施していない（[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)）。
@@ -133,7 +132,7 @@ reference imageは、2台のGB10ホストで45層の言語層すべてを、Marl
 
 2026-10-02、参照機で1.25.0のimageを使い、TP=2の両profileで [`server prefix-gate`](server-configuration.ja.md#コマンド) を2つの長さで流しました。配布既定は両方とも合格です。coldもwarmも6問中6問正答で、warmの要求はどれも14,014 tokenのpromptのうち9,216 token、98,982 tokenのうち92,160 tokenをcacheから戻しました。公開した任意設定は両方の長さで判定不能（`cold_incorrect`）でした。coldもwarmも6問中5問正答で、外れはどちらの段でも同じ課題、同じ誤答です。外れた課題を、そのとき任意設定を配信していた対（1.24.0のcheckout、image `99e6cf7a…`、要求の本文は同じ）へ新しいsaltで1本だけ送り直す（要求1本、cached 0 token）と、同じ誤ったコードが返りました。cacheの不具合ではないので、配信のprefix cachingはonのままです。
 
-**長いcontextでの1つずれた読み取り。公開した任意設定だけで測った所見です。** 誤答はどれも、問われた記録の直前の記録のコードでした。98,982 tokenのログでRecord 03008を問うとRecord 03007のコード `LPDHS` を、14,013 tokenのログでRecord 00374を問うとRecord 00373の `GYCUK` を答えました。同じ課題で問うたもう一方の記録は、どちらも正答です。配布既定は同じログと課題で、両方の長さとも6問すべてに正答しました。原因は切り分けていません。任意設定はW4A16のattention射影と `lm_head` のほか、profileの他の設定（2系列、6 GiBのKV、pageの重複排除）でも配布既定と違います。attentionの再量子化が最も疑わしいというのは仮説にとどまります。
+**長いcontextでの1つずれた読み取り。公開した任意設定だけで測った所見です。** 誤答はどれも、問われた記録の直前の記録のコードでした。98,982 tokenのログでRecord 03008を問うとRecord 03007のコード `LPDHS` を、14,013 tokenのログでRecord 00374を問うとRecord 00373の `GYCUK` を答えました。同じ課題で問うたもう一方の記録は、どちらも正答です。配布既定は同じログと課題で、両方の長さとも6問すべてに正答しました。原因は切り分けていません。任意設定はW4A16のattention射影と `lm_head` のほか、profileの他の設定（2系列、6 GiBのKV、pageの重複排除）でも配布既定と違います。attentionの再量子化が最も疑わしいというのは仮説にとどまります。1.29.0（2026-10-04）では、任意設定で何もcacheされていない要求を1本ずつ送っても同じ2つの誤答が返り、3つ目の課題（Record 01524の行の引用に、Record 01523の行で答えた）は、cacheを読む要求でも読まない要求でも、promptのprefillの区切られ方しだいで外れたり当たったりしました（[1.29.0での測定](benchmarks.ja.md#1290での測定)）。
 
 関門は6本の要求を1つのsaltで並列に送るため、coldの段でもcacheを使わずにprefixを計算するのは最初に届いた1本だけで、残りはそれが書いたものを読むことがあります。cacheを使わない計算の証拠は、上の1本ずつの送り直しです。
 
