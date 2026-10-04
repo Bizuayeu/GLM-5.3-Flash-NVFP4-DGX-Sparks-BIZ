@@ -59,7 +59,7 @@ rank 0の起動の行を読みます：
 
 - `allocated prompt/reply window`：TP=2で300000、TP=3は収まる最大（参照機のリングで1048576）
 - `other conversations' prompts are kept in …` の行が無い：既定の3 GiBの保持promptが窓の横に収まった
-- 各rankのNCCLの行が全接続 `NET/IB` で、socketに落ちたものが無い
+- 各rankのNCCLの行（`via NET/IB`。rankファイルの `NCCL_DEBUG` の行で起動時に一度だけ出る）が全接続 `NET/IB` で、socketに落ちたものが無い
 - `serving` の行：モデル名（rankのファイルで `MODEL_NAME` を設定しなければ `glm-tf`）、`HOST`・`PORT` を設定しなければ `127.0.0.1:8095`、`context`
 
 rank 0がOpenAI互換のAPIをloopbackで出します。参照機では、読み込みを含む起動にTP=3で約100〜120秒、TP=2で約130秒かかりました。

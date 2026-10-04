@@ -59,7 +59,7 @@ Read rank 0's startup lines:
 
 - `allocated prompt/reply window`: 300000 at TP=2; at TP=3 the largest that fits (1048576 on the reference ring)
 - no line `other conversations' prompts are kept in …`: the default 3 GiB of kept prompts fit beside the window
-- each rank's NCCL lines name `NET/IB` for every connection, none over sockets
+- each rank's NCCL lines (`via NET/IB`, logged once at start by the rank file's `NCCL_DEBUG` lines) name `NET/IB` for every connection, none over sockets
 - the `serving` line: the model name (`glm-tf` unless `MODEL_NAME` is set in the rank file), `127.0.0.1:8095` unless `HOST` and `PORT` are, `context`
 
 Rank 0 serves the OpenAI-compatible API on loopback. A loading start takes about 100-120 s at TP=3 and about 130 s at TP=2 on the reference hosts.
