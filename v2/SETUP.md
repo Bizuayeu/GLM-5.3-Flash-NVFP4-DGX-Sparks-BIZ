@@ -62,10 +62,10 @@ It compiles the CUDA extensions the GLM NVFP4 path loads into `~/glm53-tf/ext` b
 
 ## 6. Start
 
-From a machine with SSH to every host, after copying [`examples/cluster.tp2.env`](examples/cluster.tp2.env) or [`cluster.tp3.env`](examples/cluster.tp3.env) and setting `HOSTS` (SSH names in rank order) and `CHECKOUT` (this repository on the hosts):
+From a machine with SSH to every host, after copying [`examples/cluster.tp2.env`](examples/cluster.tp2.env) or [`cluster.tp3.env`](examples/cluster.tp3.env) to `state/cluster.env` (untracked, so your site's values stay out of Git) and setting `HOSTS` (SSH names in rank order) and `CHECKOUT` (this repository on the hosts):
 
 ```sh
-v2/scripts/cluster.sh my-cluster.env start first
+v2/scripts/cluster.sh state/cluster.env start first
 ```
 
 It starts the highest rank first and rank 0 last, each `serve.sh TP RANK /work/rank.env` in its container, starts the memory guard on every host (`hostwatch.sh`: stops the engine below 5 GiB `MemAvailable`) and waits for rank 0's `[tensorfold] serving` line; logs are in `~/glm53-tf/logs/`. Without the script, run the same `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` on each host in that order.
@@ -96,7 +96,7 @@ Run the checks of [validation](docs/validation.md) and compare them with its ref
 ## 9. Stop
 
 ```sh
-v2/scripts/cluster.sh my-cluster.env stop
+v2/scripts/cluster.sh state/cluster.env stop
 ```
 
 It stops rank 0 first, then the others, waits until no engine runs and prints each host's `MemAvailable`. The containers stay; `docker stop glm53-tf` frees their GPU claim, which 1.x's `server preflight` checks before a 1.x launch.

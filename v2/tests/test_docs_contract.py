@@ -201,6 +201,22 @@ class LockTests(unittest.TestCase):
                 self.assertTrue(config.REVISION in text, name + suffix)
 
 
+class SiteFileTests(unittest.TestCase):
+    """The pages put a file with the site's values where Git ignores it (state/)."""
+
+    def test_the_cluster_file_goes_under_state(self):
+        for name in ("README", "SETUP"):
+            for suffix in PAIRS:
+                text = read(f"{name}{suffix}.md")
+                paths = re.findall(r"cluster\.sh (\S+) (?:start|stop|status)", text)
+                paths += re.findall(r"cp v2/examples/cluster\.tp\d\.env (\S+)", text)
+                self.assertTrue(paths, name + suffix)
+                for path in paths:
+                    self.assertTrue(path.startswith("state/"), (name + suffix, path))
+        ignored = (LINE.parent / ".gitignore").read_text(encoding="utf-8").split()
+        self.assertIn("/state", ignored)
+
+
 def assignments(path):
     """The KEY=value lines of a sourced file; a value may itself start with '='."""
     values = {}

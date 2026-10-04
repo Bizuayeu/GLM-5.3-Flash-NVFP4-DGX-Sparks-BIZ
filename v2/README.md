@@ -51,9 +51,9 @@ cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # tp2-rank1 on the other h
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 # The control machine (SETUP §6, §9)
-cp v2/examples/cluster.tp2.env my-cluster.env           # HOSTS in rank order, CHECKOUT
-v2/scripts/cluster.sh my-cluster.env start first        # "first" labels the logs; READY after rank 0's serving line
-v2/scripts/cluster.sh my-cluster.env stop
+mkdir -p state && cp v2/examples/cluster.tp2.env state/cluster.env  # HOSTS in rank order, CHECKOUT
+v2/scripts/cluster.sh state/cluster.env start first    # "first" labels the logs; READY after rank 0's serving line
+v2/scripts/cluster.sh state/cluster.env stop
 ```
 
 Rank 0 then answers on loopback:

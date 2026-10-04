@@ -51,9 +51,9 @@ cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1�
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 # 操作する機械で（SETUP §6・§9）
-cp v2/examples/cluster.tp2.env my-cluster.env           # HOSTS（rank順）と CHECKOUT
-v2/scripts/cluster.sh my-cluster.env start first        # first はlogの名前。rank 0のserving行でREADY
-v2/scripts/cluster.sh my-cluster.env stop
+mkdir -p state && cp v2/examples/cluster.tp2.env state/cluster.env  # HOSTS（rank順）と CHECKOUT
+v2/scripts/cluster.sh state/cluster.env start first    # first はlogの名前。rank 0のserving行でREADY
+v2/scripts/cluster.sh state/cluster.env stop
 ```
 
 rank 0はloopbackで答えます：

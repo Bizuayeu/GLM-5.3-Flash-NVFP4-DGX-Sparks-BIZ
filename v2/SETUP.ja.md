@@ -62,10 +62,10 @@ GLMのNVFP4の経路が読み込むCUDAのextensionを、重みを読む前に `
 
 ## 6. 起動
 
-全ホストへSSHできる機械で、[`examples/cluster.tp2.env`](examples/cluster.tp2.env) か [`cluster.tp3.env`](examples/cluster.tp3.env) をコピーし、`HOSTS`（rank順のSSH名）と `CHECKOUT`（ホスト上のこのリポジトリ）を直してから：
+全ホストへSSHできる機械で、[`examples/cluster.tp2.env`](examples/cluster.tp2.env) か [`cluster.tp3.env`](examples/cluster.tp3.env) を `state/cluster.env` へコピーし（Git追跡外なので、自分の環境の値がGitに入りません）、`HOSTS`（rank順のSSH名）と `CHECKOUT`（ホスト上のこのリポジトリ）を直してから：
 
 ```sh
-v2/scripts/cluster.sh my-cluster.env start first
+v2/scripts/cluster.sh state/cluster.env start first
 ```
 
 最も大きいrankから順にrank 0を最後に、各containerで `serve.sh TP RANK /work/rank.env` を起動し、全ホストでメモリの見張り（`hostwatch.sh`：`MemAvailable` が5 GiB未満でエンジンを止める）を起動して、rank 0の `[tensorfold] serving` の行を待ちます。logは `~/glm53-tf/logs/` です。台本を使わない場合は、各ホストで同じ順に `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` を実行します。
@@ -96,7 +96,7 @@ toolを使うクライアントはport 8896へつなぎます。
 ## 9. 停止
 
 ```sh
-v2/scripts/cluster.sh my-cluster.env stop
+v2/scripts/cluster.sh state/cluster.env stop
 ```
 
 rank 0を先に、続いて他のrankを止め、エンジンが無くなるのを待って各ホストの `MemAvailable` を表示します。containerは残ります。`docker stop glm53-tf` でそのGPUの割り当てが外れます。1.x系の `server preflight` は1.x系の起動の前にこれを検査します。
