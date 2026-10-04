@@ -1665,6 +1665,7 @@ class ReferenceImageMarkerTests(unittest.TestCase):
         "GLM53_LOAD_CLONE=1": "build-patch record, no reader (weight loading off the file mapping)",
         "GLM53_SLOT_MAPPING_GUARD=1": "build-patch record, no reader (CHANGELOG 1.7.0)",
         "GLM53_SAMPLER_VOCAB_BOUND=1": "build-patch record, no reader (vLLM #50843)",
+        "GLM53_IMAGE_BUDGET_EXACT=1": "build-patch record, no reader (vLLM #59565)",
         "GLM53_CANONICAL_CANDIDATES=1": "switch default read by candidate_order",
         "GLM53_CANONICAL_MOE_ORDER=1": "switch default read by moe_token_order",
         "GLM53_STABLE_INDEXER_TOPK=1": "switch default read by stable_topk",
