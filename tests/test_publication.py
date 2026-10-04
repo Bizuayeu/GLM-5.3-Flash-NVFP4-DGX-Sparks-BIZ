@@ -8,8 +8,10 @@ from tools.check_publication import (
     architecture_problems,
     audit,
     citation_problems,
+    duplicate_numbers,
     heading_anchors,
     headline_problems,
+    line2_problems,
     map_problems,
     plan_link_problems,
     problems,
@@ -344,3 +346,92 @@ class AnchorTests(unittest.TestCase):
             "b.ja.md": "## 検査\n",
         }
         self.assertEqual(anchor_problems(documents), [])
+
+
+def write(root, files):
+    for name, text in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text, encoding="utf-8")
+    return set(files)
+
+
+LINE2 = {
+    "README.md": "x",
+    "README.ja.md": "x",
+    "SETUP.md": "x",
+    "SETUP.ja.md": "x",
+    "CHANGELOG.md": "# Changelog\n\n## 2.0.5 — 2026-10-04\n\n- x\n",
+    "CHANGELOG.ja.md": "# 変更履歴\n\n## 2.0.5 — 2026-10-04\n\n- x\n",
+    "pyproject.toml": '[project]\nname = "x"\nversion = "2.0.5"\nlicense = "Apache-2.0"\n',
+    "config/model.lock.json": '{"model": "nvidia/GLM-5.3-Flash-NVFP4", "revision": "'
+    + "a" * 40
+    + '"}',
+}
+
+
+class Line2Tests(unittest.TestCase):
+    """The 2.x line gets the checks that fit it: files, version, license, pin."""
+
+    def check(self, **changes):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            files = dict(LINE2, **changes)
+            names = write(root, {k: v for k, v in files.items() if v is not None})
+            return line2_problems(root, names)
+
+    def test_a_complete_line_passes(self):
+        self.assertEqual(self.check(), [])
+
+    def test_missing_files_are_named_under_v2(self):
+        found = self.check(**{"SETUP.ja.md": None, "config/model.lock.json": None})
+        self.assertIn("missing required file: v2/SETUP.ja.md", found)
+        self.assertIn("missing required file: v2/config/model.lock.json", found)
+
+    def test_an_unpinned_revision_is_reported(self):
+        lock = '{"model": "m", "revision": "main"}'
+        found = self.check(**{"config/model.lock.json": lock})
+        self.assertIn("v2: model and revision must be pinned", found)
+
+    def test_version_license_and_changelog_sections(self):
+        project = '[project]\nname = "x"\nversion = "2.0.6"\nlicense = "MIT"\n'
+        found = self.check(**{"pyproject.toml": project})
+        self.assertIn("v2: unexpected project license", found)
+        self.assertIn("v2: CHANGELOG.md has no section for 2.0.6", found)
+        self.assertIn("v2: CHANGELOG.ja.md has no section for 2.0.6", found)
+        project = '[project]\nname = "x"\nversion = "2.1"\nlicense = "Apache-2.0"\n'
+        self.assertIn(
+            "v2: expected release version", self.check(**{"pyproject.toml": project})
+        )
+
+    def test_the_audit_runs_the_line2_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = write(root, {"v2/README.md": "x"})
+            found = problems(root, names)
+        self.assertIn("missing required file: v2/SETUP.md", found)
+
+
+class DuplicateNumberTests(unittest.TestCase):
+    """A warning: measured-looking numbers on more than one English page of a line."""
+
+    def test_numbers_repeated_across_pages_of_a_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = write(
+                root,
+                {
+                    "v1/README.md": "decode 45.43 tok/s, prefill 1,233.4, `99.99` in code\n",
+                    "v1/docs/benchmarks.md": "| 45.43 | 1,233.4 | 99.99 |\n",
+                    "v1/docs/benchmarks.ja.md": "45.43\n",
+                    "v1/CHANGELOG.md": "45.43\n",
+                    "v2/README.md": "45.43 and version 1.29.2\n",
+                },
+            )
+            found = duplicate_numbers(root, names)
+        self.assertEqual(
+            found,
+            {
+                ("v1", "1,233.4"): ["v1/README.md", "v1/docs/benchmarks.md"],
+                ("v1", "45.43"): ["v1/README.md", "v1/docs/benchmarks.md"],
+            },
+        )
