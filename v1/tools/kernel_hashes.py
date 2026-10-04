@@ -14,7 +14,7 @@ the config each rank serves: on 2026-09-24 the two hosts' autotune caches held d
 for the kernel that normalises the indexer's key, and the configs differ in bits. Rank differences
 there are printed, not counted in the exit status, since several kernels differ by design.
 
-    python3 tools/kernel_hashes.py --output records/<run>/kernels.json [--reference records/<earlier>/kernels.json]
+    python3 tools/kernel_hashes.py --output ../records/<run>/kernels.json [--reference ../records/<earlier>/kernels.json]
 """
 
 import argparse

@@ -203,7 +203,8 @@ def plan_link_problems(root):
             url = urlsplit(target.strip().strip("<>"))
             if url.scheme or not url.path:
                 continue
-            if not (path.parent / unquote(url.path)).exists():
+            # Resolved first: docs/plans may be a link, and Windows resolves ".." textually.
+            if not (path.resolve().parent / unquote(url.path)).exists():
                 problems.append(
                     f"broken plan link: docs/plans/{path.name} -> {url.path}"
                 )

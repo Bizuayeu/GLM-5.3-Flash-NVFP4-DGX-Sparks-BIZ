@@ -2,6 +2,16 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.28.4 — 2026-10-04
+
+### Fixed
+
+- `tools/check_publication.py --plans` reads each plan's links from where the plan lives. When `docs/plans` is a link to a directory outside the checkout, Windows resolved `..` against the link's path and reported links that exist as broken; the plan's path is now resolved first. A unit test builds the linked layout.
+
+### Documentation
+
+- The usage lines of `tools/decode_check.py`, `tools/decode_divergence.py`, `tools/kernel_hashes.py` and `tools/weight_digest.py` write to `../records/<run>/`, as the [launch-safety](docs/launch-safety.md) commands do from `v1/` since 1.28.0.
+
 ## 1.28.3 — 2026-10-04
 
 ### Documentation

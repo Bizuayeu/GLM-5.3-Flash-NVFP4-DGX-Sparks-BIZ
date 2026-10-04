@@ -4,6 +4,16 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.28.4 — 2026-10-04
+
+### Fixed
+
+- `tools/check_publication.py --plans` は、各計画書のリンクを計画書の実体の場所から読みます。`docs/plans` がcheckoutの外のディレクトリへのリンクのとき、Windowsは `..` をリンクのパスの上で解決し、実在するリンクを切れと報告していました。計画書のパスを先に解決するようにしました。リンクした配置を作る単体テストつき。
+
+### Documentation
+
+- `tools/decode_check.py`・`tools/decode_divergence.py`・`tools/kernel_hashes.py`・`tools/weight_digest.py` の使用例の出力先を `../records/<run>/` にしました。1.28.0から `v1/` で実行する[起動の安全](docs/launch-safety.ja.md)のコマンドと同じ形です。
+
 ## 1.28.3 — 2026-10-04
 
 ### Documentation

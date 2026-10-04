@@ -1,6 +1,6 @@
 """First diverging token between two decode_check.py token records (their TOKENS_OUT files).
 
-    python3 tools/decode_divergence.py records/<run-a>/tokens-prose.json records/<run-b>/tokens-prose.json
+    python3 tools/decode_divergence.py ../records/<run-a>/tokens-prose.json ../records/<run-b>/tokens-prose.json
 
 Prints, per sample index, the token count, the first index where the ids differ (or "identical") and the text
 around it, so a launch difference reads as one tie-break flip or as an early systematic drift. Runs holding
