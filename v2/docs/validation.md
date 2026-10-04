@@ -56,7 +56,7 @@ Needs the `tokenizers` package in the environment that runs it; the Hugging Face
 
 ## Prefill and decode speed
 
-A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3. The measurement scripts are not part of this repository.
+A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3. The measurement scripts are not part of this repository; [benchmark method](benchmarks.md) describes what they do.
 
 ## Long inputs
 

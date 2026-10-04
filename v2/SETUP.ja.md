@@ -68,7 +68,7 @@ GLMのNVFP4の経路が読み込むCUDAのextensionを、重みを読む前に `
 v2/scripts/cluster.sh state/cluster.env start first
 ```
 
-最も大きいrankから順にrank 0を最後に、各containerで `serve.sh TP RANK /work/rank.env` を起動し、全ホストでメモリの見張り（`hostwatch.sh`：`MemAvailable` が5 GiB未満でエンジンを止める）を起動して、rank 0の `[tensorfold] serving` の行を待ちます。終わりは、`READY` とrank 0の最後の `[tensorfold]` の行、最初の `Traceback` かエンジンが消えたrankで `FAILED` と全rankのlogの末尾、15分たつと `TIMEOUT` のどれかです。各rankのlogは `~/glm53-tf/logs/serve-r<RANK>-<LABEL>.log`、見張りのlogは `hostwatch-<LABEL>.log` です。labelの後の引数は全rankの `tensorfold serve` に渡り、`cluster.sh state/cluster.env status` は各rankのエンジンのプロセス数を数えます。台本を使わない場合は、各ホストで同じ順に `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` を実行します。
+最も大きいrankから順にrank 0を最後に、各containerで `serve.sh TP RANK /work/rank.env` を起動し、全ホストでメモリの見張り（`hostwatch.sh`：`MemAvailable` が5 GiB未満でエンジンを止める）を起動して、rank 0の `[tensorfold] serving` の行を待ちます。終わりは、`READY` とrank 0の最後の `[tensorfold]` の行、最初の `Traceback` かエンジンが消えたrankで `FAILED` と全rankのlogの末尾、15分たつと `TIMEOUT` のどれかです。各rankのlogは `~/glm53-tf/logs/serve-r<RANK>-<LABEL>.log`、見張りのlogは `hostwatch-<LABEL>.log` です。labelの後の引数は全rankの `tensorfold serve` に渡り、`cluster.sh state/cluster.env status` は各rankのエンジンのプロセス数を数えます。台本を使わない場合は、各ホストで同じ順に `docker exec -d glm53-tf bash /opt/glm53-tf/serve.sh <TP> <RANK> /work/rank.env` を実行します。`FAILED` や `TIMEOUT` の後は[運用](docs/operations.ja.md#起動の結果)を見ます。
 
 rank 0の起動の行を読みます：
 
@@ -99,4 +99,4 @@ toolを使うクライアントはport 8896へつなぎます。
 v2/scripts/cluster.sh state/cluster.env stop
 ```
 
-rank 0を先に、続いて他のrankを止めます。rankごとにエンジンが終わるのを最大60秒待ち、各ホストのエンジンのプロセス数と `MemAvailable` を表示します。数が0より大きいrankはまだ動いています。containerは残ります。`docker stop glm53-tf` でそのGPUの割り当てが外れます。1.x系の `server preflight` は1.x系の起動の前にこれを検査します。
+rank 0を先に、続いて他のrankを止めます。rankごとにエンジンが終わるのを最大60秒待ち、各ホストのエンジンのプロセス数と `MemAvailable` を表示します。数が0より大きいrankはまだ動いています。containerは残ります。`docker stop glm53-tf` でそのGPUの割り当てが外れます。1.x系の `server preflight` は1.x系の起動の前にこれを検査します。一つのrankだけが止まった場合、エンジンが残る停止、新しいimageは[運用](docs/operations.ja.md)にあります。

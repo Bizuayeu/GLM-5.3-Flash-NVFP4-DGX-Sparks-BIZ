@@ -133,6 +133,8 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 | Tool calls | the model API, optionally behind the tool-argument gate | the same gate, this line's copy run from `v2/`, in front of the engine |
 | Heat during a long prefill | outside the engine: the cooling gate between requests and the thermal watch ([`host/`](../host/README.md#during-long-runs)) | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
 
+Why each 2.x setting was chosen, and what was tried and not adopted, is in [decisions](docs/decisions.md).
+
 ## Measured on the Release
 
 Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the branch at `b44c2f1` (the release), at `2d4fa9b` (one printed line before it) or at `304109c` (before the heat wait, which only changes when prompt chunks run); the notes say which. The [validation page](docs/validation.md) has the commands and reference values.
@@ -187,7 +189,10 @@ v2/
                     cluster.sh           start, stop and status of every rank from a control machine
                     hostwatch.sh         the memory guard (stops the engine below 5 GiB MemAvailable)
   examples/         the reference hosts' rank files and cluster files, TP=2 and TP=3
-  docs/             validation.md: the acceptance checks and reference values
+  docs/             validation.md  the acceptance checks and reference values
+                    benchmarks.md  how the release figures were taken
+                    operations.md  failures and routine changes: a rank that stops, a new image, handing hosts to 1.x
+                    decisions.md   what was tried for 2.x, adopted or rejected, and why
   tests/            CPU tests of glm53_tf/ and of the facts these pages quote
   pyproject.toml    the 2.x version
 ```

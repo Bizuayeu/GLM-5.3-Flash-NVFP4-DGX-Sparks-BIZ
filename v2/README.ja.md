@@ -133,6 +133,8 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 | tool呼び出し | モデルのAPI、任意でtool引数ゲート越し | 同じゲートのこの系列の写しを `v2/` から起動してエンジンの前に置く |
 | 長いprefill中の熱 | エンジンの外：要求の合間の冷却gateと熱の見張り（[`host/`](../host/README.ja.md#長い運転の間)） | エンジンがprompt chunkの合間に全rankそろって待つ（92 °Cで待ち、88 °Cで再開） |
 
+2.x系の各設定を選んだ理由と、試して採らなかったものは[決定](docs/decisions.ja.md)にあります。
+
 ## リリースでの測定値
 
 2026-10-04に参照機（MSI EdgeXpert、GPUクロックの上限2,200 MHz）で取りました。エンジンは、リリースのbranchの `b44c2f1`、その1つ前（表示の行だけが違う）の `2d4fa9b`、または熱の待ちを入れる前の `304109c` です。熱の待ちはprompt chunkの走る時刻しか変えません。どの行がどれかは注に書きました。手順と基準値は[検証](docs/validation.ja.md)にあります。
@@ -187,7 +189,10 @@ v2/
                     cluster.sh           操作する機械から全rankを起動・停止・状態確認
                     hostwatch.sh         メモリの見張り（MemAvailableが5 GiBを切るとエンジンを止める）
   examples/         参照機のrankのファイルとclusterのファイル（TP=2とTP=3）
-  docs/             validation.md：受け入れの検査と基準値
+  docs/             validation.md  受け入れの検査と基準値
+                    benchmarks.md  リリースの値の取り方
+                    operations.md  失敗と日常の作業：止まったrank、新しいimage、ホストを1.x系へ渡す
+                    decisions.md   2.x系で試したこと、採ったこと・採らなかったこととその理由
   tests/            glm53_tf/と、これらの頁が引く事実のCPUテスト
   pyproject.toml    2.x系の版
 ```

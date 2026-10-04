@@ -33,6 +33,9 @@
 | 2.xのREADME | 要約、何であるか、必要な環境、はじめ方、配信の既定値、設定、API、1.x系との違い、リリースの測定値、制約、構成、TensorFoldの他のレシピ、Next Action | [EN](../v2/README.md) | [JA](../v2/README.ja.md) |
 | 2.xのセットアップ手順書 | ホストから受け入れ・停止までの順序 | [EN](../v2/SETUP.md) | [JA](../v2/SETUP.ja.md) |
 | 2.xの検証 | 2.xの起動を受け入れる基準値 | [EN](../v2/docs/validation.md) | [JA](../v2/docs/validation.ja.md) |
+| 2.xの運用 | 起動の結果、止まったrank、エンジンが残る停止、socketに落ちたNCCL、新しいcontainerやimage、電源が落ちたホスト、ホストを1.x系へ渡す | [EN](../v2/docs/operations.md) | [JA](../v2/docs/operations.ja.md) |
+| 2.xの決定 | 2.xで試し、採った・採らなかったものと、その日付・測った効果・開き直す条件。2.xで未評価の1.xの施策 | [EN](../v2/docs/decisions.md) | [JA](../v2/docs/decisions.ja.md) |
+| 2.xのベンチマークの方法 | リリースの値と基準値の取り方：ホスト、冷却、prompt、エンジンのcommit | [EN](../v2/docs/benchmarks.md) | [JA](../v2/docs/benchmarks.ja.md) |
 | 2.xの変更履歴 | 2.xのリリース。英語版が正典 | [EN](../v2/CHANGELOG.md) | [JA](../v2/CHANGELOG.ja.md) |
 
 ## 約束事

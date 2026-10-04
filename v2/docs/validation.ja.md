@@ -56,7 +56,7 @@ python -m glm53_tf score-nll --url http://127.0.0.1:8095 \
 
 ## prefillとdecodeの速さ
 
-38,960 tokenのpromptを、先頭に毎回新しいnonceを入れて3回（中央値）、続いて短い固定promptの後に512 token。基準：TP=2はprefill 1,217.2 tok/s、decode 35.61 tok/s（2本のrail、`split` の交換より前）。TP=3は `split` で2回の起動のprefill 1,673.1と1,667.9 tok/s、decode 53.03と52.93 tok/s。1本のrailではTP=3のprefillが13%遅く、decodeは変わりませんでした。各promptの前にホストを冷まします。TP=3で3回続けると1,670から1,540 tok/sまで下がりました。測定の台本はこのリポジトリに入っていません。
+38,960 tokenのpromptを、先頭に毎回新しいnonceを入れて3回（中央値）、続いて短い固定promptの後に512 token。基準：TP=2はprefill 1,217.2 tok/s、decode 35.61 tok/s（2本のrail、`split` の交換より前）。TP=3は `split` で2回の起動のprefill 1,673.1と1,667.9 tok/s、decode 53.03と52.93 tok/s。1本のrailではTP=3のprefillが13%遅く、decodeは変わりませんでした。各promptの前にホストを冷まします。TP=3で3回続けると1,670から1,540 tok/sまで下がりました。測定の台本はこのリポジトリに入っていません。台本が何をするかは[ベンチマークの方法](benchmarks.ja.md)にあります。
 
 ## 長い入力
 
