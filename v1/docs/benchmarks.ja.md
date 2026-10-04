@@ -279,7 +279,7 @@ PPのprofiling開始前までのhead空き最小は約4.27 GiBで、4 GiBガー�
 | CPU同期API（rank0） | 23 | 1 | 約23 |
 | CPU同期API（rank1） | 22 | 0 | 約22 |
 
-kernel起動数自体は増えています。今回は同期・copy削減による小幅な改善であり、CUDAカーネル融合とは区別します。端の同期API数にはprofiler制御が含まれ得るため、復帰値の約0.03回/tokenの端数を演算の変化とは扱いません。不正indexのdevice assertはCUDA contextを使用不能にし得ます。一般的な運用障害の回復や業務品質を、この限定試験で認定したとはしません。
+まとめると、同期・copy各22回/token削減、GPU kernelは11回増加。kernel起動数自体は増えています。今回は同期・copy削減による小幅な改善であり、CUDAカーネル融合とは区別します。端の同期API数にはprofiler制御が含まれ得るため、復帰値の約0.03回/tokenの端数を演算の変化とは扱いません。不正indexのdevice assertはCUDA contextを使用不能にし得ます。一般的な運用障害の回復や業務品質を、この限定試験で認定したとはしません。
 
 ## 直列併用の評価（P18）
 
@@ -940,7 +940,7 @@ READMEの主要な測定値は、この枠の値です。1.19.0のimage（`sha25
 | NLL：日本語／英語／コード／数学 | 1.6250／2.0395／0.9316／0.5843 | 1.6388／2.0137／0.9803／0.6355 | 1.5963／2.0241／0.9479／0.5931 |
 | 約200Kの合言葉（199,652 token）、最初のtokenまで | 157.96 s、正答 | 150.5 s、正答 | 約178 s、正答 |
 
-各rank 3 GiBで配布既定は323,824 token（TP=2は301,645）を、3,072 tokenのblock（TP=2は4,608）で持ちました。1 GiBあたり約42 block、要求1本にceil(L / 3,072) + 16 blockです。24 GiBでは2,606,019 token。読み込みは本体約120 s・MTPのdraft約102 sで、page cacheが冷えていた3台目は150 sと105 sでした。各起動の中で、課題ごとの3回は1種類のcompletionになりました。同じホストごとのruntime cacheで配布既定をもう一度起動すると、decodeのcompletionと教師強制の記録は1回目とbit単位で一致しました。prefillの上限なしでのリング上の配布既定のdecode検査のcompletion（初出2026-09-29）は、counting `b00a842f`、prose `03184d52`、code `e9175d9b` で、ホストごとのruntime cacheが同じときだけ保たれます（[起動契約](launch-safety.ja.md#3ノード)）。
+各rank 3 GiBで配布既定は323,824 token（TP=2は301,645）を、3,072 tokenのblock（TP=2は4,608）で持ちました。1 GiBあたり約42 block、要求1本にceil(L / 3,072) + 16 blockです。24 GiBでは2,606,019 token。RecoverSSM（[施策台帳P30](optimization-catalog.ja.md#性能施策一覧)）があれば、MTP k=3で要求あたりのKDAの上乗せが16 blockから7 blockに減り、TP=3の256K×12本でrankあたり約2.6 GiBが空く（固定版のallocatorからの見積もりで、未測定）。読み込みは本体約120 s・MTPのdraft約102 sで、page cacheが冷えていた3台目は150 sと105 sでした。各起動の中で、課題ごとの3回は1種類のcompletionになりました。同じホストごとのruntime cacheで配布既定をもう一度起動すると、decodeのcompletionと教師強制の記録は1回目とbit単位で一致しました。prefillの上限なしでのリング上の配布既定のdecode検査のcompletion（初出2026-09-29）は、counting `b00a842f`、prose `03184d52`、code `e9175d9b` で、ホストごとのruntime cacheが同じときだけ保たれます（[起動契約](launch-safety.ja.md#3ノード)）。
 
 **TP=2と位置ごとに比べたNLL。** 配布既定の記録を、同じ重みのTP=2の記録とtokenごとに比べました。argmax一致は0.947、実際のtokenのlog確率の動きの平均は、数値状態だけが違う同じ重みのTP=2の起動同士（argmax一致0.948〜0.956）の0.61〜1.30倍で、動きは上下に偏っていません。重みを変えるとおよそ2倍動きます。公開した任意設定はTP=2の公開した任意設定と比べて、argmax一致0.947、動きは自分のTP=2の起動同士（0.936〜0.963、NLLで最大+0.043）と同じ大きさです。TP=3の許容は、argmax一致0.93以上、動きの平均が同じ重みのTP=2の起動同士の1.5倍以内で、どちらのprofileも収まります。
 
