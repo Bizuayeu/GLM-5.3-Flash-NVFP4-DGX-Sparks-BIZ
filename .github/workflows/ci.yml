@@ -40,7 +40,7 @@ jobs:
       # 2.x's host tools have no extension, so ruff is given them by name.
       - run: python -m unittest discover -s tests -t . -v
         working-directory: v2
-      - run: ruff check host/gb10-telemetry host/cool-gate host/thermal-watch tests
+      - run: ruff check glm53_tf host/gb10-telemetry host/cool-gate host/thermal-watch tests
         working-directory: v2
-      - run: ruff format --check host/gb10-telemetry host/cool-gate host/thermal-watch tests
+      - run: ruff format --check glm53_tf host/gb10-telemetry host/cool-gate host/thermal-watch tests
         working-directory: v2
