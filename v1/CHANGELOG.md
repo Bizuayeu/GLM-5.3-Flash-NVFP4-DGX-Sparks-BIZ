@@ -7,6 +7,7 @@
 ### Fixed
 
 - `tools/check_publication.py --plans` reads each plan's links from where the plan lives. When `docs/plans` is a link to a directory outside the checkout, Windows resolved `..` against the link's path and reported links that exist as broken; the plan's path is now resolved first. A unit test builds the linked layout.
+- `.gitignore` also ignores `state`, `records` and `docs/plans` at the checkout root when they are symbolic links, as on a deploy checkout ([operations](docs/operations.md)); the `state/` and `records/` patterns match directories only, so Git listed the links as untracked.
 
 ### Documentation
 

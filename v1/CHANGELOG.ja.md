@@ -9,6 +9,7 @@
 ### Fixed
 
 - `tools/check_publication.py --plans` は、各計画書のリンクを計画書の実体の場所から読みます。`docs/plans` がcheckoutの外のディレクトリへのリンクのとき、Windowsは `..` をリンクのパスの上で解決し、実在するリンクを切れと報告していました。計画書のパスを先に解決するようにしました。リンクした配置を作る単体テストつき。
+- `.gitignore` は、checkoutのルートの `state`・`records`・`docs/plans` がsymbolic linkのとき（deploy checkoutと同じ形、[運用](docs/operations.ja.md)）も無視します。`state/`・`records/` の型はディレクトリにしか当たらず、Gitはリンクを未追跡と表示していました。
 
 ### Documentation
 
