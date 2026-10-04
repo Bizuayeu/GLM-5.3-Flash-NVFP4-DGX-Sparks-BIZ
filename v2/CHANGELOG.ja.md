@@ -6,6 +6,18 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.0.9 — 2026-10-05
+
+### Tests
+
+- tool引数ゲートの大きすぎる本文のテストは、0.3秒待つ代わりに、ゲートの処理のスレッドが全部終わるのを待ってから、上流に何も届いていないことを確かめます。0.5秒遅れて送る不具合を戻すと、このテストは落ちます。
+
+### Changed
+
+- CIは検査の道具を、1.x系のlockではなくcheckoutのルートの `requirements/dev.lock.txt`（Ruff。全系で一つの版）から入れます（[CONTRIBUTING](../CONTRIBUTING.ja.md)）。
+
+image・台本・配信の既定値は変わらないので、2.0.7のimageと受け入れはそのまま有効です。
+
 ## 2.0.8 — 2026-10-05
 
 ### Documentation

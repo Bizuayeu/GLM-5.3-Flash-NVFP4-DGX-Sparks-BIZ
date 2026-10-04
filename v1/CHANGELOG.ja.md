@@ -4,6 +4,25 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.7 — 2026-10-05
+
+### Changed
+
+- `glm53_setup/server.py` のコメントは、`server plan` のリンクの一覧が使う診断ツールを、1.29.5で移した先の `host/nccl_probe.py` と名指します。`glm53_setup/` はimageに写るので、reference imageを作り直して受け入れました（下）。
+- 検査の道具の固定はcheckoutのルートの `requirements/dev.lock.txt`（Ruff。全系で一つの版）に置き、この系列のテストの依存は `requirements/test.lock.txt`（NumPy）にしました。これが `requirements/dev.lock.txt` に代わります。CIと[CONTRIBUTING](../CONTRIBUTING.ja.md)は両方を入れ、CIが入れるlockがどれも実在しCONTRIBUTINGに名前があることをテストが確かめます。
+
+### Tests
+
+- tool引数ゲートの大きすぎる本文のテストは、0.3秒待つ代わりに、ゲートの処理のスレッドが全部終わるのを待ってから、上流に何も届いていないことを確かめます。0.5秒遅れて送る不具合を戻すと、このテストは落ちます。
+
+### Documentation
+
+- 1.29.6は、任意のCPUのjobでも22件がskipすると書きました。CIでは20件です。22件は別のLinuxの機で数えた値でした。
+
+### Reference image
+
+2026-10-05にこの変更の木からbuildしました。`glm53_setup/`・Dockerfile・設定はこの版のものです（imageに写した `pyproject.toml` は1.29.6）：参照機で `sha256:750323a45df28890fdd1fd7de39679ddb8072c9d9cc330d5e127b9300d3c4e1f`。vLLMは1.29.4のimageとファイル単位で同じ（`.py` 2,592本とpatchの記録12本）で、`glm53_setup` の差は `server.py` だけです。参照の対で、両profileともpreflightを通り、8,000 tokenの予算を記録し、decode検査のcompletionを再現しました。
+
 ## 1.29.6 — 2026-10-05
 
 ### Fixed

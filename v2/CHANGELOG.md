@@ -4,6 +4,18 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.9 — 2026-10-05
+
+### Tests
+
+- The tool-argument gate's test of an oversized body waits for the gate's handler threads to end before it checks that nothing reached the upstream, instead of sleeping 0.3 s; a relay put back 0.5 s late now fails it.
+
+### Changed
+
+- CI installs the check tools from the checkout root's `requirements/dev.lock.txt` (Ruff, one version for every line) rather than from 1.x's lock ([CONTRIBUTING](../CONTRIBUTING.md)).
+
+The image, the scripts and the serving defaults are unchanged, so 2.0.7's image and acceptance stand.
+
 ## 2.0.8 — 2026-10-05
 
 ### Documentation

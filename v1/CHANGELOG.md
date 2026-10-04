@@ -2,6 +2,25 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.7 — 2026-10-05
+
+### Changed
+
+- A comment in `glm53_setup/server.py` names the probe `server plan`'s link list is for as `host/nccl_probe.py`, where it moved in 1.29.5. `glm53_setup/` is copied into the image, so the reference image was rebuilt and accepted (below).
+- The check tools' pin is the checkout root's `requirements/dev.lock.txt` (Ruff, one version for every line); this line's test dependency is `requirements/test.lock.txt` (NumPy), which replaces `requirements/dev.lock.txt`. CI and [CONTRIBUTING](../CONTRIBUTING.md) install both, and a test checks that every lock CI installs exists and is named in CONTRIBUTING.
+
+### Tests
+
+- The tool-argument gate's test of an oversized body waits for the gate's handler threads to end before it checks that nothing reached the upstream, instead of sleeping 0.3 s; a relay put back 0.5 s late now fails it.
+
+### Documentation
+
+- 1.29.6 said that 22 tests still skip in the optional CPU job; in CI 20 skip. The 22 were counted on another Linux host.
+
+### Reference image
+
+Built on 2026-10-05 from this change's tree, whose `glm53_setup/`, Dockerfile and configuration are this release's (the `pyproject.toml` copied into it reads 1.29.6): `sha256:750323a45df28890fdd1fd7de39679ddb8072c9d9cc330d5e127b9300d3c4e1f` on the reference hosts. Its vLLM is the 1.29.4 image's file for file (2,592 `.py` files and the 12 patch records); `glm53_setup` differs only in `server.py`. On the reference pair both profiles passed preflight, logged a budget of 8,000 tokens and reproduced their decode-check completions.
+
 ## 1.29.6 — 2026-10-05
 
 ### Fixed
