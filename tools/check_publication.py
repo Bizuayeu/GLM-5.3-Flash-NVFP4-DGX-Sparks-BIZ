@@ -22,17 +22,31 @@ REQUIRED = {
     ".gitignore",
     ".dockerignore",
 }
-# The project checks below name files relative to this directory.
-PROJECT = "v1"
-PROJECT_REQUIRED = {
+# Each serving line's checks name files relative to its directory: what it must
+# hold, its lock (the 1.x lock also pins the base image by digest) and whether its
+# README carries the short-name citation and the headline measurements.
+LINE_PAGES = {
     "README.md",
     "README.ja.md",
     "SETUP.md",
     "SETUP.ja.md",
     "CHANGELOG.md",
     "CHANGELOG.ja.md",
-    "config/runtime.lock.json",
     "pyproject.toml",
+}
+LINES = {
+    "v1": {
+        "required": LINE_PAGES | {"config/runtime.lock.json"},
+        "lock": "config/runtime.lock.json",
+        "image": True,
+        "cited": True,
+    },
+    "v2": {
+        "required": LINE_PAGES | {"config/model.lock.json"},
+        "lock": "config/model.lock.json",
+        "image": False,
+        "cited": False,
+    },
 }
 PRIVATE_DIRS = {"state", "records", "upstream", ".ssh", ".venv", ".claude-local-test"}
 PRIVATE_SUFFIXES = {
@@ -338,11 +352,12 @@ def audit(root, files):
     return problems
 
 
-def project_problems(root, files):
-    """The 1.x checks, on ``files`` named relative to the project directory ``root``."""
+def project_problems(root, files, line="v1"):
+    """The checks of ``line``, on ``files`` named relative to its directory ``root``."""
+    spec = LINES[line]
     problems = [
-        f"missing required file: {PROJECT}/{name}"
-        for name in sorted(PROJECT_REQUIRED - files)
+        f"missing required file: {line}/{name}"
+        for name in sorted(spec["required"] - files)
     ]
     documents = {name for name in files if name.endswith(".md")}
     for map_name in MAPS:
@@ -360,16 +375,15 @@ def project_problems(root, files):
             problems += architecture_problems(
                 (root / name).read_text(encoding="utf-8"), modules
             )
-    if "config/runtime.lock.json" in files:
-        lock = json.loads(
-            (root / "config/runtime.lock.json").read_text(encoding="utf-8")
-        )
-        if not re.fullmatch(
-            r"[^\s]+@sha256:[0-9a-f]{64}", lock["image"]
+    if spec["lock"] in files:
+        lock = json.loads((root / spec["lock"]).read_text(encoding="utf-8"))
+        if (
+            spec["image"]
+            and not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", lock["image"])
         ) or not re.fullmatch(r"[0-9a-f]{40}", lock["revision"]):
-            problems.append("runtime artifacts must be digest/revision pinned")
+            problems.append(f"runtime artifacts must be digest/revision pinned: {line}")
     for name, (benchmarks, *_) in HEADLINES.items():
-        if name in files and benchmarks in files:
+        if spec["cited"] and name in files and benchmarks in files:
             problems += headline_problems(
                 name,
                 (root / name).read_text(encoding="utf-8"),
@@ -389,11 +403,11 @@ def project_problems(root, files):
             "project"
         ]
         if not re.fullmatch(r"\d+\.\d+\.\d+", project["version"]):
-            problems.append("expected release version")
+            problems.append(f"expected release version: {line}")
         if project["license"] != "Apache-2.0":
-            problems.append("unexpected project license")
+            problems.append(f"unexpected project license: {line}")
         for name in CITATIONS:
-            if name in files:
+            if spec["cited"] and name in files:
                 problems += citation_problems(
                     name, (root / name).read_text(encoding="utf-8"), project["version"]
                 )
@@ -409,11 +423,13 @@ def problems(root, files, plans=False):
     )
     if plans:
         found += plan_link_problems(root)
-    prefix = PROJECT + "/"
-    found += project_problems(
-        root / PROJECT,
-        {name.removeprefix(prefix) for name in files if name.startswith(prefix)},
-    )
+    for line in LINES:
+        prefix = line + "/"
+        found += project_problems(
+            root / line,
+            {name.removeprefix(prefix) for name in files if name.startswith(prefix)},
+            line,
+        )
     return found
 
 

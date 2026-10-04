@@ -94,7 +94,7 @@ class PublicationTests(unittest.TestCase):
 
 
 class LayoutTests(unittest.TestCase):
-    """The audit covers the repository; the 1.x checks read the project in v1/."""
+    """The audit covers the repository; each line's checks read its directory."""
 
     def test_plans_under_any_docs_directory_are_private(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -116,6 +116,28 @@ class LayoutTests(unittest.TestCase):
             self.assertNotIn("missing required file: LICENSE", found)
             self.assertNotIn("missing required file: v1/SETUP.md", found)
             self.assertNotIn("missing required file: SETUP.md", found)
+
+    def test_each_line_is_checked_for_its_own_files_and_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lock = '{"model": "m", "revision": "short"}'
+            pyproject = '[project]\nversion = "2.0"\nlicense = "MIT"\n'
+            files = {"v2/config/model.lock.json": lock, "v2/pyproject.toml": pyproject}
+            files["v2/README.md"] = "# 2.x\n"
+            for name, text in files.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text(text, encoding="utf-8")
+            found = problems(root, set(files))
+            self.assertIn("missing required file: v2/CHANGELOG.md", found)
+            self.assertIn("missing required file: v1/pyproject.toml", found)
+            self.assertNotIn(
+                "missing required file: v2/config/runtime.lock.json", found
+            )
+            self.assertIn("runtime artifacts must be digest/revision pinned: v2", found)
+            self.assertIn("expected release version: v2", found)
+            self.assertIn("unexpected project license: v2", found)
+            # Only 1.x's README carries the short-name citation.
+            self.assertNotIn("missing short-name citation: README.md", found)
 
 
 class HeadlineTests(unittest.TestCase):
