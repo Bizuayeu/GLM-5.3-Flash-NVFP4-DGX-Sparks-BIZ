@@ -2,7 +2,7 @@
 
 [日本語](validation.ja.md) · [2.x overview](../README.md) · [Setup runbook](../SETUP.md)
 
-What a 2.x launch is accepted on, in the order to run it, with the reference values. The values were measured on the reference hosts on 2026-10-02 and 10-03 with development builds of the engine ([measured so far](../README.md#measured-so-far)); the release engine is compared with them. A check that differs is a finding to explain before routine use, not a value to replace.
+What a 2.x launch is accepted on, in the order to run it, with the reference values. The reference values were measured on the reference hosts on 2026-10-02 and 10-03 with development builds of the engine, and 2.0.0 was accepted against them on 2026-10-04 ([measured on the release](../README.md#measured-on-the-release)). A check that differs is a finding to explain before routine use, not a value to replace.
 
 Run the tools from `v1/` of the checkout on rank 0, against the engine on loopback (`http://127.0.0.1:8095`, model `glm-tf` unless the rank file sets others). They are the 1.x tools, which serve either engine (`decode_check.py` tells them apart by the server's `/metrics`). Let the hosts cool between long requests ([GPU clock cap](../../v1/docs/operations.md#gpu-clock-cap)) and keep the memory guard running.
 
@@ -31,7 +31,7 @@ The TP=2 hashes held across seven development builds and with one or two rails; 
 
 ## Drafted equals serial
 
-The same prompt with and without drafts (`"draft": false` in the request body decodes one token a round) must give the same text. Measured on prose, code and counting prompts, 256 tokens, at both TP=2 and TP=3.
+The same prompt with and without drafts (`"draft": false` in the request body decodes one token a round) must give the same text. Measured on prose, code and counting prompts, 256 tokens, at both TP=2 and TP=3. Compare whole texts: in a stream with drafts, one delta can carry both `reasoning_content` and `content`, and a reader that takes one field per delta finds a difference that is not there.
 
 ## Teacher-forced NLL
 
@@ -56,11 +56,11 @@ Needs the `tokenizers` package in the environment that runs it. Each text is sco
 
 ## Prefill and decode speed
 
-A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. The measurement scripts are not part of this repository.
+A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. 2.0.0: TP=2 1,329.9 tok/s prefill and 35.31 decode; TP=3 1,668.5 prefill with the heat wait and 1,671.4 without, 52.93 decode. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3. The measurement scripts are not part of this repository.
 
 ## Long inputs
 
-A passphrase in the middle of 199,652 tokens of ledger lines, and three passphrases (start, middle, end) in 499,622 and 1,036,859 tokens. Reference at TP=3: 145.6 s and correct at 199,652; 454.1 s and 3 of 3 at 499,622; 3 of 3 at 1,036,859 with the first token after 1,364 s (an earlier build, before the `split` exchange and the indexer work; fitted to the 200K and 500K runs, the current build is predicted at about 1,112 s). The hottest host reached 89.6-90.1 °C during these, below the 94 °C at which the measurements stopped a run. The 1M prompt is not part of TP=2's window.
+A passphrase in the middle of 199,652 tokens of ledger lines, and three passphrases (start, middle, end) in 499,622 and 1,036,859 tokens. Reference at TP=3: 145.6 s and correct at 199,652; 454.1 s and 3 of 3 at 499,622; 3 of 3 at 1,036,859 with the first token after 1,364 s (an earlier build, before the `split` exchange and the indexer work; fitted to the 200K and 500K runs, the current build is predicted at about 1,112 s). The hottest host reached 89.6-90.1 °C during these, below the 94 °C at which the measurements stopped a run. The 1M prompt is not part of TP=2's window. 2.0.0: at 199,652 the first token after 133.2 s at TP=3 and 163.7 s at TP=2, both correct; at 1,036,859, 3 of 3 with the first token after 1,264.8 s, 170.1 s of it heat waits, and the hottest reading 92.8 °C. Without the heat wait the same prompt reached 94 °C after six and a half minutes.
 
 ## Tools through the tool-argument gate
 
@@ -72,7 +72,7 @@ tool-eval-bench run --model glm-tf --base-url http://127.0.0.1:8896 --format ope
   --backend-kwargs '{"max_tokens": 4096, "chat_template_kwargs": {"reasoning_effort": "low", "clear_thinking": true}}'
 ```
 
-Reference: 91/100 at both TP=2 and TP=3 with the Safety Gate passed (TC-43 passes through the gate); the structured-output scenarios TC-64 to TC-69 all pass, which needs xgrammar in the image. TP=2 failed TC-21 and TC-61, TP=3 TC-61 alone. One trial each, so a point or two is within what one trial moves.
+Reference: 91/100 at both TP=2 and TP=3 with the Safety Gate passed (TC-43 passes through the gate); the structured-output scenarios TC-64 to TC-69 all pass, which needs xgrammar in the image. TP=2 failed TC-21 and TC-61, TP=3 TC-61 alone. 2.0.0: TP=2 93/100 and TP=3 91/100, each failing TC-61 alone. One trial each, so a point or two is within what one trial moves.
 
 ## Stopping a reply
 
@@ -81,3 +81,5 @@ The release engine stops a decode on every rank within a round when the client d
 ## Memory and temperature
 
 The memory guard's log (`~/glm53-tf/logs/hostwatch-<label>.log`) gives each host's lowest `MemAvailable` during the run. Reference at TP=3: 29-31 GiB on ranks 0 and 1 and 35 GiB on rank 2 during the 1M request; at TP=2 about 9 GiB on rank 0 with the extensions built ahead.
+
+The heat wait prints `[tensorfold] heat:` lines on every rank, one where a wait starts and one where it ends (and one a minute while it lasts), the same on every rank; the reply's `tensorfold` block gives `heat_wait_s`. Accepted when a long prompt finishes with no host at 94 °C, where the thermal watch stops the engine.

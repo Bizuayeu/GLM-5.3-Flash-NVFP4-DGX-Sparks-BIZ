@@ -12,7 +12,7 @@ Cap the GPU clock at 2,200 MHz on every host before long runs and record tempera
 
 ## 2. Checkout and checkpoint
 
-1. Check out the same reviewed commit on every host (a `v2.*` tag once released).
+1. Check out the same reviewed commit on every host (a `v2.*` release tag).
 2. Download the pinned checkpoint once, verify it, copy the cache to the other hosts and verify each copy, as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The downloader runs from `v1/` (`python -m glm53_setup download`, then `verify-download`). The engine reads it from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
 
 ## 3. Image

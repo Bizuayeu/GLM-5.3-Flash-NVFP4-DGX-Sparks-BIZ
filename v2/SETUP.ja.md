@@ -12,7 +12,7 @@ ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台�
 
 ## 2. checkoutとcheckpoint
 
-1. 全ホストで同じ確認済みのcommitをcheckoutします（リリース後は `v2.*` のtag）。
+1. 全ホストで同じ確認済みのcommitをcheckoutします（`v2.*` のリリースのtag）。
 2. 固定のcheckpointを一度だけ取得して検証し、他のホストへcacheを写してそれぞれ検証します。[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じで、取得の道具は `v1/` から実行します（`python -m glm53_setup download`、続けて `verify-download`）。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
 
 ## 3. image

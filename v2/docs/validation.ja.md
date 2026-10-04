@@ -2,7 +2,7 @@
 
 [English](validation.md) · [2.x系の概要](../README.ja.md) · [セットアップ手順書](../SETUP.ja.md)
 
-2.x系の起動を何で受け入れるかを、回す順に基準値と一緒に並べます。値は2026-10-02と10-03に参照機で、エンジンの開発版で測りました（[これまでの測定](../README.ja.md#これまでの測定)）。リリースのエンジンはこれらと比べます。違う結果は日常の利用の前に説明すべき所見で、基準を置き換える値ではありません。
+2.x系の起動を何で受け入れるかを、回す順に基準値と一緒に並べます。基準値は2026-10-02と10-03に参照機で、エンジンの開発版で測りました。2.0.0は2026-10-04にこれらと比べて受け入れました（[リリースでの測定値](../README.ja.md#リリースでの測定値)）。違う結果は日常の利用の前に説明すべき所見で、基準を置き換える値ではありません。
 
 道具はrank 0でcheckoutの `v1/` から、loopbackのエンジン（`http://127.0.0.1:8095`、rankのファイルで変えなければモデル `glm-tf`）に当てます。どれも1.x系の道具で、どちらのエンジンにも使えます（`decode_check.py` はサーバーの `/metrics` で見分けます）。長い要求の間はホストを冷まし（[GPUクロックの上限](../../v1/docs/operations.ja.md#gpuクロックの上限)）、メモリの見張りを動かしたままにします。
 
@@ -31,7 +31,7 @@ TP=2のhashは開発版の7つの版と1本・2本のrailで、TP=3のhashは10�
 
 ## draftした応答とserialの一致
 
-同じpromptをdraftありとなし（要求の本文に `"draft": false` で1 roundに1 token）で流し、同じ文章になること。prose・code・countのpromptで256 token、TP=2とTP=3の両方で確かめました。
+同じpromptをdraftありとなし（要求の本文に `"draft": false` で1 roundに1 token）で流し、同じ文章になること。prose・code・countのpromptで256 token、TP=2とTP=3の両方で確かめました。文章は全体で比べます。draftありのstreamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあり、deltaごとに片方しか読まないと、無い違いが出ます。
 
 ## teacher-forced NLL
 
@@ -56,11 +56,11 @@ python3 tools/score_nll_set.py --url http://127.0.0.1:8095 \
 
 ## prefillとdecodeの速さ
 
-38,960 tokenのpromptを、先頭に毎回新しいnonceを入れて3回（中央値）、続いて短い固定promptの後に512 token。基準：TP=2はprefill 1,217.2 tok/s、decode 35.61 tok/s（2本のrail、`split` の交換より前）。TP=3は `split` で2回の起動のprefill 1,673.1と1,667.9 tok/s、decode 53.03と52.93 tok/s。1本のrailではTP=3のprefillが13%遅く、decodeは変わりませんでした。測定の台本はこのリポジトリに入っていません。
+38,960 tokenのpromptを、先頭に毎回新しいnonceを入れて3回（中央値）、続いて短い固定promptの後に512 token。基準：TP=2はprefill 1,217.2 tok/s、decode 35.61 tok/s（2本のrail、`split` の交換より前）。TP=3は `split` で2回の起動のprefill 1,673.1と1,667.9 tok/s、decode 53.03と52.93 tok/s。1本のrailではTP=3のprefillが13%遅く、decodeは変わりませんでした。2.0.0：TP=2はprefill 1,329.9 tok/s、decode 35.31。TP=3はprefillが熱の待ちありで1,668.5、なしで1,671.4、decode 52.93。各promptの前にホストを冷まします。TP=3で3回続けると1,670から1,540 tok/sまで下がりました。測定の台本はこのリポジトリに入っていません。
 
 ## 長い入力
 
-199,652 tokenの台帳の行の真ん中に合言葉一つ、499,622 tokenと1,036,859 tokenに合言葉三つ（先頭・中央・末尾）。TP=3の基準：199,652で145.6秒・正答、499,622で454.1秒・3/3、1,036,859で3/3・最初のtokenまで1,364秒（`split` の交換とindexerの改善より前の版。200Kと500Kの実測に当てた見積もりでは、今の版は約1,112秒）。この間の最も熱いホストは89.6〜90.1 ℃で、測定が回を止める94 ℃には届きませんでした。1Mのpromptは、TP=2の窓には入りません。
+199,652 tokenの台帳の行の真ん中に合言葉一つ、499,622 tokenと1,036,859 tokenに合言葉三つ（先頭・中央・末尾）。TP=3の基準：199,652で145.6秒・正答、499,622で454.1秒・3/3、1,036,859で3/3・最初のtokenまで1,364秒（`split` の交換とindexerの改善より前の版。200Kと500Kの実測に当てた見積もりでは、今の版は約1,112秒）。この間の最も熱いホストは89.6〜90.1 ℃で、測定が回を止める94 ℃には届きませんでした。1Mのpromptは、TP=2の窓には入りません。2.0.0：199,652では最初のtokenまでTP=3で133.2秒、TP=2で163.7秒、どちらも正答。1,036,859では3/3、最初のtokenまで1,264.8秒（うち熱の待ち170.1秒）、最も熱い読みは92.8 ℃でした。熱の待ちが無いと、同じpromptは6分半で94 ℃に達しました。
 
 ## tool引数ゲート越しのtool
 
@@ -72,7 +72,7 @@ tool-eval-bench run --model glm-tf --base-url http://127.0.0.1:8896 --format ope
   --backend-kwargs '{"max_tokens": 4096, "chat_template_kwargs": {"reasoning_effort": "low", "clear_thinking": true}}'
 ```
 
-基準：TP=2とTP=3とも91/100、Safety Gate通過（TC-43はゲート越しで通る）。構造化出力のTC-64〜69は全部通り、これにはimageのxgrammarが要ります。TP=2の失敗はTC-21とTC-61、TP=3はTC-61だけ。各1回なので、1〜2点は1回の試行で動く範囲です。
+基準：TP=2とTP=3とも91/100、Safety Gate通過（TC-43はゲート越しで通る）。構造化出力のTC-64〜69は全部通り、これにはimageのxgrammarが要ります。TP=2の失敗はTC-21とTC-61、TP=3はTC-61だけ。2.0.0：TP=2は93/100、TP=3は91/100で、どちらもTC-61だけの失敗でした。各1回なので、1〜2点は1回の試行で動く範囲です。
 
 ## 応答を止める
 
@@ -81,3 +81,5 @@ tool-eval-bench run --model glm-tf --base-url http://127.0.0.1:8896 --format ope
 ## メモリと温度
 
 メモリの見張りのlog（`~/glm53-tf/logs/hostwatch-<label>.log`）に、実行中の各ホストの最低の `MemAvailable` が残ります。基準はTP=3の1Mの要求の最中でrank 0・1が29〜31 GiB、rank 2が35 GiB、TP=2はextensionを先にbuildしてrank 0で約9 GiBです。
+
+熱の待ちは、全rankが `[tensorfold] heat:` の行を出します（待ちの始まりと終わりに1行ずつ、続く間は1分に1行、全rankで同じ）。応答の `tensorfold` ブロックに `heat_wait_s` が載ります。長いpromptが、熱の見張りがエンジンを止める94 ℃にどのホストも達せずに終われば合格です。

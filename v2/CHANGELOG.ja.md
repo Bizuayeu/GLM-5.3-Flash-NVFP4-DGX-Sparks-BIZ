@@ -5,3 +5,50 @@
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
+
+## 2.0.0 — 2026-10-04
+
+2.x系の最初のリリースです。1.x系と同じ固定のcheckpoint（`nvidia/GLM-5.3-Flash-NVFP4` の `423acf37583782c51c142d145aef733d72943d93`）を、vLLMに代えて[TensorFold](https://github.com/ashhart/TensorFold)で、2台のTP=2または3台のTP=3で配信します。1.x系は[`v1/`](../v1/README.ja.md)で続きます。
+
+### Engine
+
+- imageは[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold)のbranch `release/2.0.0` の `b44c2f197863f889659874e9be4b8e318768a828` からTensorFoldをbuildします（[`TENSORFOLD_REF`](docker/Dockerfile)）。上流のv0.6.4に、CUDAのGLM-5.3-Flash向けの次のものを足した版です。
+  - **NVIDIAのNVFP4 checkpointを保存されたまま読む**（W4A16）：routed expertとdense MLPはNVFP4のblockから、attention・shared expert・headはBF16です（上流issue #308）。
+  - **FP8 latent KV**（`TF_GLM_KV=fp8`）：DSAのlatent cacheとindexerのpool keyをe4m3の行で持ちます（上流issue #309）。
+  - **TP=3**（`--tp 3`）：2 rankにも3 rankにも使う1つのshard plan。3で割れない大きさは不揃いの取り分にし、語彙のgatherは幅の違うshardをまたぎます（上流issue #310）。
+  - **ビットを変えないprompt処理の高速化。**
+    - promptのBF16 matmulはKの切れ端をregisterで足します（上流pull request #333）。
+    - prompt chunkのrank間の交換を、行の切れ端ごとに2本目のstreamで回します。
+    - 交換は正確なreduce-scatterで、各rankは自分の行だけを貼り合わせます（`split`。rank同士で送り合えるときの既定）。
+    - indexerは1 programで16行を採点し、選択が読むpoolの列だけを採点し、top 512のために長い行を5回でなく3回読みます。
+  - **止めた要求が1 roundのうちに全rankで終わる**：クライアントの切断やstop文字列のときです（上流pull request #301）。
+  - **長いprefillが熱で待つ。** prompt chunkの前ごとに各rankが最も熱いthermal zoneを共有し、`TF_GLM_HEAT_HIGH` を超えたら、全rankが `TF_GLM_HEAT_LOW` 以下になるまでそろって待ちます。待ちはchunkの走る時刻を動かすだけで、ビットは変えません。待つたびに `[tensorfold] heat:` の行を出し、応答に `heat_wait_s` を載せます（上流issue #339）。
+
+### Serving defaults
+
+[`scripts/serve.sh`](scripts/serve.sh) が全rankに同じ値を設定します（[配信の既定](README.ja.md#配信の既定)）。
+
+- FP8 latent KVと、checkpointのMTP headによる下書き（`--drafter none`）。
+- 窓はTP=2で300,000 token（他の会話の保持promptに既定の3 GiBを残す）、TP=3では収まる最大（参照機のリングで1,048,576 token＝モデルの上限）。
+- 要求が上限を指定しないときの応答は最大32,768 token。
+- prefillの熱の待ちは92 °Cで待ち、88 °Cで再開します。参照機の熱の見張りは94 °Cでエンジンを止めます。待ちが無いと、TP=3の1M tokenのpromptは6分半でそこに達しました。
+
+### Image and launch
+
+- [`docker/Dockerfile`](docker/Dockerfile)：NVIDIAのPyTorch container 26.07に、測ったときの版のtransformers 5.18.0、xgrammar 0.2.8、Hugging Face hubのクライアントと、固定したcommitのエンジンを入れます。checkoutのルートからbuildします（[手順書](SETUP.ja.md#3-image)）。
+- [`scripts/`](scripts/)：
+  - `create_container.sh` と `build_ext.sh`：各機のcontainerと、エンジンのCUDA extension。
+  - `serve.sh`：1つのrank。
+  - `cluster.sh`：1台から全rankを起動・停止します（他のrankが先、rank 0が最後）。
+  - `hostwatch.sh`：メモリの見張り。エンジンはcontainerの中でrootで動くので、containerを通して止めます。
+- [`examples/`](examples/)：参照機のTP=2とTP=3のrankファイル（2 rail、GID 3、RoCE v2、subnetを見た経路選択、TP=3は4 channel）。`NCCL_DEBUG=INFO` で、NCCLが起動時に各接続の経路をログに出します。
+
+### Accepted
+
+2026-10-04に参照機で測りました（[測定値](README.ja.md#リリースでの測定値)、[検証](docs/validation.ja.md)）。decode checkと1M tokenのpromptは、リリースのimage（`glm53-tf:2.0.0`、linux/arm64のimage `sha256:3d06b02953398603580edcecef22c06c3c8ed0d9e3d1568d66f1bd0d1ae21b44`。`docker images` が示すIDはbuildの来歴も含み、buildしたcheckoutごとに変わります）か、その1つ前（表示の行の変更だけが違う）のimageで回しました。他の項目は、熱の待ちを入れる前のbranch `304109c` のimageで回しました。熱の待ちはprompt chunkの走る時刻しか変えません。
+
+- decode checkはTP=2・TP=3とも参照のhashを出しました。熱の待ちが起きている最中も同じです。
+- 下書きありの応答は逐次の応答と一致しました。
+- teacher-forcedのNLLは開発buildの値と全精度で同じでした。
+- TP=3では、熱の待ちを入れたまま1,036,859 tokenの中の合言葉3つを見つけました：最初のtokenまで1,264.8 s（うち待ち170.1 s）、最も熱い読みは92.8 °Cでした。
+- tool-argument gate越しのtool-eval-bench：TP=2で93/100、TP=3で91/100、どちらもSafety Gateを通過しました。
