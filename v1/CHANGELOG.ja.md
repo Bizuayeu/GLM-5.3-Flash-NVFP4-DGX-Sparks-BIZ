@@ -4,6 +4,16 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.28.3 — 2026-10-04
+
+### Documentation
+
+- [Next Action](README.ja.md#next-action)。2026-10-04の上流とレシピの確認から：
+  - vLLM #59565は2026-10-02にmergeされました。移植は次のminorの版で、画像の大きさの上限を見直し、画像を確かめ直します。
+  - vLLM #59528（kpoolのtailのslot mappingがnull blockへ書く）を、`patch_kpool_ring` の隣のきっかけに加えました。
+  - 検証の対象を三つ加えました：kernel 6.17での機体のCPUの実際の周波数（knapcioのissue #7）、`disable_eagle_block_drop` とMTPでprefix cacheが一致するたびに計算し直すblock（kindlingaiのissue #66）、checkpoint保持がprefillのchunkの途中で保存するか（vLLM #59759）。
+- vLLM #59845（fusedのNVFP4 linearを、shardのglobal scaleの最大値で計算する）は当てはまりません。固定したcheckpointのdense MLPの層とrouted expertの標本、公開した任意設定の重みから読んだ4層（0・3・10・44）のfusedの組で、global scaleが一致しています。
+
 ## 1.28.2 — 2026-10-04
 
 ### Documentation

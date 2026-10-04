@@ -1,6 +1,6 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
-**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.28.2」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
+**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.28.3」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
 
 **BIZ**は保守者の印（Bizuayeu）であり、意図を示す語です。商用利用できるライセンス、資産の固定、検査結果の記録、戻せる運用を整えた**業務利用向けの構成**という意味です。意味しないことは[免責事項](#免責事項)にあります。
 
@@ -216,7 +216,11 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 - [vLLM #57128](https://github.com/vllm-project/vllm/pull/57128)（Mambaのprefix cacheの一致が投機の余白を無視する、[#53912](https://github.com/vllm-project/vllm/issues/53912)）がmergeされる → source固定patchとして移植する。配信profileは報告の条件（prefix caching、MTP k=3、Mamba cache mode `align`）に当たります。別の構成での現場報告に、ある要求の内容が別の要求の応答に現れたというものがありますが、ここでは観測していません。
 - [vLLM #54296](https://github.com/vllm-project/vllm/pull/54296) がmergeされ固定に入る → slot対応付けのガード（`patch_slot_mapping`）を外す。
 - [vLLM #50843](https://github.com/vllm-project/vllm/pull/50843) がmergeされ固定に入る → samplerの語彙の範囲のガード（`patch_sampler_nonfinite`）を外す。
-- [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)（画像のencoder cacheをtoken数の上限ちょうどに合わせる修正、[#59539](https://github.com/vllm-project/vllm/issues/59539) 向け）がmergeされる → source-pinned patchとして取り込み、[画像入力](docs/vision.ja.md#限界と未解決の事項)の画像の大きさの上限の記述を見直す（参照対での確認はそこに記録）。
+- [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565)（画像のencoder cacheをtoken数の上限ちょうどに合わせる修正、[#59539](https://github.com/vllm-project/vllm/issues/59539) 向け）は2026-10-02にmergeされた → source-pinned patchとして取り込み（固定版ではファイルが `glm5next/nvidia/` に、mainでは `glm5next/common/` にある）、[画像入力](docs/vision.ja.md#限界と未解決の事項)の画像の大きさの上限を見直し、参照対で画像を確かめ直す。minorの版で。
+- [vLLM #59528](https://github.com/vllm-project/vllm/pull/59528)（kpoolのtailのslot mappingが、0の印の行（dummy run・graphのcapture・padding）からnull blockへ書く）がmergeされる → `patch_kpool_ring` の隣にsource-pinned patchとして移植する。
+- 検証：機体のCPUが実際に出している周波数。[knapcioのissue #7](https://github.com/knapcio/GLM-5.3-Flash-4x-DGX-Spark-TP4/issues/7)は、DGX OS 7.5・kernel 6.17のASUS GX10で、governorが `performance` でもGraceのcoreが最低の性能段で動いていたと報告し、7.0のkernelではdecodeが8〜10%速くなった。参照機は6.17.0-1032 → 許可した窓で、各機のX925の1 coreにbusy loopを置き、CPPCのfeedback counterを読む。最低で動いている機があれば、複数ノードのRoCEに `kho=off` が要る7.0のkernelと天秤にかける（[ホストカーネル](docs/operations.ja.md#ホストカーネルと複数ノードroce)）。両系列の数字がこれに左右される。
+- 検証：`disable_eagle_block_drop`。固定版のvLLMはMTPでもEAGLEと同じくprefix cacheの一致の最後のblockを落とし（keyの既定はfalseで、どのテンプレートも設定していない）、一致のたびにKDAに揃ったblockを1つ計算し直す（TP=2で4,608 token、TP=3で3,072）。[kindlingaiのissue #66](https://github.com/kindlingai/glm-5.3-flash-gx10/issues/66)は、DFlashのdraftで落とすのをやめるとTP=3でcacheの再送が約3倍速くなったと測っている → 両profileで[prefix cacheの正しさの関門](docs/validation.ja.md#prefix-cacheの正しさの関門)とdecode検査のhashを添えて測る。最後のblockのMTPのdraft KVと#57128が同じ場所にあるので、速さより正しさが先。
+- 検証：[vLLM #59759](https://github.com/vllm-project/vllm/pull/59759)（MTPとprefix cachingで、chunkの途中に線形attentionのcheckpointを保存するprefillのstepが壊れた出力を返し得る。GLMがこの経路に入るのは固定版に無い#56960から）→ 本stackのcheckpoint保持がprefillのchunkの途中で保存するかを読み、保存するならprefix cacheの関門を回す。
 - [vLLM #48032](https://github.com/vllm-project/vllm/pull/48032)（Marlin MoEのrouteの整列を決定的にする、[#52525](https://github.com/vllm-project/vllm/issues/52525) 向け）がmergeされ固定に入る → 手元のexpert内のtoken順（`runtime.canonical_moe_order`、`patch_moe_order`）をこれに置き換えるかを検討する（fixtureでの比較は[再現性](docs/validation.ja.md#再現性)が記録）。
 - sampledの `server mojibake`（`--temperature`・`--top-p`）で化け文字が見つかる → UTF-8のガードを別の計画で作る。
 - warmupの後でも、利用者の要求でサンプリングのkernelがコンパイルされる → その要求のサンプリング設定で段を足す。利用者の最初の要求がコンパイルしていたkernelのために、checkpointのサンプリング（temperature 1.0・top_p 0.95）の段を足したのと同じ形（[warmup ladder](docs/operations.ja.md#warmup-ladder)）。

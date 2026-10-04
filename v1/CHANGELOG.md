@@ -2,6 +2,16 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.28.3 — 2026-10-04
+
+### Documentation
+
+- [Next Action](README.md#next-action), from a review of upstream and the recipes on 2026-10-04:
+  - vLLM #59565 merged on 2026-10-02; its port is the next minor release, with the image-size limits revised and images checked again.
+  - vLLM #59528 (the kpool tail's slot mapping writing into the null block) becomes a trigger beside `patch_kpool_ring`.
+  - Three things to verify: the hosts' delivered CPU frequency on kernel 6.17 (knapcio issue #7), `disable_eagle_block_drop` and the block every prefix-cache hit recomputes under MTP (kindlingai issue #66), and whether checkpoint retention saves in the middle of a prefill chunk (vLLM #59759).
+- vLLM #59845 (fused NVFP4 linears run under the largest shard's global scale) does not apply: the gate and up global scales are equal in the pinned checkpoint's dense MLP layers and in a sample of its routed experts, and in the fused groups of four layers read from the published option's weights (0, 3, 10 and 44).
+
 ## 1.28.2 — 2026-10-04
 
 ### Documentation
