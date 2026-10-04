@@ -85,7 +85,6 @@ Use `--backend auto` or `--chunk 128` in a fresh run for diagnostic comparison. 
 
 ~~~sh
 python -m unittest discover -s tests -t . -v
-python tools/check_publication.py
 ~~~
 
 CPU checks cover CLI dispatch without GPU imports, checkout-relative assets, revision/launch guards, fixture selection and result assessment. CPU CI does not run GPU tests or download weights.

@@ -4,12 +4,18 @@
 
 This is an engineering project with a measured scope. Keep claims limited to the exact hardware, image, weights, precision and workload tested.
 
-Use Python 3.11 or newer. The 1.x line (vLLM) lives in `v1/` and the 2.x line (TensorFold) in `v2/`; run the 1.x checks from `v1/`:
+Use Python 3.11 or newer. The 1.x line (vLLM) lives in `v1/` and the 2.x line (TensorFold) in `v2/`; each line holds everything that runs it, and the checkout root holds only the repository tools (the publication audit and the release notes). Run the checks of each place, as [CI](.github/workflows/ci.yml) does:
 
 ```sh
+# in v1/
 python -m unittest discover -s tests -t . -v
 ruff check glm53_setup tests tools
 ruff format --check glm53_setup tests tools
+# in v2/: the unittest command above, and ruff on the files CI names
+# at the checkout root
+python -m unittest discover -s tests -t . -v
+ruff check tools tests
+ruff format --check tools tests
 python tools/check_publication.py
 ```
 

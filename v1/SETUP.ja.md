@@ -70,7 +70,6 @@ python3 -m venv .venv
 python -m pip install -r requirements/huggingface.lock.txt
 python -m glm53_setup --version
 python -m unittest discover -s tests -t . -v
-python tools/check_publication.py
 ```
 
 `state/`、認証情報、ローカル記録はGitに含めません。状態は各ノード固有です。本リリースでは既定の`$HOME/.cache/huggingface`を使用してください。起動コードのマウント解決はまだカスタムキャッシュ環境変数に対応していません。状態とレポートはチェックアウト内の`state/`、`records/`へ保存します。

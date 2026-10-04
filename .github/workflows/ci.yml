@@ -28,7 +28,15 @@ jobs:
       - run: python -m unittest discover -s tests -t . -v
       - run: ruff check glm53_setup tests tools
       - run: ruff format --check glm53_setup tests tools
+      # The repository tools at the checkout root.
+      - run: python -m unittest discover -s tests -t . -v
+        working-directory: .
+      - run: ruff check tools tests
+        working-directory: .
+      - run: ruff format --check tools tests
+        working-directory: .
       - run: python tools/check_publication.py
+        working-directory: .
       # 2.x's host tools have no extension, so ruff is given them by name.
       - run: python -m unittest discover -s tests -t . -v
         working-directory: v2

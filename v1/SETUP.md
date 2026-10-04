@@ -70,7 +70,6 @@ python3 -m venv .venv
 python -m pip install -r requirements/huggingface.lock.txt
 python -m glm53_setup --version
 python -m unittest discover -s tests -t . -v
-python tools/check_publication.py
 ```
 
 Do not copy `state/`, credentials or local records into Git. Each host owns its own state. Use the default `$HOME/.cache/huggingface` for this release: the launcher assumes that location. Custom cache environment variables are not integrated into its mount resolution yet. Store state and reports under this checkout's `state/` and `records/`.

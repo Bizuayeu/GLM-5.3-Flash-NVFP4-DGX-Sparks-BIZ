@@ -12,7 +12,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 # The repository root: the 1.x line lives in v1/, the 2.x line in v2/.
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
     "README.md",
     "README.ja.md",

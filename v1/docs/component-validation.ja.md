@@ -85,7 +85,6 @@ python -m glm53_setup fixture-assess ../records/fixture-check
 
 ~~~sh
 python -m unittest discover -s tests -t . -v
-python tools/check_publication.py
 ~~~
 
 CPU側の検査は、GPU importなしのCLI振り分け、checkout基準の資材、revision・起動のガード、fixtureの選択、結果の判定を対象とします。CPUのCIはGPU試験を実行せず、重みもダウンロードしません。

@@ -10,7 +10,7 @@ import tomllib
 from pathlib import Path
 
 # The repository root, above the line directories.
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 VERSION = r"\d+\.\d+\.\d+"
 
 

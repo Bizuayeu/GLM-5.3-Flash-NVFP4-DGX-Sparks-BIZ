@@ -4,12 +4,18 @@
 
 本プロジェクトは実測した範囲を明記するエンジニアリング作業です。主張は、実際に試験したハードウェア、イメージ、重み、精度、負荷の範囲に限定してください。
 
-Python 3.11以降を使います。1.x系（vLLM）は `v1/`、2.x系（TensorFold）は `v2/` にあり、1.x系の検査は `v1/` で実行します。
+Python 3.11以降を使います。1.x系（vLLM）は `v1/`、2.x系（TensorFold）は `v2/` にあり、各系列は自分を動かすものをすべて自分の中に持ち、checkoutのルートにはリポジトリの道具（公開監査とリリースノート）だけを置きます。それぞれの場所の検査を、[CI](.github/workflows/ci.yml)と同じく実行します。
 
 ```sh
+# v1/ で
 python -m unittest discover -s tests -t . -v
 ruff check glm53_setup tests tools
 ruff format --check glm53_setup tests tools
+# v2/ で：上と同じunittestのコマンドと、CIが名前で挙げるファイルへのruff
+# checkoutのルートで
+python -m unittest discover -s tests -t . -v
+ruff check tools tests
+ruff format --check tools tests
 python tools/check_publication.py
 ```
 

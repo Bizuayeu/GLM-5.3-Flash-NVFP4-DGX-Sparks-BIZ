@@ -66,7 +66,7 @@ Order is part of the contract in two places. `VALIDATORS` runs the profile rules
 | `docker/` | Image construction; base digest supplied from the lock by the build command |
 | `requirements/` | Fixed host-tool dependencies |
 | `tests/` | CPU contracts |
-| `tools/` | `check_publication.py` (publication audit), `release_notes.py` (the Changelog section a tag publishes), `kernel_hashes.py` (the indexer's kernels hashed inside every serving worker), `assess_benchmark.py`, `check_prefix_cache.py`, `decode_check.py`, `decode_divergence.py` and `weight_digest.py` (the decode check and the weight digest after a switch, [launch contracts](launch-safety.md#after-a-switch-the-decode-check)), `nccl_probe.py` (two or three ranks), `prepare_mtp_view.py`, `score_nll_set.py` (the NLL set `config/nll_set.json` scored on vLLM or TensorFold) |
+| `tools/` | `kernel_hashes.py` (the indexer's kernels hashed inside every serving worker), `assess_benchmark.py`, `check_prefix_cache.py`, `decode_check.py`, `decode_divergence.py` and `weight_digest.py` (the decode check and the weight digest after a switch, [launch contracts](launch-safety.md#after-a-switch-the-decode-check)), `nccl_probe.py` (two or three ranks), `prepare_mtp_view.py`, `score_nll_set.py` (the NLL set `config/nll_set.json` scored on vLLM or TensorFold) |
 | `../.github/workflows/` | At the checkout root: CI (CPU tests, Ruff, publication audit on Linux and Windows, run in `v1/`) and the tag-driven GitHub Release |
 | `../LICENSES/` | At the checkout root: preserved upstream license texts |
 | `../state/`, `../records/` | At the checkout root: local mutable state and experiment evidence, excluded from distribution |
