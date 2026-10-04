@@ -180,14 +180,11 @@ class ImageTests(unittest.TestCase):
             self.assertIn(ref, read(f"CHANGELOG{suffix}.md"), suffix)
             self.assertIn(f"`{ref[:7]}`", readme(suffix), suffix)
 
-    def test_the_base_image(self):
-        tag = owned(r"ARG BASE_IMAGE=(\S+)", "docker/Dockerfile")
-        dockerfile = read("docker/Dockerfile").replace("\n# ", "")
-        digest = re.search(r"accepted on [^@\s]+@(sha256:[0-9a-f]{64})", dockerfile)[1]
+    def test_the_base_image_is_pinned_by_digest(self):
+        base = owned(r"ARG BASE_IMAGE=(\S+)", "docker/Dockerfile")
+        self.assertRegex(base, r"@sha256:[0-9a-f]{64}$")
         for suffix in PAIRS:
-            setup = read(f"SETUP{suffix}.md")
-            self.assertIn(f"`{tag}`", setup, suffix)
-            self.assertIn(f"`{digest}`", setup, suffix)
+            self.assertIn(f"`{base}`", read(f"SETUP{suffix}.md"), suffix)
 
 
 class LockTests(unittest.TestCase):

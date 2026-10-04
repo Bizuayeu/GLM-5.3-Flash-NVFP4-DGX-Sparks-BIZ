@@ -29,7 +29,7 @@ set +a
 : "${MASTER:?$rank_env must set MASTER, rank 0 address on the link between the hosts}"
 export TF_GLM_KV=fp8
 # 94 C is where the hosts' thermal watch stops the engine; 88 C sits below the 88.8-89.6 C a 1M prefill held
-# at TP=3 before the faster prefill work (provisional until the 1M run with the wait)
+# at TP=3 before the faster prefill work. With these bands the 1M prefill at TP=3 peaked at 92.8 C (README.md).
 export TF_GLM_HEAT_HIGH=${TF_GLM_HEAT_HIGH-92} TF_GLM_HEAT_LOW=${TF_GLM_HEAT_LOW-88}
 # The pinned checkpoint as the Hugging Face cache holds it, mounted read-only at /hub (create_container.sh)
 CHECKPOINT=${CHECKPOINT:-/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/423acf37583782c51c142d145aef733d72943d93}

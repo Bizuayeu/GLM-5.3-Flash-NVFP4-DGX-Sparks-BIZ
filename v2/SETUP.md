@@ -39,7 +39,7 @@ docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.0 .
 docker image inspect --format '{{.Id}}' glm53-tf:2.0.0
 ```
 
-The Dockerfile pins the engine by one commit (`TENSORFOLD_REF`) and refuses to build without a full SHA. Copy the image to the other hosts (`docker save glm53-tf:2.0.0 | ssh <host> docker load`, over the link) or build it there, then compare the image IDs of every host; they must be equal. The base image measured was `nvcr.io/nvidia/pytorch:26.07-py3` with image ID `sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c`.
+The Dockerfile pins the engine by one commit (`TENSORFOLD_REF`) and refuses to build without a full SHA. Copy the image to the other hosts (`docker save glm53-tf:2.0.0 | ssh <host> docker load`, over the link) or build it there, then compare the image IDs of every host; they must be equal. The base image is pinned by digest, `nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c` (`nvcr.io/nvidia/pytorch:26.07-py3` when it was measured), so a moved tag cannot change it.
 
 ## 4. Container and rank file on each host
 

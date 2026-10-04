@@ -22,7 +22,7 @@ For commercial use, modification and distribution obligations by artifact, see [
 
 The NoPE adaptation zero-pads the unsupported positional portion and uses a candidate-preserving eager reference calculation. The recipe's candidate-removal portions are **not included**. Source hashes are checked before applying the patch; the image retains a manifest of modified-file hashes.
 
-Project notices are included under `/opt/glm53/`, with upstream texts in `/opt/glm53/LICENSES/`. The 2.x image carries the same files under `/opt/glm53-tf/`.
+Project notices are included under `/opt/glm53/`, with upstream texts in `/opt/glm53/LICENSES/`. The 2.x image carries them under `/opt/glm53-tf/` together with this file, and the engine's own notices under `/opt/tensorfold`.
 
 ## Intentionally absent
 
