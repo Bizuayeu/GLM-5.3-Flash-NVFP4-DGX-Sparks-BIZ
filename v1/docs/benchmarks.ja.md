@@ -899,7 +899,7 @@ READMEの主要な測定値は、この枠の値です。1.19.0のimage（`sha25
 - **反復**：decode検査は両profileとも3文種それぞれ3回bit単位で同じでした。`max_num_seqs = 1` で配信した配布既定と公開した任意設定の同時1系列では、同時に送った2本が待ち行列に入り、18本中18本がその要求の単独のcompletionと同じでした（2本目の最初のtokenまで17.7〜26.6 sと13.1〜19.2 s）。公開した任意設定のdecode検査の3 hashは、1.19.0の起動8回（上限なしの5回と、上限つきの同時1系列を含む3回）ですべて同じでした。
 - **同時2系列**（配信中の公開した任意設定）：数え上げと散文を同時に送ると32.87／22.43 tok/s（3回の中央値）で、completionはそれぞれの単独時と違いました（宣言した挙動）。tool呼び出し2本と画像＋散文は正答でした。
 - **起動**：`Loading weights took` は本体とMTP draftで2行出ます。表は1行目（本体、MarlinのNvFp4 MoE）です。2行目（draft）は配布既定108.3 s、公開した任意設定104.2 sでした。切替は既定へ381 s、同時1系列へ423 s、配信profileへ411 sで、3回ともrecoveryなしでした。
-- **sparkDash**：01のsparkDashは2026-09-26に上流 `2dd2317` へ更新しており、codeのpromptが108 tokenから66 tokenに変わりました（structured 33・prose 39・json 58 tokenは同じ）。codeの値は1.19.0より前のsparkDashの値と比べられません。
+- **sparkDash**：参照対のheadのsparkDashは2026-09-26に上流 `2dd2317` へ更新しており、codeのpromptが108 tokenから66 tokenに変わりました（structured 33・prose 39・json 58 tokenは同じ）。codeの値は1.19.0より前のsparkDashの値と比べられません。
 - **上限の代価**：同じ公開した任意設定で上限なしの2026-09-27の値と比べると、prefillは1.8%遅く、長い入力は0.8〜1.9%長く、decodeは1〜2%速くなりました。配布既定の長い入力は、上限なしの直近の記録（1.13.0〜1.14.0）より2〜5%長くなりました。NLL・completion・正答は変わりませんでした。
 - **FreedomBench** もこの枠で両profileに流しました（[結果](freedombench.ja.md#1190の両profileでの再実施2026-09-28)）。
 

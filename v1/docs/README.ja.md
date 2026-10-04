@@ -80,7 +80,7 @@
 | ZCodeの権限モード、モデル上限と圧縮予算の規則、既存ファイルガードのhook | [ハーネス](harnesses.ja.md#zcodeの権限モードモデル上限既存ファイルガード)、スクリプトは [examples/zcode-hooks/](../examples/zcode-hooks/) |
 | 検証範囲と未解決の事項 | [検証範囲](validation.ja.md#評価と未解決の事項) |
 | 生応答、trace、全反復、失敗、実機固有の値 | 非公開の `records/<run-id>/`。配布せず、公開文書には検証した要約を置く |
-| このモデルの他の公開レシピ：リンク・ライセンス・取り込んだもの | [README](../README.ja.md#dgx-spark向けの他のglm-53-flashレシピ)。他の文書は名前とPR番号だけで引用し、リンクとライセンスは書かない（`tools/check_publication.py` が検査） |
+| このモデルの他の公開レシピ：リンク・ライセンス・取り込んだもの | 他のエンジンのレシピは[README](../README.ja.md#dgx-spark向けの他のglm-53-flashレシピ)、TensorFoldのレシピは[2.xのREADME](../../v2/README.ja.md#tensorfoldの他のレシピ)。他の文書は名前とPR番号だけで引用し、リンクとライセンスは書かない（`tools/check_publication.py` が検査） |
 | 本プロジェクトが主張しないこと、上流を契機とする予定作業（契機 → 対応） | READMEの[免責事項](../README.ja.md#免責事項)と[Next Action](../README.ja.md#next-action) |
 | 非公開の実装計画とStage状態 | `docs/plans/`。Git追跡外・公開対象外で、`docs/plans/README.md` がローカルの索引、状態は各計画の先頭の状態行が正典 |
 | サイト設定と取得状態 | `state/`。Git追跡外 |
