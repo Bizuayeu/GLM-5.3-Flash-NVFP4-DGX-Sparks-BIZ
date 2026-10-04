@@ -755,7 +755,7 @@ def act_plan(cli, args, profile):
     }
     probes = fabric.link_probes(settings.site(profile, args.rank))
     if probes is not None:
-        # A ring rank's links, each for tools/nccl_probe.py with --world-size 2.
+        # A ring rank's links, each for host/nccl_probe.py (at the checkout root) with --world-size 2.
         plan["link_probes"] = probes
     print(json.dumps(plan, indent=2))
 
