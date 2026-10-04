@@ -11,8 +11,13 @@ import json
 import sys
 
 
+def load(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def main():
-    a, b = (json.load(open(p, encoding="utf-8")) for p in sys.argv[1:3])
+    a, b = (load(p) for p in sys.argv[1:3])
     for i, (x, y) in enumerate(zip(a["samples"], b["samples"])):
         ia, ib = x["token_ids"], y["token_ids"]
         k = next((j for j in range(min(len(ia), len(ib))) if ia[j] != ib[j]), None)

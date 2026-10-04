@@ -4,7 +4,6 @@ import json
 import os
 import tempfile
 import unittest
-import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -120,9 +119,7 @@ class TokensOutTests(unittest.TestCase):
             with (
                 patch.object(decode_divergence.sys, "argv", ["dd", *paths]),
                 contextlib.redirect_stdout(out),
-                warnings.catch_warnings(),
             ):
-                warnings.simplefilter("ignore", ResourceWarning)
                 decode_divergence.main()
         first = out.getvalue().splitlines()[0]
         self.assertIn("first differing token 1/3 (ids [17, 18] vs [99, 18])", first)

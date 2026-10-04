@@ -1,4 +1,5 @@
 import contextlib
+import gc
 import io
 import json
 import sys
@@ -28,14 +29,17 @@ def compare(a, b):
         with (
             patch.object(sys, "argv", ["decode_divergence.py", *paths]),
             contextlib.redirect_stdout(out),
-            # The tool leaves its input files to the garbage collector.
-            warnings.catch_warnings(),
+            warnings.catch_warnings(record=True) as caught,
         ):
-            warnings.simplefilter("ignore", ResourceWarning)
+            warnings.simplefilter("always", ResourceWarning)
             try:
                 decode_divergence.main()
             except SystemExit as error:
                 code = error.code
+            gc.collect()
+    # The tool closes the files it reads.
+    leaks = [w for w in caught if issubclass(w.category, ResourceWarning)]
+    assert not leaks, [str(w.message) for w in leaks]
     return code, out.getvalue().splitlines()
 
 
