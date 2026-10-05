@@ -11,6 +11,7 @@
 | vLLMの代わりにTensorFoldで配信する | 2026-10-02 | 厳密性がエンジンの契約である（draftした応答はserialと同じ、再開は最初からと同じ、結果はchunkの切り方によらない）。1.x系はvLLMのスイッチを入れて反復性を買っている（[1.x系との違い](../README.ja.md#1x系との違い)） | — |
 | 上流のTensorFoldから始めてGLMに要るものだけを移植し、MiaAI-LabのTensorFoldのレシピの上には作らない | 2026-10-02 | そのFP8 latent KV（patch 0038）は先行するpatch約37本の上に乗っており、上流0.6.1へのdry runはほぼ全hunkが失敗したので、上流の上で書き直した（約600行） | — |
 | 上流のリリースに追従し、衝突は上流の側を採る | 2026-10-03 | v0.6.2、v0.6.3、続いてv0.6.4。v0.6.4ではTP=3の交換を上流の通信のinterface（#219）の上に載せ直した。全rankでの停止は上流のpull request #301をそのまま取り込み、新しく書いていない | 上流が#320か#301をmergeする、またはこの系列のissueと#333を取り込む（[Next Action](../README.ja.md#next-action)） |
+| 配信のcontainerにCPUの集合を設定しない（`create_container.sh` は配置をkernelに任せる） | 2026-10-05 | 固定しないとエンジンのスレッドは高効率コアを含む20コアすべてで動きました。両rankを性能コアに固定しても（`docker update --cpuset-cpus 5-9,15-19`）、decodeとprefillの差は揺れの内でした（counting 41.35 → 41.36 tok/s、prefill 1,327 → 1,329 tok/s）。1.x系には固定が要ります（[CPU配置](../../v1/docs/benchmarks.ja.md#参照対でのcpu配置2026-09-26)） | 同じ設定で片方のrankのdecodeだけが遅い |
 
 ## 精度とメモリ
 
@@ -39,6 +40,7 @@
 | 決定 | 日付 | 測った効果 | 開き直す条件 |
 |---|---|---|---|
 | checkpointのMTP headでdraftする（`--drafter none`）、DFlash2は使わない | 2026-10-04 | 明示する：エンジンの `--drafter auto` は、DFlash2の重みがcacheにあるとTP=2ではそれを使い、TP=3では拒む（2 rankにしか分けられない）。1.x系がDFlash2を使わない理由は、その重みの条件 | — |
+| draftの深さはエンジンの方針（`auto`）に任せ、`--mtp-drafts` で固定しない | 2026-10-05 | 深さ4と5の固定をautoと比べたdecode：countingは+8%と+14%、proseは−15%と−20%、codeは−2%。温度1.0でもautoが上でした（proseで24.7対深さ4の20.9 tok/s）。token idは温度0でも1.0でも、どの深さでもserialの返事でも同じでした。autoが勝つ理由：各roundはdraftを1回のforwardでまとめて検証し、最初に外れたところまでを確定します。検証する行はどれも時間がかかります。autoはdraftを最大3つにし、温度0ではMTPのheadの次のdraftの確率が0.35を下回ったところで鎖を止め、標本化では直近の受理率に応じて深さを1〜3で動かします。固定の深さは毎roundN個をdraftするので、外れやすいproseでは捨てる行の検証に時間を払い、3つがほぼ必ず当たるcountingでは深いほど得をします（エンジンが起動時に測るコストはMTPとDFlash2の選択に使い、この深さには使いません） | ほぼ全部が当たる文のために、autoの上限3を上げられるようになったとき |
 
 ## fabric
 
@@ -46,6 +48,7 @@
 |---|---|---|---|
 | リンクごとに2本のrail | 2026-10-02（TP=2）、2026-10-03（TP=3） | TP=2のprefillは同じ版で+4%（2本のrailの値が[検証](validation.ja.md#prefillとdecodeの速さ)のTP=2の基準）、TP=3 1,225.1 → 1,384.7 tok/s（+13%）。decodeは変わらず、decode検査のhashはどちらも同じ | — |
 | TP=3：NCCLのchannel 4本、NCCL自身のIBの経路（`NCCL_NET_PLUGIN=none`）、subnet-aware routing | 2026-10-03 | 2本目のrailで8 MiBの片が1,530から約900 µsになった（channelが2・4・8・64本のどれでも同じ）。4本のchannelは32 MiBの塊を縮めた（1 railで9,236 → 5,072 µs、2 railで3,622 → 3,346）。decodeの大きさの交換（23〜51 µs）は誤差の範囲で動いた。`NCCL_CROSS_NIC` とimageの既定のnetwork pluginは何も変えなかった | — |
+| TP=2：NCCLのchannelを4本にし、rankのファイルにTP=3と同じくIBのtransportを書く | 2026-10-05 | NCCLが自分で開く64本と比べ、decodeは+0.8〜1.0%、起動時の見積もりの余地は約1.5 GiB増、空きメモリの最低は1〜2 GiB上、prefillは0.4%以内でした（8本も同様）。`NCCL_NET=IB` などを書いても測った値は変わりません。もともと全接続がNET/IBでした | — |
 
 ## prefill
 
@@ -85,8 +88,5 @@
 
 未決の項目です。1.x系は測りましたが、2.x系にはどちらの結果もありません。
 
-- **各rankを性能コアに固定する。** 1.x系は各rankのcontainerを性能コアに固定します（[CPU配置](../../v1/docs/benchmarks.ja.md#参照対でのcpu配置2026-09-26)）。`create_container.sh` はCPUの集合を設定しません。
-- **MTPのdraftの深さ。** 1.x系は固定の深さ1〜5を比べて3を保っています（[深さ1〜5](../../v1/docs/speculative-decoding.ja.md#深さ152026-09-1920)）。2.x系のdraftの深さは比べていません。
-- **TP=2でのNCCLのchannel数。** TP=2のrankのファイルは数をNCCLに任せます。この対ではNCCLは1.x系の下で自分で64本を開き、8本でrankあたり約3 GiBが空き、prefillは1%以内でした（[チャネル数](../../docs/nccl-validation.ja.md#チャネル数)）。TP=3は4本を設定します。
 - **MTU。** 1.x系は9000と1500を比べて1500のままにしました（[チャネル数](../../docs/nccl-validation.ja.md#チャネル数)）。2.x系では変えていません。
 - **LPA。** 1.x系の後段Prefill近似は実験機能で、1.x系でもバッチ用のopt-inです（[LPA](../../v1/docs/lpa.ja.md)）。長いprefillの結果を設計上変えます。2.x系には対応するものが無く、基準のhashとNLLは厳密なprefillのものです。

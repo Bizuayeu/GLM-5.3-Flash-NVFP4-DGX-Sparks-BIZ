@@ -11,6 +11,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | Serve with TensorFold in place of vLLM | 2026-10-02 | Exactness is the engine's contract (drafted equals serial, resumed equals fresh, the result does not depend on the chunking), where 1.x buys repeatability by turning vLLM's switches on ([differences from 1.x](../README.md#differences-from-1x)) | — |
 | Start from upstream TensorFold and port only what GLM needs, not build on MiaAI-Lab's TensorFold recipe | 2026-10-02 | Its FP8 latent KV (patch 0038) sat on about 37 earlier patches; a dry run onto upstream 0.6.1 failed nearly every hunk, so it was rewritten on upstream (about 600 lines) | — |
 | Follow upstream releases, upstream's side winning a conflict | 2026-10-03 | v0.6.2, v0.6.3, then v0.6.4, where the TP=3 exchanges were rebuilt on upstream's communicator interface (#219). The stop on every rank is upstream pull request #301 taken as it is, rather than written anew | Upstream merges #320 or #301, or takes this line's issues and #333 ([Next Action](../README.md#next-action)) |
+| No CPU set for the serving containers (`create_container.sh` leaves placement to the kernel) | 2026-10-05 | Unpinned, the engine's threads ran on all twenty cores, the efficiency cores included; pinning both ranks to the performance cores (`docker update --cpuset-cpus 5-9,15-19`) moved decode and prefill within noise (counting 41.35 → 41.36 tok/s, prefill 1,327 → 1,329 tok/s). 1.x needs the pin ([CPU placement](../../v1/docs/benchmarks.md#cpu-placement-on-the-reference-pair-2026-09-26)) | One rank decodes slower than the other at the same settings |
 
 ## Precision and memory
 
@@ -39,6 +40,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | Decision | Date | Measured effect | Reopens when |
 |---|---|---|---|
 | The checkpoint's MTP head drafts (`--drafter none`), not DFlash2 | 2026-10-04 | Named explicitly: the engine's `--drafter auto` would take DFlash2 at TP=2 when its weights are in the cache and refuse it at TP=3 (it splits only over two ranks). DFlash2's weights' terms are also why 1.x does not use it | — |
+| The engine's draft-depth policy (`auto`), no fixed `--mtp-drafts` | 2026-10-05 | Fixed depths 4 and 5 against auto, decode: counting +8% and +14%, prose −15% and −20%, code −2%; at temperature 1.0 auto stayed ahead (prose 24.7 against 20.9 tok/s at depth 4). The token ids were the same at every depth and in serial replies, at temperature 0 and 1.0. Why auto wins: each round verifies the drafts in one forward and keeps them up to the first miss, and every verified row costs time. Auto drafts at most three; at temperature 0 it ends a chain once the MTP head's probability for the next draft falls under 0.35, and when sampling it moves the depth between one and three with the running acceptance. A fixed depth drafts N every round, so prose, where drafts are often rejected, pays for rows it throws away, while counting, where three drafts are nearly always accepted, gains from more (the engine's start-time costs choose between MTP and DFlash2 and do not set this depth) | Auto's ceiling of three drafts can be raised for text that accepts nearly every draft |
 
 ## Fabric
 
@@ -46,6 +48,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 |---|---|---|---|
 | Two rails per link | 2026-10-02 (TP=2), 2026-10-03 (TP=3) | TP=2 prefill +4% on the same build (two rails give [validation's](validation.md#prefill-and-decode-speed) TP=2 reference); TP=3 1,225.1 → 1,384.7 tok/s (+13%); decode unchanged and the decode-check hashes the same at both | — |
 | TP=3: four NCCL channels, NCCL's own IB transport (`NCCL_NET_PLUGIN=none`), subnet-aware routing | 2026-10-03 | The second rail took an 8 MiB piece from 1,530 to about 900 µs, with 2, 4, 8 or 64 channels alike; four channels shortened a 32 MiB chunk (9,236 → 5,072 µs on one rail, 3,622 → 3,346 on two). Decode-sized exchanges (23-51 µs) moved within noise. `NCCL_CROSS_NIC` and the image's default network plugin changed nothing | — |
+| TP=2: four NCCL channels, and the IB transport named in the rank files as TP=3 names it | 2026-10-05 | Against the 64 channels NCCL opens on its own: decode +0.8–1.0%, about 1.5 GiB more room in the start's estimate, the lowest MemAvailable 1–2 GiB higher, prefill within 0.4% (eight channels measured alike). Naming `NCCL_NET=IB` and the rest changed nothing measured: every connection was NET/IB before | — |
 
 ## Prefill
 
@@ -85,8 +88,5 @@ The release branch is upstream v0.6.4 plus the commits that the [changelog](../C
 
 Open items: 1.x measured them; 2.x has no result either way.
 
-- **CPU pinning of each rank to performance cores.** 1.x pins each rank's container to the performance cores ([CPU placement](../../v1/docs/benchmarks.md#cpu-placement-on-the-reference-pair-2026-09-26)); `create_container.sh` sets no CPU set.
-- **MTP draft depth.** 1.x compared fixed depths one to five and keeps three ([depths one to five](../../v1/docs/speculative-decoding.md#depths-one-to-five-2026-09-19-and-20)); 2.x's draft depth was not compared.
-- **NCCL channel count at TP=2.** The TP=2 rank files leave the count to NCCL, which on its own opened 64 channels on this pair under 1.x, where 8 returned about 3 GiB a rank with prefill within 1% ([channel count](../../docs/nccl-validation.md#channel-count)); TP=3 sets four.
 - **MTU.** 1.x measured 9000 against 1500 and stayed at 1500 ([channel count](../../docs/nccl-validation.md#channel-count)); 2.x did not vary it.
 - **LPA.** 1.x's late-prefill approximation is experimental and a batch opt-in there ([LPA](../../v1/docs/lpa.md)); it changes a long prefill's result by design. 2.x has no counterpart, and its reference hashes and NLL are those of the exact prefill.
