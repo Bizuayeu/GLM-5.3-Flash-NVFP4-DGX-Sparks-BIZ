@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import host
-from .config import CHECKOUT, RECORDS, ROOT, load_lock
+from .config import LINE, RECORDS, ROOT, load_lock
 from .io import write_json
 
 
@@ -21,11 +21,11 @@ def build_command(lock):
         "--build-arg",
         "BASE_IMAGE=" + lock["image"],
         "-f",
-        str(ROOT / "docker/Dockerfile.reference"),
+        str(LINE / "docker/Dockerfile.reference"),
         "-t",
         lock["reference_candidate"]["tag"],
         # The checkout root, where the licences sit beside v1/.
-        str(CHECKOUT),
+        str(ROOT),
     ]
 
 

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import host
-from .config import RECORDS, ROOT, load_lock
+from .config import LINE, RECORDS, load_lock
 from .io import write_json
 
 PROBE = """
@@ -140,7 +140,7 @@ def main(argv=None):
                 "--record-dir",
                 str(record),
             ],
-            cwd=ROOT,
+            cwd=LINE,
             stdin=subprocess.DEVNULL,
             stdout=log,
             stderr=subprocess.STDOUT,

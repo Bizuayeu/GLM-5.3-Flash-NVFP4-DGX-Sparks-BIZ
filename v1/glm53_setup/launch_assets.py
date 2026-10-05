@@ -6,7 +6,7 @@ from pathlib import Path
 
 from . import host, server
 from . import server_config as settings
-from .config import ROOT, load_lock
+from .config import LINE, load_lock
 from .io import read_json
 
 
@@ -59,12 +59,12 @@ def inspect(profile, config_path, rank, *, recovery=False):
             stat.st_ino,
         ]
     source = {
-        str(p.relative_to(ROOT)): sha(p)
+        str(p.relative_to(LINE)): sha(p)
         for directory in ("glm53_setup", "config")
-        for p in sorted((ROOT / directory).rglob("*"))
+        for p in sorted((LINE / directory).rglob("*"))
         if p.is_file() and p.suffix in (".py", ".json")
     }
-    source["examples/server.example.toml"] = sha(ROOT / "examples/server.example.toml")
+    source["examples/server.example.toml"] = sha(LINE / "examples/server.example.toml")
     image = json.loads(
         host.run("docker", "image", "inspect", settings.selected_image(profile))
     )[0]

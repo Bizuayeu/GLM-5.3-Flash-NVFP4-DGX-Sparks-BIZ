@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import MODEL, REVISION, ROOT, STATE
+from .config import LINE, MODEL, REVISION, STATE
 from .io import write_json
 
 # Under STATE; the preflight and the checksum run read what this writes there.
@@ -89,7 +89,7 @@ def main(argv=None):
         with (STATE / "download.log").open("a", encoding="utf-8") as log:
             process = subprocess.Popen(
                 [sys.executable, "-m", "glm53_setup", "download"],
-                cwd=ROOT,
+                cwd=LINE,
                 env=env,
                 stdin=subprocess.DEVNULL,
                 stdout=log,

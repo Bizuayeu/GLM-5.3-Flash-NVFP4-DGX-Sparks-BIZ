@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 
 from . import host, launch_assets, model_http, server, server_config
-from .config import RECORDS, ROOT
+from .config import LINE, RECORDS
 from .io import read_json, write_json
 from .switch import (
     RANK_TERMINATED,
@@ -160,7 +160,7 @@ def rpc(action, rank, value):
                     "--record",
                     str(record),
                 ],
-                cwd=ROOT,
+                cwd=LINE,
                 stdin=subprocess.DEVNULL,
                 stdout=log,
                 stderr=subprocess.STDOUT,

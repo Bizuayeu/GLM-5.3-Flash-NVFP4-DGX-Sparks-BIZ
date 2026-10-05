@@ -5,15 +5,16 @@ import re
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+# v1/, the 1.x line: its package, pyproject.toml and config/.
+LINE = Path(__file__).resolve().parents[1]
 # The checkout root above v1/: its untracked state/ and records/ are what a deploy
 # checkout links to the host's persistent directories, whichever line it serves.
-CHECKOUT = ROOT.parent
-STATE = CHECKOUT / "state"
-RECORDS = CHECKOUT / "records"
+ROOT = LINE.parent
+STATE = ROOT / "state"
+RECORDS = ROOT / "records"
 # The operator's profile, which every host command reads unless given --config.
 DEFAULT_PROFILE = STATE / "server.toml"
-LOCK_PATH = ROOT / "config/runtime.lock.json"
+LOCK_PATH = LINE / "config/runtime.lock.json"
 MODEL_LAYERS = 45
 HIDDEN_SIZE = 4096
 FIXTURE_LAYERS = 4
@@ -32,7 +33,7 @@ def load_lock():
 
 
 def version():
-    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+    return tomllib.loads((LINE / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
     ]["version"]
 

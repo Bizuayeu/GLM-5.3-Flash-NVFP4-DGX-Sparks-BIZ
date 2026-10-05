@@ -38,9 +38,9 @@ class CheckoutLayoutTests(unittest.TestCase):
     # v1/ holds the package; the checkout root holds the licences and the
     # untracked state/ and records/ that a deploy checkout links to its host's.
     def test_state_and_records_sit_at_the_checkout_root(self):
-        self.assertEqual(config.CHECKOUT, config.ROOT.parent)
-        self.assertTrue((config.CHECKOUT / "LICENSE").is_file())
-        self.assertTrue((config.ROOT / "pyproject.toml").is_file())
-        self.assertEqual(config.STATE, config.CHECKOUT / "state")
-        self.assertEqual(config.RECORDS, config.CHECKOUT / "records")
+        self.assertEqual(config.ROOT, config.LINE.parent)
+        self.assertTrue((config.ROOT / "LICENSE").is_file())
+        self.assertTrue((config.LINE / "pyproject.toml").is_file())
+        self.assertEqual(config.STATE, config.ROOT / "state")
+        self.assertEqual(config.RECORDS, config.ROOT / "records")
         self.assertEqual(config.DEFAULT_PROFILE, config.STATE / "server.toml")

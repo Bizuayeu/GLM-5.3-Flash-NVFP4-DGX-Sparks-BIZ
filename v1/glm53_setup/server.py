@@ -28,10 +28,10 @@ from . import (
 from . import server_config as settings
 from .config import (
     DEFAULT_PROFILE,
+    LINE,
     MODEL_LAYERS,
     MTP_VIEW_KEY,
     RECORDS,
-    ROOT,
     STATE,
     load_lock,
 )
@@ -96,7 +96,7 @@ def runtime_mounts(profile):
     to that image's modules, so it may drop imports but not add them
     (tests/test_contracts.py).
     """
-    runtime = ROOT / "glm53_setup/runtime"
+    runtime = LINE / "glm53_setup/runtime"
     image = f"{IMAGE_PACKAGE_DIR}/runtime"
     mounts = []
     if profile["lpa"]["enabled"]:

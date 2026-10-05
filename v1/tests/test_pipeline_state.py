@@ -4,13 +4,13 @@ import unittest
 from types import SimpleNamespace as NS
 
 from glm53_setup import server_config
-from glm53_setup.config import ROOT
+from glm53_setup.config import LINE
 from glm53_setup.runtime.pipeline_state import validate_pipeline
 
 
 class PipelineStartupTests(unittest.TestCase):
     def profile(self):
-        profile = server_config.load(ROOT / "examples/server.example.toml")
+        profile = server_config.load(LINE / "examples/server.example.toml")
         profile["mtp"]["enabled"] = False
         profile["lpa"]["enabled"] = False
         profile["cache"]["prefix_caching"] = False

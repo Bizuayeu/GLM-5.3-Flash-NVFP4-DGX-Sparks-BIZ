@@ -12,7 +12,7 @@ from collections import Counter
 from pathlib import Path
 
 from .. import server, server_config
-from ..config import DEFAULT_PROFILE, ROOT, load_lock
+from ..config import DEFAULT_PROFILE, LINE, load_lock
 from ..io import read_json, write_json
 from .freedom_scoring import classify_attempt, summarize
 
@@ -33,7 +33,7 @@ INSTRUCTION = "Answer with a single letter (A, B, C, or D)."
 
 def parse_questions(directory):
     """The pinned upstream items as literals, without executing upstream Python."""
-    lock = read_json(ROOT / "config/freedombench.lock.json")
+    lock = read_json(LINE / "config/freedombench.lock.json")
     data = (directory / "freedombench/questions.py").read_bytes()
     if hashlib.sha256(data).hexdigest() != lock["questions_sha256"]:
         raise ValueError("FreedomBench question revision/hash mismatch")
@@ -120,7 +120,7 @@ def load_translation(directory, path):
     format `ANSWER: X` stays English, so the upstream extractor still scores it.
     """
     lock, items = parse_questions(directory)
-    ja_lock = read_json(ROOT / "config/freedombench-ja.lock.json")
+    ja_lock = read_json(LINE / "config/freedombench-ja.lock.json")
     data = path.read_bytes()
     if hashlib.sha256(data).hexdigest() != ja_lock["translation_sha256"]:
         raise ValueError("Translation hash mismatch")

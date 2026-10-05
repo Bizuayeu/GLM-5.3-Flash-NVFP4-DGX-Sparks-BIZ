@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from glm53_setup import launch_assets, server_config
-from glm53_setup.config import ROOT
+from glm53_setup.config import LINE
 
 
 class LaunchAssetTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class LaunchAssetTests(unittest.TestCase):
                 launch_assets.inspect({}, Path("profile.toml"), 1)
 
     def test_what_a_recovery_target_was_allowed_reaches_the_switch_record(self):
-        profile = server_config.load(ROOT / "examples/server.example.toml")
+        profile = server_config.load(LINE / "examples/server.example.toml")
         warning = "moe_order_marker_1_accepted_for_recovery"
         image = [{"Id": "sha256:" + "0" * 64, "Config": {"Env": []}}]
         with tempfile.TemporaryDirectory() as tmp:

@@ -257,7 +257,7 @@ def _item(qid, topic, question, correct, distractors, source):
 
 
 def _suite(tmp, edit=None, version="ja-1"):
-    """A pinned questions.py, a translation and both locks, with tmp as ROOT."""
+    """A pinned questions.py, a translation and both locks, with tmp as LINE."""
     root = Path(tmp)
     (root / "freedombench").mkdir()
     (root / "config").mkdir()
@@ -295,7 +295,7 @@ class PinnedSuiteTests(unittest.TestCase):
     def test_the_english_prompts_are_the_upstream_construction(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, _ = _suite(tmp)
-            with patch.object(freedombench, "ROOT", root):
+            with patch.object(freedombench, "LINE", root):
                 lock, questions = freedombench.load_questions(root)
         self.assertEqual(lock["revision"], "v")
         self.assertEqual([q["answer"] for q in questions], GOLDEN_ANSWERS)
@@ -313,7 +313,7 @@ class PinnedSuiteTests(unittest.TestCase):
     def test_a_translation_keeps_the_english_order_and_answers(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, path = _suite(tmp)
-            with patch.object(freedombench, "ROOT", root):
+            with patch.object(freedombench, "LINE", root):
                 _, english = freedombench.load_questions(root)
                 benchmark, japanese = freedombench.load_translation(root, path)
         self.assertEqual(benchmark["revision"], "v")
@@ -352,7 +352,7 @@ class PinnedSuiteTests(unittest.TestCase):
             with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
                 root, path = _suite(tmp, **kwargs)
                 with (
-                    patch.object(freedombench, "ROOT", root),
+                    patch.object(freedombench, "LINE", root),
                     self.assertRaises(ValueError),
                 ):
                     freedombench.load_translation(root, path)
@@ -360,7 +360,7 @@ class PinnedSuiteTests(unittest.TestCase):
             root, path = _suite(tmp)
             path.write_bytes(path.read_bytes() + b" ")
             with (
-                patch.object(freedombench, "ROOT", root),
+                patch.object(freedombench, "LINE", root),
                 self.assertRaisesRegex(ValueError, "hash"),
             ):
                 freedombench.load_translation(root, path)
@@ -397,7 +397,7 @@ class PinnedSuiteTests(unittest.TestCase):
             output = root / "out"
             server = freedombench.server
             with (
-                patch.object(freedombench, "ROOT", root),
+                patch.object(freedombench, "LINE", root),
                 patch.object(freedombench, "os", types.SimpleNamespace(name="posix")),
                 patch.object(freedombench.server_config, "load", return_value={}),
                 patch.object(freedombench, "load_lock", return_value={}),

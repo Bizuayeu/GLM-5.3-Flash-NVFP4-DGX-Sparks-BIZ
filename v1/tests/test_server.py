@@ -224,7 +224,7 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(env["CUDA_CACHE_PATH"], "/root/.cache/nv")
 
     def test_runtime_mounts_follow_the_settings_that_need_them(self):
-        runtime = server.ROOT / "glm53_setup/runtime"
+        runtime = server.LINE / "glm53_setup/runtime"
         image = f"{server.IMAGE_PACKAGE_DIR}/runtime"
         self.assertEqual(server.runtime_mounts(self.profile), [])
         self.profile["runtime"]["fa2_attention"] = True
@@ -1354,7 +1354,7 @@ class ServerConfigTests(unittest.TestCase):
         # on 2026-09-26 ran that copy and refused a worker change made after
         # the build. The launched worker must be this checkout's.
         mount = (
-            f"{server.ROOT / 'glm53_setup/runtime/lpa.py'}"
+            f"{server.LINE / 'glm53_setup/runtime/lpa.py'}"
             f":{server.IMAGE_PACKAGE_DIR}/runtime/lpa.py:ro"
         )
         path = ROOT / "state/server.toml"

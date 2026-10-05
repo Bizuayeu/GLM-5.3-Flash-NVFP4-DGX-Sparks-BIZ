@@ -3,12 +3,12 @@ import unittest
 from unittest.mock import Mock
 
 from glm53_setup import server, server_config
-from glm53_setup.config import ROOT
+from glm53_setup.config import LINE
 
 
 class APCStartupTests(unittest.TestCase):
     def profile(self):
-        value = server_config.load(ROOT / "examples/server.example.toml")
+        value = server_config.load(LINE / "examples/server.example.toml")
         value["cache"]["prefix_caching"] = True
         value["lpa"]["enabled"] = True
         value["lpa"]["break_even_tokens"] = 1024

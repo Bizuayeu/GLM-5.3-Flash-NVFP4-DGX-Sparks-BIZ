@@ -73,7 +73,7 @@ def normalized(value):
         return [normalized(item) for item in value]
     if isinstance(value, str):
         value = value.replace(str(server.STATE), "<ROOT>/state")
-        value = value.replace(str(server.ROOT), "<ROOT>")
+        value = value.replace(str(server.LINE), "<ROOT>")
         return value.replace(str(CACHE.resolve()), "<CACHE>").replace("\\", "/")
     return value
 

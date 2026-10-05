@@ -12,7 +12,7 @@ from dataclasses import asdict
 from pathlib import Path, PurePosixPath
 
 from . import fabric
-from .config import MODEL_LAYERS, ROOT, load_lock
+from .config import LINE, MODEL_LAYERS, load_lock
 from .runtime.apc_runtime import RuntimeSettings
 from .runtime.lpa import LPA_MTP_DEPTHS
 from .runtime.tp_padding import ENV as TP_PAD_ENV
@@ -168,7 +168,7 @@ def check_schema(profile):
             "runtime.mla_decode_cpb was retired in 1.16.0 and removed in 1.18.0; "
             "delete the key from the profile"
         )
-    with (ROOT / "examples/server.example.toml").open("rb") as stream:
+    with (LINE / "examples/server.example.toml").open("rb") as stream:
         schema = tomllib.load(stream)
 
     def check(value, expected, path):
