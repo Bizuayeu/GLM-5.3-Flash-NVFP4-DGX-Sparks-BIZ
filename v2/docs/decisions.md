@@ -89,3 +89,4 @@ Open items: 1.x measured them; 2.x has no result either way.
 - **MTP draft depth.** 1.x compared fixed depths one to five and keeps three ([depths one to five](../../v1/docs/speculative-decoding.md#depths-one-to-five-2026-09-19-and-20)); 2.x's draft depth was not compared.
 - **NCCL channel count at TP=2.** The TP=2 rank files leave the count to NCCL, which on its own opened 64 channels on this pair under 1.x, where 8 returned about 3 GiB a rank with prefill within 1% ([channel count](../../docs/nccl-validation.md#channel-count)); TP=3 sets four.
 - **MTU.** 1.x measured 9000 against 1500 and stayed at 1500 ([channel count](../../docs/nccl-validation.md#channel-count)); 2.x did not vary it.
+- **LPA.** 1.x's late-prefill approximation is experimental and a batch opt-in there ([LPA](../../v1/docs/lpa.md)); it changes a long prefill's result by design. 2.x has no counterpart, and its reference hashes and NLL are those of the exact prefill.

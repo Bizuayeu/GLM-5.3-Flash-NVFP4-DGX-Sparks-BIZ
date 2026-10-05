@@ -167,7 +167,7 @@ sudo nmcli connection modify <LINK_TO_THIRD> +ipv4.routes "10.40.0.3/32 10.53.2.
 sudo nmcli device reapply <INTERFACE_OF_EACH_LINK>
 ```
 
-`device reapply`は保存した経路を、リンクを落とさずに反映します。残り2台でも、それぞれの/32と相手で同じ操作をします。各機から確認します。
+`glm53-host` と `glmhost` は例の名前です。参照機のリングのdummy interfaceは `tp3host0`（接続名 `tp3-host`）で、2.x系のTP=3のrankのファイルは `NCCL_SOCKET_IFNAME` にこの名前を書いています（[`tp3-rank0.env`](../v2/examples/tp3-rank0.env)）。そこと、1.x系では `host_interface` に、自分の名前を書きます。`device reapply`は保存した経路を、リンクを落とさずに反映します。残り2台でも、それぞれの/32と相手で同じ操作をします。各機から確認します。
 
 ```sh
 ip route get 10.40.0.2

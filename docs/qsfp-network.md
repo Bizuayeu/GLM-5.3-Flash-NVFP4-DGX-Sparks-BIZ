@@ -165,7 +165,7 @@ sudo nmcli connection modify <LINK_TO_THIRD> +ipv4.routes "10.40.0.3/32 10.53.2.
 sudo nmcli device reapply <INTERFACE_OF_EACH_LINK>
 ```
 
-`device reapply` applies the saved routes without taking the link down. Repeat on the other two hosts with their own /32 and peers. Check from each host:
+`glm53-host` and `glmhost` are example names: the reference ring's dummy interface is `tp3host0` (connection `tp3-host`), the name 2.x's TP=3 rank files give `NCCL_SOCKET_IFNAME` ([`tp3-rank0.env`](../v2/examples/tp3-rank0.env)). Use your own name there and, for 1.x, in `host_interface`. `device reapply` applies the saved routes without taking the link down. Repeat on the other two hosts with their own /32 and peers. Check from each host:
 
 ```sh
 ip route get 10.40.0.2

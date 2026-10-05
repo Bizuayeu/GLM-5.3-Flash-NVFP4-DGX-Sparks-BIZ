@@ -89,3 +89,4 @@
 - **MTPのdraftの深さ。** 1.x系は固定の深さ1〜5を比べて3を保っています（[深さ1〜5](../../v1/docs/speculative-decoding.ja.md#深さ152026-09-1920)）。2.x系のdraftの深さは比べていません。
 - **TP=2でのNCCLのchannel数。** TP=2のrankのファイルは数をNCCLに任せます。この対ではNCCLは1.x系の下で自分で64本を開き、8本でrankあたり約3 GiBが空き、prefillは1%以内でした（[チャネル数](../../docs/nccl-validation.ja.md#チャネル数)）。TP=3は4本を設定します。
 - **MTU。** 1.x系は9000と1500を比べて1500のままにしました（[チャネル数](../../docs/nccl-validation.ja.md#チャネル数)）。2.x系では変えていません。
+- **LPA。** 1.x系の後段Prefill近似は実験機能で、1.x系でもバッチ用のopt-inです（[LPA](../../v1/docs/lpa.ja.md)）。長いprefillの結果を設計上変えます。2.x系には対応するものが無く、基準のhashとNLLは厳密なprefillのものです。
