@@ -2,6 +2,16 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.9 — 2026-10-06
+
+### Fixed
+
+- A slim image within the 8,000-token ceiling took the server down. The pinned processor caps an image by its token budget only, and the pinned vision tower's rope table has 8,192 rows, so an image whose grid is more than 8,192 patches on a side (200000×20 px, for one) read past the table: on the reference pair 1.29.8 answered HTTP 500 and stopped answering `/health`. The reference image now carries [vLLM #59126](https://github.com/vllm-project/vllm/pull/59126) (merged upstream after the pin, and not in vLLM 0.31.0) on the pinned source, `patch_vision_rope`, applied after `patch_image_budget`: the table has `max_position_embeddings` rows (1,048,576, about 64 MiB in bf16 a GPU), and two host-to-device copies go through pinned memory. Images that fit the old table give the same output ([image input on 1.29.9](docs/vision.md#1299-2026-10-06)). New image marker `GLM53_VISION_ROPE_TABLE=1`; no check requires it.
+
+### Reference image
+
+Built on 2026-10-06 from this change's tree, whose `glm53_setup/`, Dockerfile and configuration are this release's (the `pyproject.toml` copied into it reads 1.29.8): `sha256:beb1138886d71f78410ca0ebe5224d07611db813bbc1b1d3d1f1a648662626c0` on the reference hosts. Against the 1.29.8 image, the only vLLM file that differs is `models/glm5next/nvidia/multimodal.py`, plus one new patch record. On the reference pair both profiles passed preflight and gave 1.29.8's token ids and completions in the decode check; the nine images of the 1.29.0 check gave the same replies; the slim image above was answered with `/health` still 200. The NLL set scored the same logprobs, to the last digit, with MTP on and off ([vLLM #53488](https://github.com/vllm-project/vllm/issues/53488) reports `prompt_logprobs` broken under MTP on another model; this serving is not affected).
+
 ## 1.29.8 — 2026-10-05
 
 ### Fixed

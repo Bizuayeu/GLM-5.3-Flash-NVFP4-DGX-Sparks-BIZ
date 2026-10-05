@@ -99,13 +99,24 @@ The 1.29.0 reference image carries [vLLM #59565](https://github.com/vllm-project
 
 The seven regression checks passed on both profiles, and the decode-check completions were the earlier image's on both. One run each.
 
+### 1.29.9 (2026-10-06)
+
+The pinned processor bounds an image by its token budget only, and the pinned vision tower's rope table has 8,192 rows, so a slim image within the 8,000-token ceiling can have a grid side past the table ([vLLM #59126](https://github.com/vllm-project/vllm/pull/59126)). On the reference pair (TP=2, distributed defaults), with one request "Reply with OK." per image:
+
+| Image | Patches across | 1.29.8 | 1.29.9 |
+| --- | ---: | --- | --- |
+| 114000×28 | 8,143 | 200, 4,090 prompt tokens | 200, 4,090 prompt tokens |
+| 200000×20 | 14,286 | HTTP 500 after 63 s; rank 0 logged `vectorized gather kernel index out of bounds` and the server stopped answering `/health` | 200, 7,161 prompt tokens (7,143 image tokens), `/health` 200 |
+
+1.29.9 carries the fix on the pinned source (`patch_vision_rope`): the table has `max_position_embeddings` rows (1,048,576, about 64 MiB in bf16 a GPU). The nine images of the 1.29.0 check above gave the same HTTP status, prompt tokens and replies on 1.29.8 and 1.29.9, and the decode check gave 1.29.8's token ids and completions on both profiles. One run each.
+
 ### Three hosts at TP=3
 
 On three hosts at TP=3, at 262,144 tokens, a 672×336 single-colour image check passed on the distributed defaults on 2026-09-29 and on the published option on 2026-10-01: blue and orange named correctly, and without an image the model said that none was attached ([measurements on 1.24.0](benchmarks.md#measurements-on-1240) has the launches). The large-image, several-image and two-sequence checks above were not run at TP=3.
 
 ## Limits and open items
 
-- The checks use synthetic images. Images of up to 8,000 tokens, the model's own limit, and up to eight images were read correctly (1.29.0 and 1.19.0 above); image understanding in general is unmeasured. Before 1.29.0 the server's encoder cache was sized from a square image (7,921 = 89×89 tokens) instead of the processor's exact ceiling (8,000 = 80 × 100 tokens for the default budget), so images whose processed size is 7,922 to 8,000 tokens, among them a 4:3 phone photo, a 4K frame and an A4 scan at 300 dpi, were refused with HTTP 400 ([vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)); 1.29.0 carries the fix, [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565), on the pinned source. A larger image is resized by the processor to fit the limit.
+- The checks use synthetic images. Images of up to 8,000 tokens, the model's own limit, and up to eight images were read correctly (1.29.0 and 1.19.0 above); image understanding in general is unmeasured. Before 1.29.0 the server's encoder cache was sized from a square image (7,921 = 89×89 tokens) instead of the processor's exact ceiling (8,000 = 80 × 100 tokens for the default budget), so images whose processed size is 7,922 to 8,000 tokens, among them a 4:3 phone photo, a 4K frame and an A4 scan at 300 dpi, were refused with HTTP 400 ([vLLM #59539](https://github.com/vllm-project/vllm/issues/59539)); 1.29.0 carries the fix, [vLLM #59565](https://github.com/vllm-project/vllm/pull/59565), on the pinned source. A larger image is resized by the processor to fit the limit. Before 1.29.9 a slim image within the limit, one whose grid is more than 8,192 patches on a side (200000×20 px, for one), took the server down ([1.29.9](#1299-2026-10-06)); 1.29.9 carries [vLLM #59126](https://github.com/vllm-project/vllm/pull/59126) on the pinned source. The aspect ratio itself is still not capped.
 - Images at TP=3 beyond 262,144 tokens are not measured.
 - The MTP draft is text-only; its acceptance rate on image requests was measured once per profile on 1.19.0 (above). LPA with images is not validated (LPA ships disabled).
 - In one ZCode terminal session (2026-09-15, one run), the model downloaded a screenshot with a shell command, read it with the file-read tool and correctly described text that appeared only in the image. Attaching an image directly to a ZCode prompt has not been checked (Claude Code is out of scope, [harnesses](harnesses.md#acceptance-matrix-and-status)); the measurements above used the API directly.

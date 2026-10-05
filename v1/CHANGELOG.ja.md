@@ -4,6 +4,16 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.9 — 2026-10-06
+
+### Fixed
+
+- 8,000 tokenの上限に収まる細長い画像で、serverが落ちていました。固定版のprocessorは画像をtokenの予算だけで抑え、固定版のvision towerのrope表は8,192行です。そのため、格子の一辺が8,192 patchを超える画像（たとえば200000×20 px）は表の外を読み、参照対では1.29.8がHTTP 500を返して `/health` に答えなくなりました。参照imageは[vLLM #59126](https://github.com/vllm-project/vllm/pull/59126)（固定より後に上流でmerge、vLLM 0.31.0にも未収録）を固定版のsourceに当てます（`patch_vision_rope`、`patch_image_budget` の後）。表は `max_position_embeddings` 行（1,048,576行、GPUあたりbf16で約64 MiB）になり、host→deviceの写し2つはpinned memoryを通ります。古い表に収まる画像は、出力が変わりません（[1.29.9の画像入力](docs/vision.ja.md#12992026-10-06)）。imageの新しいmarkerは `GLM53_VISION_ROPE_TABLE=1` で、どの検査もこれを要求しません。
+
+### Reference image
+
+2026-10-06にこの変更の木から作りました。`glm53_setup/`・Dockerfile・設定はこのリリースのものです（imageに写った `pyproject.toml` は1.29.8のまま）。参照機で `sha256:beb1138886d71f78410ca0ebe5224d07611db813bbc1b1d3d1f1a648662626c0`。1.29.8のimageと比べて、vLLMで違うファイルは `models/glm5next/nvidia/multimodal.py` だけで、ほかにpatchの記録が1つ増えました。参照対で両profileともpreflightを通り、decode検査で1.29.8のtoken idとcompletionを出しました。1.29.0の確認の9枚は同じ答えを返し、上の細長い画像にも答えて `/health` は200のままでした。NLLの採点セットは、MTPあり・なしで全logprobが最後の桁まで同じでした（[vLLM #53488](https://github.com/vllm-project/vllm/issues/53488) は別のモデルでMTP下の `prompt_logprobs` が壊れると報告していますが、この配信は当たりません）。
+
 ## 1.29.8 — 2026-10-05
 
 ### Fixed
