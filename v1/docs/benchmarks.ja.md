@@ -1017,6 +1017,19 @@ spinしていたのはheadのEngineCoreだけでした。A1とA2のdumpではど
 
 2つの道具が違うのは、推論の末尾と本文の始まりを両方持つ塊があるときだけです。両profileの散文と、公開した任意設定の数え上げにはそれがありませんでした。
 
+## 1.29.9での測定
+
+### vision ropeが細長い画像の格子を覆う（2026-10-06）
+
+参照対のTP=2で、1.29.9のimage、両profile、decode検査（各種3 sample、completionは各1種類）。1.29.9が変えるのは、vision towerのrope表とhost→deviceの写し2つだけです（1.29.8を落とした細長い画像は[1.29.9の画像入力](vision.ja.md#12992026-10-06)）。
+
+| | 公開した任意設定 | 配布既定 |
+|---|---|---|
+| token id（数え上げ／散文／コード） | `59a81ff9` / `f05c5aec` / `9957faa7`（1.29.8と同じ） | `d62db393` / `3ee26bc9` / `f4a4c72a`（1.29.8と同じ） |
+| completion | `0ef555f7` / `d5247cf9` / `2caabdc1`（1.29.8と同じ） | `024408c7` / `4311a9b0` / `fc5ac34f`（1.29.8と同じ） |
+
+配布既定でNLLの採点セット（[検証](validation.ja.md)）を、MTPあり（k=3、テンプレートどおり）となしで1回ずつ採点すると、全textの全位置でlogprobが同じでした：ja 2.5412、en 2.9079、code 1.3145、math 0.6285。各textの2回の採点も完全に一致しました。[vLLM #53488](https://github.com/vllm-project/vllm/issues/53488) はGDNのモデルでMTP下の `prompt_logprobs` が壊れると報告していますが、この配信は当たりません。各1回です。
+
 ## 旧profileの記録
 
 204,800 token（200K）の設定で測った記録です。現行の配布既定と公開した任意設定は262,144 token（256K）で配信しており、ここの値は現行のprofileを記述しません。リンク元が切れないよう、見出しの文言は移す前のままにしています。200K画像profileでのchunk予算は、現行の既定 `max_num_batched_tokens = 2048` の実測の根拠です。

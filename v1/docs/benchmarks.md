@@ -1017,6 +1017,19 @@ The reference pair at TP=2 with the 1.29.8 image, both profiles, the decode chec
 
 The two tools differ only on a chunk that carries both the end of the reasoning and the start of the content: prose on both profiles and counting on the published option had none.
 
+## Measurements on 1.29.9
+
+### The vision rope spans a slim image's grid (2026-10-06)
+
+The reference pair at TP=2 with the 1.29.9 image, both profiles, the decode check (three samples per kind, one completion each). 1.29.9 changes only the vision tower's rope table and its two host-to-device copies ([image input on 1.29.9](vision.md#1299-2026-10-06) has the slim image that took 1.29.8 down).
+
+| | Published option | Defaults |
+|---|---|---|
+| Token ids, counting / prose / code | `59a81ff9` / `f05c5aec` / `9957faa7` (as 1.29.8) | `d62db393` / `3ee26bc9` / `f4a4c72a` (as 1.29.8) |
+| Completions | `0ef555f7` / `d5247cf9` / `2caabdc1` (as 1.29.8) | `024408c7` / `4311a9b0` / `fc5ac34f` (as 1.29.8) |
+
+The NLL set ([validation](validation.md)) on the defaults, scored once with MTP (k=3, the template) and once without, gave the same logprob at every position of every text: ja 2.5412, en 2.9079, code 1.3145, math 0.6285, and each text's two passes agreed exactly. [vLLM #53488](https://github.com/vllm-project/vllm/issues/53488) reports `prompt_logprobs` broken under MTP on a GDN model; this serving is not affected. One run each.
+
 ## Records of earlier profiles
 
 These were measured with the 204,800-token (200K) setting. The current defaults and the published option serve 262,144 tokens (256K), so these values do not describe the current profiles. The headings keep their wording so that links to them still resolve. The chunk budget on the 200K image profile is the measured basis of the current default `max_num_batched_tokens = 2048`.
