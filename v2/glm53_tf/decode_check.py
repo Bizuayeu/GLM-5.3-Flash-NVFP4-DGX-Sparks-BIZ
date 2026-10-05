@@ -53,15 +53,25 @@ COUNTERS = {
 }
 
 
+def auth():
+    """The server's API key, when TENSORFOLD_API_KEY is set where the check runs (a server
+    started with one refuses requests without it, /metrics too unless --metrics-open)."""
+    key = os.environ.get("TENSORFOLD_API_KEY")
+    return {"Authorization": f"Bearer {key}"} if key else {}
+
+
 def post(path, body, timeout=900):
     req = urllib.request.Request(
-        BASE + path, json.dumps(body).encode(), {"Content-Type": "application/json"}
+        BASE + path,
+        json.dumps(body).encode(),
+        {"Content-Type": "application/json", **auth()},
     )
     return urllib.request.urlopen(req, timeout=timeout)
 
 
 def spec_counters():
-    text = urllib.request.urlopen(BASE + "/metrics", timeout=10).read().decode()
+    req = urllib.request.Request(BASE + "/metrics", headers=auth())
+    text = urllib.request.urlopen(req, timeout=10).read().decode()
     out = {}
     for line in text.splitlines():
         match = re.match(r"([a-z_:]+)(?:\{[^}]*\})? ([0-9.e+-]+)$", line)

@@ -57,17 +57,20 @@ class Reply(list):
         return b"".join(self)
 
 
-def run(replies, metrics, sent=None, tokens_out=None):
+def run(replies, metrics, sent=None, tokens_out=None, env=None, auth=None):
     """Run main() against canned replies; return its printed JSON lines.
 
-    A streamed request gets the next reply, any other a short non-streamed one;
-    `sent` collects every request body in order.
+    A streamed request gets the next reply, a GET (the metrics) the next metrics text,
+    any other a short non-streamed one; `sent` collects every request body in order and
+    `auth` every request's Authorization header (None when it has none).
     """
     replies, metrics = iter(replies), iter(metrics)
     sent = [] if sent is None else sent
+    auth = [] if auth is None else auth
 
     def urlopen(req, timeout=None):
-        if isinstance(req, str):
+        auth.append(req.get_header("Authorization"))
+        if req.data is None:
             return Reply([next(metrics).encode()])
         body = json.loads(req.data)
         sent.append(body)
@@ -79,7 +82,7 @@ def run(replies, metrics, sent=None, tokens_out=None):
 
     out = io.StringIO()
     clock = iter(range(1000))
-    env = {"TOKENS_OUT": tokens_out} if tokens_out else {}
+    env = dict(env or {}, **({"TOKENS_OUT": tokens_out} if tokens_out else {}))
     with (
         patch.object(decode_check.urllib.request, "urlopen", urlopen),
         patch.object(decode_check.time, "monotonic", lambda: next(clock)),
@@ -89,6 +92,30 @@ def run(replies, metrics, sent=None, tokens_out=None):
     ):
         decode_check.main([])
     return [json.loads(line) for line in out.getvalue().splitlines()]
+
+
+class ApiKeyTests(unittest.TestCase):
+    """A server started with an API key (TENSORFOLD_API_KEY in rank 0's file) refuses
+    requests without it, /metrics too unless --metrics-open: the check sends the key
+    when the variable is set where it runs."""
+
+    def test_with_a_key_every_request_carries_it(self):
+        auth = []
+        run(
+            [stream(TF_BLOCK)] * 3,
+            [TF_METRICS] * 2,
+            env={"TENSORFOLD_API_KEY": "k1"},
+            auth=auth,
+        )
+        self.assertGreater(len(auth), 3)
+        self.assertEqual(set(auth), {"Bearer k1"})
+
+    def test_without_a_key_no_request_carries_one(self):
+        auth = []
+        with patch.dict(os.environ):
+            os.environ.pop("TENSORFOLD_API_KEY", None)
+            run([stream(TF_BLOCK)] * 3, [TF_METRICS] * 2, auth=auth)
+        self.assertEqual(set(auth), {None})
 
 
 class TextTests(unittest.TestCase):

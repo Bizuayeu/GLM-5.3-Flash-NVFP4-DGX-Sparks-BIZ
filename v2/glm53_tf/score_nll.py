@@ -16,6 +16,7 @@ of 1.x's, so the two lines' figures compare.
 import argparse
 import hashlib
 import json
+import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -76,9 +77,12 @@ def summarize(data, result):
 
 def post(url, path, body=None, timeout=900.0):
     data = None if body is None else json.dumps(body).encode()
-    request = urllib.request.Request(
-        url.rstrip("/") + path, data=data, headers={"Content-Type": "application/json"}
-    )
+    # The server's API key, when TENSORFOLD_API_KEY is set where this runs.
+    key = os.environ.get("TENSORFOLD_API_KEY")
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    request = urllib.request.Request(url.rstrip("/") + path, data=data, headers=headers)
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read())
 

@@ -2,6 +2,7 @@ import copy
 import hashlib
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -152,6 +153,39 @@ class MainTests(unittest.TestCase):
                 "seed": 42,
             },
         )
+
+
+class ApiKeyTests(unittest.TestCase):
+    """score-nll sends the server's API key when TENSORFOLD_API_KEY is set where it runs."""
+
+    def seen(self, env):
+        got = []
+
+        class Reply(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def urlopen(req, timeout=None):
+            got.append(req.get_header("Authorization"))
+            return Reply(b"{}")
+
+        with (
+            patch.dict("os.environ", env),
+            patch.object(score_nll.urllib.request, "urlopen", urlopen),
+        ):
+            if "TENSORFOLD_API_KEY" not in env:
+                os.environ.pop("TENSORFOLD_API_KEY", None)
+            score_nll.post("http://127.0.0.1:8095", "/v1/completions", {"prompt": [1]})
+        return got
+
+    def test_with_a_key_the_request_carries_it(self):
+        self.assertEqual(self.seen({"TENSORFOLD_API_KEY": "k2"}), ["Bearer k2"])
+
+    def test_without_a_key_it_carries_none(self):
+        self.assertEqual(self.seen({}), [None])
 
 
 class SetCopyTests(unittest.TestCase):
