@@ -103,10 +103,10 @@ def decode(prompt):
             if choice.get("token_ids"):
                 ids.extend(choice["token_ids"])
             delta = choice.get("delta") or {}
-            piece = (
-                delta.get("content")
-                or delta.get("reasoning_content")
-                or delta.get("reasoning")
+            # a draft round's chunk can end the reasoning and start the content: keep both, reasoning first
+            # (reasoning_content and reasoning are one field under two names)
+            piece = (delta.get("reasoning_content") or delta.get("reasoning") or "") + (
+                delta.get("content") or ""
             )
             if piece:
                 text.update(piece.encode())

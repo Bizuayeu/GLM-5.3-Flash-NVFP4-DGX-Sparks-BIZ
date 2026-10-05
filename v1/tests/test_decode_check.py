@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -74,6 +75,43 @@ def run(replies, metrics, sent=None, tokens_out=None):
     ):
         decode_check.main()
     return [json.loads(line) for line in out.getvalue().splitlines()]
+
+
+class TextTests(unittest.TestCase):
+    def test_a_chunk_with_reasoning_and_content_keeps_both(self):
+        """A draft round's chunk can end the reasoning and start the content; the text keeps both, in order."""
+        chunks = [
+            {
+                "choices": [
+                    {"delta": {"reasoning_content": "go to 200"}, "token_ids": [7]}
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "delta": {"reasoning_content": ".", "content": "1\n"},
+                        "token_ids": [8],
+                    }
+                ]
+            },
+            {"choices": [{"delta": {"content": "2\n"}, "token_ids": [9]}]},
+            {"choices": [{"delta": {}, "finish_reason": "length"}]},
+            {"choices": [], "usage": {"prompt_tokens": 2066, "completion_tokens": 3}},
+        ]
+        reply = [f"data: {json.dumps(c)}\n\n".encode() for c in chunks] + [
+            b"data: [DONE]\n"
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "tokens.json")
+            lines = run([reply] * 3, [FLAT, FLAT], tokens_out=path)
+            with open(path, encoding="utf-8") as f:
+                saved = json.load(f)
+        want = "go to 200.1\n2\n"
+        self.assertEqual(saved["samples"][0]["text"], want)
+        self.assertEqual(
+            lines[0]["completion_sha256"],
+            hashlib.sha256(want.encode()).hexdigest()[:16],
+        )
 
 
 class AcceptanceLengthTests(unittest.TestCase):
