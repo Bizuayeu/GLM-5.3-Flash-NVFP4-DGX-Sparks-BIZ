@@ -2,6 +2,15 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.10 — 2026-10-06
+
+### Documentation
+
+- [Benchmarks](docs/benchmarks.md#measurements-on-1299) have a section for 1.29.9, which the README headline names: the pair's decode check (1.29.8's token ids and completions on both profiles) and the NLL set scored with MTP on and off (the same logprob at every position; [vLLM #53488](https://github.com/vllm-project/vllm/issues/53488) does not reach this serving). Without it the publication check refused 1.29.9's tag.
+- [Next Action](README.md#next-action): vLLM 0.31.0 contains #58454, so the trigger to move the pin fired; the pin stays, with what a move would take and when to revisit. A new trigger drops `patch_vision_rope` and `patch_image_budget` once the pin passes their upstream fixes.
+
+No file of the reference image changes; it stays 1.29.9's.
+
 ## 1.29.9 — 2026-10-06
 
 ### Fixed

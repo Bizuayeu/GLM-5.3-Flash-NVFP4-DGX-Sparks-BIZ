@@ -4,6 +4,15 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.10 — 2026-10-06
+
+### Documentation
+
+- [ベンチマーク](docs/benchmarks.ja.md#1299での測定)に、READMEの見出しが指す1.29.9の節を足しました：参照対のdecode検査（両profileで1.29.8のtoken idとcompletion）と、MTPあり・なしで採点したNLLの採点セット（全位置でlogprobが同じ。[vLLM #53488](https://github.com/vllm-project/vllm/issues/53488) はこの配信に当たらない）。この節がなかったため、1.29.9のtagでは公開の検査が通りませんでした。
+- [Next Action](README.ja.md#next-action)：vLLM 0.31.0が#58454を含むので、固定を移すトリガーが発火しました。固定は動かさず、移すときに要ることと見直す時期を書きました。固定が上流の修正を越えたら `patch_vision_rope` と `patch_image_budget` を外す、というトリガーを足しました。
+
+参照imageのファイルは変わらず、1.29.9のままです。
+
 ## 1.29.9 — 2026-10-06
 
 ### Fixed
