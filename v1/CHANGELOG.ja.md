@@ -4,6 +4,20 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.8 — 2026-10-05
+
+### Fixed
+
+- `tools/decode_check.py` はstreamingのdeltaの欄を1つしか取っていませんでした。draftの1 roundの塊が推論を終えて本文を始めると、推論の末尾をcompletionの文字列とそのhashから捨てていました。token idは正しく取れていました。今は両方を取ります（2.x系の写しは2.1.0から同じ形です）。同じtokenでもcompletionのhashが新しくなるものがあります（[1.29.8での測定](docs/benchmarks.ja.md#1298での測定)）。このリリースより前の起動とは `token_ids_sha256` で比べます。
+
+### Changed
+
+- `glm53_setup/config.py` は、2.x系と同じく `v1/` を `LINE`、checkoutの根を `ROOT` と呼びます（これまでは `ROOT` と `CHECKOUT`）。使う側もすべて追従しました。振る舞いは変わりません。`glm53_setup/` はimageに写るので、参照imageを作り直して受け入れました（下記）。
+
+### Reference image
+
+2026-10-05にこの変更の木から作りました。`glm53_setup/`・Dockerfile・設定はこのリリースのものです（imageに写った `pyproject.toml` は1.29.7のまま）。参照機で `sha256:7c0ebcfd06c6112c068d445f232835d9493d9c34bbdb9eb0a57034ea2310e3d7`。vLLMは1.29.7のimageとファイル単位で同じ（`.py` 2,592本とpatchの記録12本）で、`glm53_setup` の差は改名した9つのmoduleだけです。参照対で両profileともpreflightを通り、8,000 tokenのbudgetを記録し、decode検査で1.29.7のtoken idを出しました。
+
 ## 1.29.7 — 2026-10-05
 
 ### Changed

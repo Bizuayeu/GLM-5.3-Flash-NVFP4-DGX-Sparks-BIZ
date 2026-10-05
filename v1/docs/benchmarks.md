@@ -1003,6 +1003,20 @@ The reference pair at TP=2 with the 1.29.0 image (`sha256:4d294272…`) and chec
 
 No template sets the key: vLLM calls it experimental and it does not combine with LPA; the [next action](../README.md#next-action) names what would reopen it.
 
+## Measurements on 1.29.8
+
+### The decode check reads whole deltas (2026-10-05)
+
+The reference pair at TP=2 with the 1.29.8 image, both profiles, the decode check with the fixed tool (three samples per kind, one completion each). The token ids were 1.29.7's; the completion hashes the old tool gave stay in the rows above for their dates.
+
+| | Published option | Defaults |
+|---|---|---|
+| Token ids, counting / prose / code | `59a81ff9` / `f05c5aec` / `9957faa7` (as 1.29.7) | `d62db393` / `3ee26bc9` / `f4a4c72a` (as 1.29.7) |
+| Completions, fixed tool | `0ef555f7` / `d5247cf9` / **`2caabdc1`** | **`024408c7`** / `4311a9b0` / **`fc5ac34f`** |
+| Completions, old tool | `0ef555f7` / `d5247cf9` / `403411d6` | `7cb1e337` / `4311a9b0` / `30553682` |
+
+The two tools differ only on a chunk that carries both the end of the reasoning and the start of the content: prose on both profiles and counting on the published option had none.
+
 ## Records of earlier profiles
 
 These were measured with the 204,800-token (200K) setting. The current defaults and the published option serve 262,144 tokens (256K), so these values do not describe the current profiles. The headings keep their wording so that links to them still resolve. The chunk budget on the 200K image profile is the measured basis of the current default `max_num_batched_tokens = 2048`.

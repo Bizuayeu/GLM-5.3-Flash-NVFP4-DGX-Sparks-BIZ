@@ -70,7 +70,7 @@ done
 docker logs <rank0のcontainer> 2>&1 | gzip > ../records/<run>/logs-rank0.txt.gz   # ほかのrankも同様に、そのhostで
 ```
 
-decode検査は他の要求が走っていない時に取ります。同時2系列のprofileでは、他の要求とstepを共有する要求は別のcompletionになり、回ごとにも変わります（[1.10.2での測定](benchmarks.ja.md#1102での測定)）。起動の中では3標本が一致すること（`distinct_completions` が1）。起動を跨いでは `completion_sha256` を同じprofileの前の起動と比べます。違ったら記録を残す：`tools/decode_divergence.py` が二つの `tokens-*.json` の最初に分岐したtokenを出し（本文の後ろでの一回の同点割れか、早くからの系統的なずれか）、二つのlogが起動ごとの唯一の証拠です。速さと採択長がそのprofileのいつもの幅の中なら、違いは同点であって故障ではありません。TP=3では、ホストごとのruntime cacheが同じ起動どうしだけを比べます（[3ノード](#3ノード)）。
+decode検査は他の要求が走っていない時に取ります。同時2系列のprofileでは、他の要求とstepを共有する要求は別のcompletionになり、回ごとにも変わります（[1.10.2での測定](benchmarks.ja.md#1102での測定)）。起動の中では3標本が一致すること（`distinct_completions` が1）。起動を跨いでは `completion_sha256` を同じprofileの前の起動と比べます。1.29.8より前の起動とは、その道具が文字列の一部を捨てていたので `token_ids_sha256` で比べます（[1.29.8での測定](benchmarks.ja.md#1298での測定)）。違ったら記録を残す：`tools/decode_divergence.py` が二つの `tokens-*.json` の最初に分岐したtokenを出し（本文の後ろでの一回の同点割れか、早くからの系統的なずれか）、二つのlogが起動ごとの唯一の証拠です。速さと採択長がそのprofileのいつもの幅の中なら、違いは同点であって故障ではありません。TP=3では、ホストごとのruntime cacheが同じ起動どうしだけを比べます（[3ノード](#3ノード)）。
 
 **新しい image を載せた後。** 別の Spark 2台のレシピは、image を作り直した直後の最初の起動だけ decode が 10〜20% 遅く（採択は変わらず）、素の再起動一回で戻ると報告しています（MiaAI-Lab issue #284。JIT cache は原因から外れ、build・load 後のホストのメモリ状態は外れていない）。この対の記録には見えていません。6つの image で、同じ profile・同じ文種の最初の起動は後の起動の中央値の 0.965〜1.019 倍で、採択と completion も同じでした（後の起動どうしの差は 0.9〜1.7%）。そのため、手順に再起動を一回足すことはしません。載せた後の最初の起動がそのprofileのいつもの幅より遅く、採択が変わらないときは、image を疑う前に対を一回再起動して decode 検査を取り直してください。image ごとの最初の起動は一回ずつなので、ときどきしか起きない現象までは否定できません。
 

@@ -2,6 +2,20 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.8 — 2026-10-05
+
+### Fixed
+
+- `tools/decode_check.py` kept one field of a streamed delta, so when a draft round's chunk ended the reasoning and started the content it dropped the reasoning's tail from the completion text and its hash; the token ids were right. It keeps both now, as the 2.x line's copy has since 2.1.0. Some completion hashes are new for the same tokens ([measurements on 1.29.8](docs/benchmarks.md#measurements-on-1298)): compare a launch from before this release by `token_ids_sha256`.
+
+### Changed
+
+- `glm53_setup/config.py` names `v1/` `LINE` and the checkout root `ROOT`, as the 2.x line does (they were `ROOT` and `CHECKOUT`); every user follows. No behaviour changes. `glm53_setup/` is copied into the image, so the reference image was rebuilt and accepted (below).
+
+### Reference image
+
+Built on 2026-10-05 from this change's tree, whose `glm53_setup/`, Dockerfile and configuration are this release's (the `pyproject.toml` copied into it reads 1.29.7): `sha256:7c0ebcfd06c6112c068d445f232835d9493d9c34bbdb9eb0a57034ea2310e3d7` on the reference hosts. Its vLLM is the 1.29.7 image's file for file (2,592 `.py` files and the 12 patch records); `glm53_setup` differs only in the nine renamed modules. On the reference pair both profiles passed preflight, logged a budget of 8,000 tokens and gave 1.29.7's token ids in the decode check.
+
 ## 1.29.7 — 2026-10-05
 
 ### Changed
