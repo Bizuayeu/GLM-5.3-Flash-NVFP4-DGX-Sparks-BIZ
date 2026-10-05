@@ -4,6 +4,12 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.0 — 2026-10-05
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.1.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `9a1c7cc9fd231c65ebf5bffaed421937303e0796` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.0.0's additions moved onto upstream v0.6.5, with image input on CUDA (upstream pull request #194, generalized to three ranks) and the latent path's second copy of `kv_b` counted in the weights' bytes and the startup estimate.
+
 ## 2.0.10 — 2026-10-05
 
 ### Documentation

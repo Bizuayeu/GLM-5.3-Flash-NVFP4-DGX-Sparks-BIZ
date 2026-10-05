@@ -6,6 +6,12 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.0 — 2026-10-05
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.0` の `9a1c7cc9fd231c65ebf5bffaed421937303e0796`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.0.0の追加を上流のv0.6.5へ載せ直し、CUDAの画像入力（上流のpull request #194、3 rankへ一般化）と、latentの経路が持つ `kv_b` の2つ目の写しを重みのバイト数と起動時の見積もりに数えることを加えました。
+
 ## 2.0.10 — 2026-10-05
 
 ### Documentation

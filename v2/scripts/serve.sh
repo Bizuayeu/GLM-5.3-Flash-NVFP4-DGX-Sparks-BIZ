@@ -33,12 +33,17 @@ export TF_GLM_KV=fp8
 export TF_GLM_HEAT_HIGH=${TF_GLM_HEAT_HIGH-92} TF_GLM_HEAT_LOW=${TF_GLM_HEAT_LOW-88}
 # The pinned checkpoint as the Hugging Face cache holds it, mounted read-only at /hub (create_container.sh)
 CHECKPOINT=${CHECKPOINT:-/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/423acf37583782c51c142d145aef733d72943d93}
+# VISION=1 in the rank file: image input (--vision; rank 0 holds the image tower), the same on every rank
+vision=()
+if [ "${VISION:-0}" = 1 ]; then
+  vision=(--vision)
+fi
 endpoint=()
 if [ "$rank" = 0 ]; then
   endpoint=(--name "${MODEL_NAME:-glm-tf}" --host "${HOST:-127.0.0.1}" --port "${PORT:-8095}")
 fi
-echo "[serve.sh] $(date -Is) TP=$tp rank $rank master $MASTER NCCL_IB_HCA=${NCCL_IB_HCA:-} tensorfold $(git -C /opt/tensorfold rev-parse HEAD 2>/dev/null || echo '?')"
+echo "[serve.sh] $(date -Is) TP=$tp rank $rank master $MASTER NCCL_IB_HCA=${NCCL_IB_HCA:-} VISION=${VISION:-0} tensorfold $(git -C /opt/tensorfold rev-parse HEAD 2>/dev/null || echo '?')"
 # --drafter none: the MTP head drafts; DFlash2 is not used (its weights' terms) and TP=3 refuses it.
 # --no-update-check: the engine is pinned here; its update check asks about upstream releases.
 exec tensorfold serve "$CHECKPOINT" --tp "$tp" --rank "$rank" --master "$MASTER" "${endpoint[@]}" \
-  --context "$context" --max-tokens 32768 --drafter none --no-update-check "$@"
+  --context "$context" --max-tokens 32768 --drafter none --no-update-check "${vision[@]}" "$@"
