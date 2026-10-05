@@ -11,16 +11,16 @@
 ## 要約
 
 - **何であるか。** 固定したcheckpointを、固定したTensorFoldのcommitで一つのOpenAI互換endpointとして配信するための、build手順・起動の台本・受け入れ検査です。2台なら直結のConnectX-7リンクでTP=2、3台ならswitchなしのリングでTP=3です。公開している測定値はMSI EdgeXpert（MS-C931）で取りました。
-- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。2.0.7のimageは同じエンジン・base・packageで作り直し、2026-10-05に同値として受け入れました。両TPでdecode検査とNLLの採点セットが2.0.0の基準値を出しました（[変更履歴](CHANGELOG.ja.md)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
+- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。2.1.0（エンジンを上流のv0.6.5へ載せ直し、画像入力を足した版）は2026-10-05に受け入れました。両TPでdecode検査が2.0.0のtoken idと受理長を出し、TP=2のNLLの採点セットは2.0.0と全精度で同じで、画像入力は両TPで検査を通りました（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
 - **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
-- **未検証。** 同時に2系列以上、画像入力、公開したAXLの重み、ハーネス連携（ZCode・Claude Code）、他のrank数と機材、アプリケーション全体の品質と本番の信頼性（[制限](#制限)）。
+- **未検証。** 同時に2系列以上、[回した検査](#リリースでの測定値)を超える画像入力、公開したAXLの重み、ハーネス連携（ZCode・Claude Code）、他のrank数と機材、アプリケーション全体の品質と本番の信頼性（[制限](#制限)）。
 
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.0.0` として公開します。TensorFold v0.6.4に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefillを足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.7 .
-v2/scripts/create_container.sh glm53-tf:2.0.7
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.0 .
+v2/scripts/create_container.sh glm53-tf:2.1.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1。その後この機の値に直す
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -67,7 +67,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 
 モデルは答える前に考えます。思考は `reasoning_content`、答えは `content` に返るので、`max_tokens` を指定しない要求は両方で32,768 tokenまで使えます。小さい上限では思考の途中で終わり、`content` が空になることがあります。起動したら、日常の運用の前に[検証](docs/validation.ja.md)の検査（まずdecode検査）で受け入れます。
 
-**安全。** 2.0.xが土台にする上流のv0.6.4のエンジンには認証がありません（v0.6.5でAPI keyが入りました。[Next Action](#next-action)）。`serve.sh` はrank 0を `127.0.0.1` で待ち受けさせ、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)もloopbackだけで待ち受けます。SSHのtunnel（`ssh -L 8095:127.0.0.1:8095 <rank 0>`）か、認証を足すproxyを通して使ってください。rankのファイルで `HOST=0.0.0.0` にすると、APIは認証なしで外に出ます。
+**安全。** この系列はAPI keyを設定しません。エンジンは上流のv0.6.5からAPI keyを持ちます（`--api-key`・`--api-key-file`・`TENSORFOLD_API_KEY`。`/health` は開いたまま）が、2.1.0の検査はどれもkeyを使っていません。`serve.sh` はrank 0を `127.0.0.1` で待ち受けさせ、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)もloopbackだけで待ち受けます。SSHのtunnel（`ssh -L 8095:127.0.0.1:8095 <rank 0>`）か、認証を足すproxyを通して使ってください。rankのファイルで `HOST=0.0.0.0` にすると、APIは認証なしで外に出ます。
 
 ## 配信の既定
 
@@ -79,7 +79,8 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | draft | checkpointのMTP head（`--drafter none`：DFlash2は使わない） | 同じ |
 | 窓（`--context`） | 300,000 token | 0＝収まる最大：参照機のリングで1,048,576（モデルの上限） |
 | 要求が指定しないときの応答の上限 | 32,768 token（`--max-tokens`） | 同じ |
-| NCCL | 各リンク2本のrail、rankごとのファイルから | 2本のrail・4 channel・subnet-aware routing |
+| NCCL | 各リンク2本のrail・4 channel・IBのtransportを明示、rankごとのファイルから | 2本のrail・4 channel・IBのtransportを明示・subnet-aware routing |
+| 画像入力 | 有効：全rankのファイルの `VISION=1` で `--vision` が付く。rank 0が画像のtower（1.05 GiB）を持ち、他の会話の保持promptは3 GiBのうち2.4 GiBになる | 有効。保持promptは3 GiBのまま |
 | rank間のprefillの交換 | エンジンの既定 `split` | 同じ |
 | 熱によるprefillの休止 | chunkの合間に全rankそろって、どれかのrankのACPIの最高温度が92 °Cを超えたら、全rankが88 °C以下になるまで待つ（`TF_GLM_HEAT_HIGH`／`TF_GLM_HEAT_LOW`） | 同じ |
 | 他の会話の保持prompt | エンジンの既定：8本、3 GiB | 同じ |
@@ -93,7 +94,9 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | 場所 | 設定 | 既定 | 意味 |
 |---|---|---|---|
 | rankのファイル（`/work/rank.env`、`serve.sh` が読む） | `MASTER` | なし（必須） | リンク上のrank 0のaddress。全rankで同じ |
-| | `NCCL_IB_HCA`・`NCCL_IB_GID_INDEX`・`NCCL_SOCKET_IFNAME` | 参照機の値 | リンクのRDMA device（両rail）、RoCE v2のGIDの番号、bootstrapのinterface。TP=3ではsubnet-aware routingと4 channelが加わります（[`tp3-rank0.env`](examples/tp3-rank0.env)） |
+| | `NCCL_IB_HCA`・`NCCL_IB_GID_INDEX`・`NCCL_SOCKET_IFNAME` | 参照機の値 | リンクのRDMA device（両rail）、RoCE v2のGIDの番号、bootstrapのinterface |
+| | `NCCL_NET`・`NCCL_IB_DISABLE`・`NCCL_IB_ROCE_VERSION_NUM`・`NCCL_IB_ADDR_FAMILY`・`NCCL_SOCKET_FAMILY`・`NCCL_MIN_NCHANNELS`・`NCCL_MAX_NCHANNELS` | RoCE v2とIPv4の上のNCCLのIBのtransport、4 channel | NCCLが気づかれずにsocketへ落ちないように明示します。4 channelでTP=2のdecodeは+1%、起動時の余地も増えました（[採否](docs/decisions.ja.md#fabric)）。TP=3はsubnet-aware routingが加わります（[`tp3-rank0.env`](examples/tp3-rank0.env)） |
+| | `VISION` | 例のファイルは `1`（無ければ `0`） | 画像入力（`serve.sh` が `--vision` を足す）。`0` で無効。全rankで同じ値 |
 | | `NCCL_DEBUG`・`NCCL_DEBUG_SUBSYS` | `INFO`・`INIT,NET` | NCCLが起動時に各接続のtransportを一度だけ書き、[SETUP §6](SETUP.ja.md#6-起動)がそれを読みます |
 | | `MODEL_NAME`・`HOST`・`PORT` | `glm-tf`・`127.0.0.1`・`8095` | rank 0のmodel idと待ち受け |
 | | `CHECKPOINT` | `/hub` の下の固定snapshot | container内のcheckpointのdirectory |
@@ -105,7 +108,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | | `SSH`・`CONTAINER`・`WORK` | `ssh -o ConnectTimeout=20`・`glm53-tf`・`$HOME/glm53-tf` | 機への入り方、container、`/work` に見せる機のdirectory |
 | `create_container.sh` | `IMAGE [WORK_DIR]`・`CONTAINER`・`HF_HUB` | `~/glm53-tf`・`glm53-tf`・`~/.cache/huggingface/hub` | image、作業directory（rankのファイル・extension・log）、container名、`/hub` に読み取り専用で見せるHugging Faceのcache |
 
-rankのファイルは `bash` が全変数をexportしながら読むので、他の `TF_GLM_*` や `NCCL_*` の設定もエンジンに届きます。この表に無い設定は2.0.0では測っていません。
+rankのファイルは `bash` が全変数をexportしながら読むので、他の `TF_GLM_*` や `NCCL_*` の設定もエンジンに届きます。この表に無い設定は2.1.0では測っていません。
 
 ## API
 
@@ -117,6 +120,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 - **応答の `tensorfold` block**：`accepted` と `rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`heat_wait_s`。
 - **`/health`**（decodeの `rounds` など）と **`/metrics`**。decode検査はこれでエンジンを見分けます。
 - **停止**：クライアントの切断やstop文字列で、全rankのdecodeが1 round以内に終わります。
+- **画像**（`VISION=1`）：data URLの `image_url` を、userのメッセージとtoolの結果で受けます。動画は400で拒みます。
 
 NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completions`**（`prompt_logprobs` つきの教師強制）も使います。エンジンは `/v1/responses`・Anthropicの `/v1/messages`・`/tokenize` にも答えますが、2.0.0の受け入れでは確かめていません。
 
@@ -128,7 +132,7 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 | KVと窓 | FP8、262,144 token（rankあたり3 GiB） | latentとindex keyをFP8、TP=2で300,000 token、TP=3で1,048,576 |
 | 起動 | `glm53_setup` が一つのserver TOMLを読む。`server preflight`・`cluster switch`・warmupの段階 | ここの台本。preflightや切替は無い |
 | 同時に処理する系列 | 1、公開した任意設定の2系列profileで2 | 1 |
-| 画像入力 | 受ける | 受けない |
+| 画像入力 | 受ける | 受ける（例のrankのファイルは `VISION=1`） |
 | 公開したAXLの重み | 任意で使える | 対応しない |
 | tool呼び出し | モデルのAPI、任意でtool引数ゲート越し | 同じゲートのこの系列の写しを `v2/` から起動してエンジンの前に置く |
 | 長いprefill中の熱 | エンジンの中に待ちは無い。測定では要求の合間に冷却gateでホストを休ませた（今は[`host/`](../host/README.ja.md#長い運転の間)にあるもの） | エンジンがprompt chunkの合間に全rankそろって待つ（92 °Cで待ち、88 °Cで再開） |
@@ -137,7 +141,15 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 
 ## リリースでの測定値
 
-2026-10-04に参照機（MSI EdgeXpert、GPUクロックの上限2,200 MHz）で取りました。エンジンは、リリース（`b44c2f1`）、その1つ前（表示の行だけが違う）の版、または熱の待ちを入れる前の版です。熱の待ちはprompt chunkの走る時刻しか変えません。どの行がどれかは注に書きました。手順と基準値は[検証](docs/validation.ja.md)にあります。1.xの列は[1.x系のベンチマーク](../v1/docs/benchmarks.ja.md)から、そのNLLは[1.26.0の配布既定でのNLL採点セット](../v1/docs/benchmarks.ja.md#1260の配布既定でのnll採点セット2026-10-02)から取りました。
+**2.1.0**（2026-10-05、エンジン `9a1c7cc`、image `glm53-tf:2.1.0`）。エンジンを上流のv0.6.5へ載せ直して画像入力を足し、TP=2はNCCLを4 channelにしました。両TPでdecode検査は2.0.0のtoken idと受理長を出しました（文字列の新しいhashは[検証](docs/validation.ja.md#decode検査)にあります）。画像入力の無効と有効のどちらでも同じです。TP=2のNLLの採点セットは2.0.0と全精度で同じでした。下の表で断りの無い行は2.0.0の値です。promptとdecodeの経路が同じtokenを出すので、他の測定は繰り返していません。
+
+| 2.1.0 | TP=2 | TP=3 |
+|---|---|---|
+| decode検査 count／prose／code（tok/s） | 41.67／27.02／35.38 | 52.37／37.92／48.41（画像入力を有効） |
+| 38,960 tokenのprefill（tok/s、1回目の後の2回） | 1,331.1／1,329.9 | — |
+| 画像の検査（`VISION=1`）：1枚、prompt 7,966 tokenの4:3の画像、2枚の順番、単色、toolの結果の画像。文字の質問、toolの往復、動画を拒む | すべて合格 | すべて合格 |
+
+**2.0.0。** 2026-10-04に参照機（MSI EdgeXpert、GPUクロックの上限2,200 MHz）で取りました。エンジンは、リリース（`b44c2f1`）、その1つ前（表示の行だけが違う）の版、または熱の待ちを入れる前の版です。熱の待ちはprompt chunkの走る時刻しか変えません。どの行がどれかは注に書きました。手順と基準値は[検証](docs/validation.ja.md)にあります。1.xの列は[1.x系のベンチマーク](../v1/docs/benchmarks.ja.md)から、そのNLLは[1.26.0の配布既定でのNLL採点セット](../v1/docs/benchmarks.ja.md#1260の配布既定でのnll採点セット2026-10-02)から取りました。
 
 | 測定 | TP=2 | TP=3 | 1.x |
 |---|---|---|---|
@@ -163,7 +175,7 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 ## 制限
 
 - **一度に1系列。** エンジンのCUDAの経路はGLMの要求を一本ずつdecodeし、他は順番を待ちます。
-- **テキストとtool呼び出しだけ。** エンジンはCUDAのGLMで画像入力を拒みます（`GLM-5.3-Flash image input is currently MLX-only`）。
+- **TP=2では画像がメモリを取ります。** 画像入力が有効だとtowerの分、他の会話の保持promptは既定の3 GiBのうち2.4 GiBになります。全rankで `VISION=0` にすると3 GiBに戻ります。1つの要求の複数の画像はまとめて1回でencodeされ、その特徴量を1枚ずつの場合と比べてはいません。
 - **TP=3はDFlash2とEXL3を拒みます。** どちらも2 rankにしか分割できません。この系列はどちらも使いません：`serve.sh` は `--drafter none` を渡し、checkpointはNVFP4です。
 - **streamの応答。** draftがあると1 roundが思考から本文へまたがることがあり、1つのdeltaに `reasoning_content` と `content` の両方が乗ります。deltaごとに片方しか読まないクライアントは文を落とします。streamでない応答は欠けません。
 - **FP8 KVはBF16 KVに対して損失があります**（1.x系も同じ）。draftした応答はserialと同じままです。短い4本の文章では、二つのcacheのNLLの差は0.011以内でした（2026-10-02）。
@@ -203,7 +215,7 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 
 | レシピ | ライセンス | この系列が取り込んだもの |
 |---|---|---|
-| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0（0.5.0まではMIT） | エンジンそのもの。リリースのbranchは上流v0.6.4に自前のcommitを足したもので、それらは上流のissue #308・#309・#310・#339とpull request #333として返しています |
+| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0（0.5.0まではMIT） | エンジンそのもの。リリースのbranchは上流v0.6.5に自前のcommitを足したもので、それらは上流のissue #308・#309・#310・#339とpull request #333として返しています |
 | [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | FP8 latent KVはそのpatch 0038に倣い、v0.6.x上で書き直して、エンジンの表示にクレジットしています（上流のissue #309）。TP=3の分け方はpatch 0066と同じ規則です（単位の境界で切り、余りを若いrankへ）。上流のpull request #301（止めた要求が全rankで終わる）はそのままリリースに入っています。自前のEXL3 checkpointをDFlash2のdraftで、同時に最大8要求、画像と動画の入力つきで配信しています |
 | [jakejharris/jspark3 v2.0.1](https://github.com/jakejharris/jspark3/releases/tag/v2.0.1) | Apache-2.0（レシピ）、MIT（そのエンジン＝TensorFold 0.3.6.2のfork） | 何も取り込んでいません。自前のTensorFoldのforkで、4-bitのMLX形式の重みを3台に分けてTP=3で配信します。既定はDFlash2のdraftで、商用には `--drafter none` の経路を示しています。会話の状態をdiskに保存するcacheを持ち、RigMarkで測っています |
 
@@ -219,11 +231,10 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 
 - 上流がpull request [#320](https://github.com/ashhart/TensorFold/pull/320)（呼び手が止めたらGLMの応答を両rankで止める。2026-10-04時点で0.6.6の審査中）か#301をmergeする → リリースのbranchの#301を上流の停止に置き換え、そのリリースに載せ直し、imageを受け入れ直して、2.x系のリリースで `TENSORFOLD_REF` を動かす。
 - 上流がissue #308・#309・#310・#339やpull request #333の中身を取り込む（2026-10-04時点で0.6.6の一覧にはどれも無い）→ リリースのbranchをその上流のリリースに載せ直し、上流が持つようになったものを外し、imageを受け入れ直して、2.x系のリリースで `TENSORFOLD_REF` を動かす。
-- 上流のv0.6.5に追従する → エンジンでAPI keyが使える（`--api-key`・`--api-key-file`・`TENSORFOLD_API_KEY`。`/health` は開いたまま、`/metrics` は `--metrics-open` でなければkeyが要る）。rankのファイルで設定し、[はじめ方](#はじめ方)の安全の注意を書き直す。
+- rank 0をloopbackの外で配信する → rankのファイルでAPI keyを設定し（`TENSORFOLD_API_KEY`。そのとき `/metrics` は `--metrics-open` でなければkeyが要り、decode検査はそれを読む）、[はじめ方](#はじめ方)の安全の注意を書き直す。
 - 上流が0.6.6を出す（2026-10-04時点で試験中：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262（#204向け）、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系のリリースで追う。
 - 上流のpull request [#243](https://github.com/ashhart/TensorFold/pull/243)（2 rankで `--parallel N`）がmergeされる → 同時に2系列以上を扱う作業に入る。
-- 画像入力：2.0.0の後の予定。まず上流のpull request [#194](https://github.com/ashhart/TensorFold/pull/194)（GLM-5.3-FlashのCUDAの2 rankでの画像入力）を読み、合えばそれを土台にし、合わなければこの系列のエンジンに配線する。リリースで受け入れるまで、エンジンは画像を拒みます。
-- [1.x系のNext Action](../v1/README.ja.md#next-action)にある機体のCPU周波数の検査 → その結果はこの系列の数字にも当てはまる。
+- 上流がpull request [#194](https://github.com/ashhart/TensorFold/pull/194)（GLM-5.3-FlashのCUDAの2 rankでの画像入力）をmergeする（リリースのbranchは3 rankを足して持つ） → 上流のものに置き換え、画像入力を受け入れ直す。
 - 公開したAXLの重みを2.x系で使うこと：2.0.0の後まで保留。2.x系は固定した重みだけを配信します。
 
 ## ローカルデータと開発

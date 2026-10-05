@@ -10,7 +10,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 |---|---|---|---|
 | Serve with TensorFold in place of vLLM | 2026-10-02 | Exactness is the engine's contract (drafted equals serial, resumed equals fresh, the result does not depend on the chunking), where 1.x buys repeatability by turning vLLM's switches on ([differences from 1.x](../README.md#differences-from-1x)) | — |
 | Start from upstream TensorFold and port only what GLM needs, not build on MiaAI-Lab's TensorFold recipe | 2026-10-02 | Its FP8 latent KV (patch 0038) sat on about 37 earlier patches; a dry run onto upstream 0.6.1 failed nearly every hunk, so it was rewritten on upstream (about 600 lines) | — |
-| Follow upstream releases, upstream's side winning a conflict | 2026-10-03 | v0.6.2, v0.6.3, then v0.6.4, where the TP=3 exchanges were rebuilt on upstream's communicator interface (#219). The stop on every rank is upstream pull request #301 taken as it is, rather than written anew | Upstream merges #320 or #301, or takes this line's issues and #333 ([Next Action](../README.md#next-action)) |
+| Follow upstream releases, upstream's side winning a conflict | 2026-10-03 | v0.6.2, v0.6.3, v0.6.4, then v0.6.5 (2.1.0, without a conflict), v0.6.4 being where the TP=3 exchanges were rebuilt on upstream's communicator interface (#219). The stop on every rank is upstream pull request #301 taken as it is, rather than written anew | Upstream merges #320 or #301, or takes this line's issues and #333 ([Next Action](../README.md#next-action)) |
 | No CPU set for the serving containers (`create_container.sh` leaves placement to the kernel) | 2026-10-05 | Unpinned, the engine's threads ran on all twenty cores, the efficiency cores included; pinning both ranks to the performance cores (`docker update --cpuset-cpus 5-9,15-19`) moved decode and prefill within noise (counting 41.35 → 41.36 tok/s, prefill 1,327 → 1,329 tok/s). 1.x needs the pin ([CPU placement](../../v1/docs/benchmarks.md#cpu-placement-on-the-reference-pair-2026-09-26)) | One rank decodes slower than the other at the same settings |
 
 ## Precision and memory
@@ -34,6 +34,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | Prefill chunk of 4,096 rows | rejected 2026-10-02 | 1,076.1 tok/s against 1,169.9 with 2,048 rows on the same build, and a window of about 405K instead of about 490K; the bits were the same | — |
 | One sequence at a time | 2026-10-02 | The engine's CUDA path decodes one GLM request at a time | Upstream merges #243 |
 | No image input in 2.0.0 | 2026-10-04 | The engine refuses images for GLM on CUDA | Read upstream pull request #194 first ([Next Action](../README.md#next-action)) |
+| Image input from upstream pull request #194, carried to three ranks, on by default (`VISION=1` in the example rank files) | 2026-10-05 | #194 encodes on rank 0 and sends the features, which three ranks needed only its gather widened for. The 2.1.0 acceptance read one image, a 4:3 image of 7,966 prompt tokens, two in order, a single colour and an image in a tool result at both TP sizes, and the token ids without images stayed 2.0.0's with it on. The window stays; at TP=2 the 1.05 GiB tower leaves 2.4 GiB of the 3 GiB for kept prompts, which was taken for images by default | Upstream merges #194; the kept prompts' 2.4 GiB proves short for long conversations at TP=2 |
 
 ## Drafts
 
@@ -72,17 +73,18 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 
 ## Engine commits not named elsewhere
 
-The release branch is upstream v0.6.4 plus the commits that the [changelog](../CHANGELOG.md) groups. These are the ones it does not name, tests and recipe text aside:
+The release branch is upstream v0.6.5 plus the commits that the [changelog](../CHANGELOG.md) groups. These are the ones it does not name, tests and recipe text aside:
 
-- `539cf8d`: `/v1/completions` takes token-id prompts and returns vLLM-shaped `prompt_logprobs` for GLM, which the NLL check (`score-nll`) needs; a request without it is unchanged, and one with it never resumes a kept prompt.
-- `b0fa0a5`: the NVFP4 routed experts' prompt kernel (above).
-- `a7d7c2b`, `065a58e`: the KDA conv taps in fp32 (above).
-- `8b8e6e8`: DSA's prompt absorb and expand over row blocks, and the indexer's pool scores four rows a program (after MiaAI-Lab's patch 0009).
-- `7a84888`: the KDA prompt step kernel with eight warps (above).
-- `d6fe08e`: the BF16 split-K partials only for short windows (above).
-- `b58dc42`: the startup estimate counts the draft head's rows as packed, so every rank of three loads exactly its estimate.
-- `68cfebc`: `send_recv` as an optional capability of upstream's communicator interface, which `split` uses.
-- `ac478a5`: a rank can load only chosen layers, for the tests against the real checkpoint.
+- `0c9e8da`: `/v1/completions` takes token-id prompts and returns vLLM-shaped `prompt_logprobs` for GLM, which the NLL check (`score-nll`) needs; a request without it is unchanged, and one with it never resumes a kept prompt.
+- `68a7e6a`: the NVFP4 routed experts' prompt kernel (above).
+- `e190c7b`, `9c51f2f`: the KDA conv taps in fp32 (above).
+- `aac7927`: DSA's prompt absorb and expand over row blocks, and the indexer's pool scores four rows a program (after MiaAI-Lab's patch 0009).
+- `2caf43c`: the KDA prompt step kernel with eight warps (above).
+- `bee087d`: the BF16 split-K partials only for short windows (above).
+- `c35cfd9`: the startup estimate counts the draft head's rows as packed, so every rank of three loads exactly its estimate.
+- `c3ec51d`: `send_recv` as an optional capability of upstream's communicator interface, which `split` uses.
+- `d5e65e2`: a rank can load only chosen layers, for the tests against the real checkpoint.
+- `9c78e43`, `aba0f21`, `4a41c21`, `d21c834`: what 2.1.0 adds to upstream pull request #194 (its seven commits, `4fcfb10` to `f9ee1d9`): one image up to the checkpoint's 8,000 visual tokens, rank 0's image workspace from a measurement of the tower, the image features on every rank of three, and `--vision-offload` refused on a GPU that shares the host's memory.
 
 ## Measures from 1.x not yet evaluated on 2.x
 

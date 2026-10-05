@@ -11,16 +11,16 @@
 ## Summary
 
 - **What it is.** Build steps, launch scripts and acceptance checks that serve the pinned checkpoint through a pinned TensorFold commit as one OpenAI-compatible endpoint: two hosts at TP=2 over a direct ConnectX-7 link, or three at TP=3 in a switchless ring. The published measurements come from MSI EdgeXpert (MS-C931) systems.
-- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). 2.0.7's image, rebuilt with the same engine, base and packages, was accepted on 2026-10-05 by equivalence: at both TP sizes the decode check and the NLL set gave 2.0.0's reference values ([changelog](CHANGELOG.md)). That is the scope of the claim; other hosts are qualified by running the same checks.
+- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). 2.1.0, the engine moved onto upstream v0.6.5 with image input, was accepted on 2026-10-05: at both TP sizes the decode check gave 2.0.0's token ids and acceptance lengths, the NLL set at TP=2 equalled 2.0.0's at full precision, and image input passed its checks at both ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
 - **Repeatable by contract.** Drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on how the prompt is chunked. These are the engine's contract, where 1.x buys repeatability with switches on vLLM ([differences from 1.x](#differences-from-1x)).
 - **Precision.** W4A16 for the routed experts and the dense MLP, BF16 elsewhere, FP8 KV. NVIDIA's model card measured its checkpoint under another recipe on other hardware, so its accuracy table does not describe this serving; [validation](docs/validation.md) gives the numbers that do.
 - **Licensing.** Apache-2.0 code and engine, MIT weights that the operator downloads, nothing non-commercial in the serving path ([licensing at a glance](../README.md#licensing-at-a-glance)).
-- **Not validated.** More than one sequence at a time, image input, the published AXL weights, harness integration (ZCode, Claude Code), other world sizes and hardware, full application quality and production reliability ([limits](#limits)).
+- **Not validated.** More than one sequence at a time, image input beyond [the checks run](#measured-on-the-release), the published AXL weights, harness integration (ZCode, Claude Code), other world sizes and hardware, full application quality and production reliability ([limits](#limits)).
 
 ## What It Is
 
 - **Weights**: `nvidia/GLM-5.3-Flash-NVFP4` at revision `423acf37583782c51c142d145aef733d72943d93`, the same as 1.x, derived from [Z.ai's GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash). The routed experts and the dense MLP run as W4A16 from the checkpoint's NVFP4 blocks; attention, the shared experts and the head stay BF16. One exception, inside the engine: the MTP layer's routed experts are BF16 in the checkpoint and are quantized to NVFP4 for drafting only. Every drafted token is verified by the full model, so replies are unchanged.
-- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.0.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.4 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), and a prefill that waits for heat between chunks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
+- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, and image input from upstream pull request #194, carried to three ranks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
 - **Image**: [`docker/Dockerfile`](docker/Dockerfile), NVIDIA's PyTorch container 26.07 plus the measured package versions (transformers 5.18.0, xgrammar 0.2.8 for structured output, the Hugging Face hub client) and the engine.
 - **Launch**: shell scripts in [`scripts/`](scripts/) and one environment file per rank ([`examples/`](examples/) holds the reference hosts' files). [SETUP.md](SETUP.md) is the order.
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # Each host, from the checkout root (SETUP §3-§5); build once and `docker load` it elsewhere, then compare image IDs
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.0.7 .
-v2/scripts/create_container.sh glm53-tf:2.0.7
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.0 .
+v2/scripts/create_container.sh glm53-tf:2.1.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # tp2-rank1 on the other host; then put this host's values
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -67,7 +67,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 
 The model thinks before it answers: the reasoning comes back in `reasoning_content` and the answer in `content`, and a request that names no `max_tokens` gets 32,768 tokens for both; a smaller limit can end inside the thinking with an empty `content`. Accept a new launch with the [validation](docs/validation.md) checks, the decode check first, before routine use.
 
-**Security.** The engine has no authentication in v0.6.4, the upstream version 2.0.x is built on (v0.6.5 adds API keys; [Next Action](#next-action)). `serve.sh` binds rank 0 to `127.0.0.1`, and the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional) also listens on loopback only. Reach them through an SSH tunnel (`ssh -L 8095:127.0.0.1:8095 <rank 0>`) or a proxy that adds authentication; setting `HOST=0.0.0.0` in the rank file exposes the API unauthenticated.
+**Security.** This line sets no API key: the engine has them from upstream v0.6.5 (`--api-key`, `--api-key-file` or `TENSORFOLD_API_KEY`; `/health` stays open), but none of 2.1.0's checks used one. `serve.sh` binds rank 0 to `127.0.0.1`, and the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional) also listens on loopback only. Reach them through an SSH tunnel (`ssh -L 8095:127.0.0.1:8095 <rank 0>`) or a proxy that adds authentication; setting `HOST=0.0.0.0` in the rank file exposes the API unauthenticated.
 
 ## Serving Defaults
 
@@ -79,7 +79,8 @@ The model thinks before it answers: the reasoning comes back in `reasoning_conte
 | Drafts | the checkpoint's MTP head (`--drafter none`: no DFlash2) | same |
 | Window (`--context`) | 300,000 tokens | 0 = the largest that fits: 1,048,576 (the model's limit) on the reference ring |
 | Reply limit when a request names none | 32,768 tokens (`--max-tokens`) | same |
-| NCCL | two rails per link, from each rank's file | two rails, four channels, subnet-aware routing |
+| NCCL | two rails per link, four channels, the IB transport named, from each rank's file | two rails, four channels, the IB transport named, subnet-aware routing |
+| Image input | on: `VISION=1` in every rank file adds `--vision`; rank 0 holds the image tower (1.05 GiB), and other conversations' kept prompts get 2.4 GiB of the 3 GiB | on; the kept prompts keep 3 GiB |
 | Prefill exchange between ranks | the engine's default, `split` | same |
 | Prefill pause for heat | between chunks, every rank together, while any rank's hottest ACPI zone is above 92 °C, until all are at or below 88 °C (`TF_GLM_HEAT_HIGH`/`TF_GLM_HEAT_LOW`) | same |
 | Kept prompts of other conversations | the engine's defaults: 8 entries, 3 GiB | same |
@@ -93,7 +94,9 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | Where | Setting | Default | Meaning |
 |---|---|---|---|
 | Rank file (`/work/rank.env`, sourced by `serve.sh`) | `MASTER` | none, required | rank 0's address on the link, the same on every rank |
-| | `NCCL_IB_HCA`, `NCCL_IB_GID_INDEX`, `NCCL_SOCKET_IFNAME` | the reference hosts' values | the RDMA devices on the links (both rails), the RoCE v2 GID index, the bootstrap interface; TP=3 adds subnet-aware routing and four channels ([`tp3-rank0.env`](examples/tp3-rank0.env)) |
+| | `NCCL_IB_HCA`, `NCCL_IB_GID_INDEX`, `NCCL_SOCKET_IFNAME` | the reference hosts' values | the RDMA devices on the links (both rails), the RoCE v2 GID index, the bootstrap interface |
+| | `NCCL_NET`, `NCCL_IB_DISABLE`, `NCCL_IB_ROCE_VERSION_NUM`, `NCCL_IB_ADDR_FAMILY`, `NCCL_SOCKET_FAMILY`, `NCCL_MIN_NCHANNELS`, `NCCL_MAX_NCHANNELS` | NCCL's IB transport over RoCE v2 and IPv4, four channels | named so that NCCL does not fall back to sockets unseen; four channels gave TP=2 decode +1% and more room at start ([decisions](docs/decisions.md#fabric)); TP=3 adds subnet-aware routing ([`tp3-rank0.env`](examples/tp3-rank0.env)) |
+| | `VISION` | `1` in the examples (`0` when unset) | image input (`serve.sh` adds `--vision`); `0` turns it off; the same on every rank |
 | | `NCCL_DEBUG`, `NCCL_DEBUG_SUBSYS` | `INFO`, `INIT,NET` | NCCL logs each connection's transport once at start, which [SETUP §6](SETUP.md#6-start) reads |
 | | `MODEL_NAME`, `HOST`, `PORT` | `glm-tf`, `127.0.0.1`, `8095` | rank 0's model id and listener |
 | | `CHECKPOINT` | the pinned snapshot under `/hub` | the checkpoint directory inside the container |
@@ -105,7 +108,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `SSH`, `CONTAINER`, `WORK` | `ssh -o ConnectTimeout=20`, `glm53-tf`, `$HOME/glm53-tf` | how to reach the hosts, the container, the host directory at `/work` |
 | `create_container.sh` | `IMAGE [WORK_DIR]`, `CONTAINER`, `HF_HUB` | `~/glm53-tf`, `glm53-tf`, `~/.cache/huggingface/hub` | the image, the work directory (rank file, extensions, logs), the container name, the Hugging Face cache mounted read-only at `/hub` |
 
-The rank file is sourced by `bash` with every variable exported, so any other `TF_GLM_*` or `NCCL_*` setting in it reaches the engine. Settings outside this table were not measured for 2.0.0.
+The rank file is sourced by `bash` with every variable exported, so any other `TF_GLM_*` or `NCCL_*` setting in it reaches the engine. Settings outside this table were not measured for 2.1.0.
 
 ## API
 
@@ -117,6 +120,7 @@ Rank 0 serves the engine's HTTP API. What the acceptance exercised:
 - **The reply's `tensorfold` block**: `accepted` and `rounds` (MTP acceptance), `cached` (prompt tokens resumed from a kept prompt) and `heat_wait_s`.
 - **`/health`** (the decode `rounds`, among others) and **`/metrics`**, which the decode check reads to tell the engines apart.
 - **Stopping**: a client disconnect or a stop string ends the decode on every rank within a round.
+- **Images** (`VISION=1`): `image_url` parts as data URLs, in user messages and in tool results; a video part is refused with 400.
 
 The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/completions`** (teacher-forced, with `prompt_logprobs`). The engine also routes `/v1/responses`, Anthropic's `/v1/messages` and `/tokenize`; 2.0.0's acceptance did not check them.
 
@@ -128,7 +132,7 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 | KV and window | FP8, 262,144 tokens (3 GiB per rank) | FP8 latent and index keys, 300,000 tokens at TP=2 and 1,048,576 at TP=3 |
 | Launch | `glm53_setup` reads one server TOML; `server preflight`, `cluster switch`, warmup ladder | the scripts here; no preflight or switch |
 | Sequences in flight | one, or two with the published option's two-sequence profile | one |
-| Image input | accepted | not accepted |
+| Image input | accepted | accepted (`VISION=1` in the example rank files) |
 | Published AXL weights | optional | not supported |
 | Tool calls | the model API, optionally behind the tool-argument gate | the same gate, this line's copy run from `v2/`, in front of the engine |
 | Heat during a long prefill | no wait in the engine; its measurements rested the hosts between requests with a cooling gate, the one [`host/`](../host/README.md#during-long-runs) now holds | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
@@ -137,7 +141,15 @@ Why each 2.x setting was chosen, and what was tried and not adopted, is in [deci
 
 ## Measured on the Release
 
-Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [the NLL set on 1.26.0's defaults](../v1/docs/benchmarks.md#the-nll-set-on-1260s-distributed-defaults-2026-10-02).
+**2.1.0** (2026-10-05, engine `9a1c7cc`, image `glm53-tf:2.1.0`). The engine moved onto upstream v0.6.5 and gained image input; TP=2 took four NCCL channels. At both TP sizes the decode check gave 2.0.0's token ids and acceptance lengths ([validation](docs/validation.md#decode-check) gives its texts' new hashes), with image input off and on; at TP=2 the NLL set equalled 2.0.0's at full precision. The rows below are 2.0.0's unless the table says otherwise; the other measurements were not repeated, since the prompt and decode paths give the same tokens.
+
+| 2.1.0 | TP=2 | TP=3 |
+|---|---|---|
+| Decode check count / prose / code (tok/s) | 41.67 / 27.02 / 35.38 | 52.37 / 37.92 / 48.41 (image input on) |
+| Prefill of 38,960 tokens (tok/s, two runs after the first) | 1,331.1 / 1,329.9 | — |
+| Image checks (`VISION=1`): one image, a 4:3 image of 7,966 prompt tokens, two images in order, a single colour, an image in a tool result; a text question, a tool round trip; a video refused | all passed | all passed |
+
+**2.0.0.** Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [the NLL set on 1.26.0's defaults](../v1/docs/benchmarks.md#the-nll-set-on-1260s-distributed-defaults-2026-10-02).
 
 | Measurement | TP=2 | TP=3 | 1.x |
 |---|---|---|---|
@@ -163,7 +175,7 @@ Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2
 ## Limits
 
 - **One sequence at a time.** The engine's CUDA path decodes one GLM request at a time; the others wait their turn.
-- **Text and tool calls only.** The engine refuses image input for GLM on CUDA (`GLM-5.3-Flash image input is currently MLX-only`).
+- **Images take memory at TP=2.** With image input on, the tower leaves 2.4 GiB of the default 3 GiB for other conversations' kept prompts; `VISION=0` on every rank gives the 3 GiB back. Several images in one request are encoded in one call; their features were not compared with one image at a time.
 - **TP=3 refuses DFlash2 and EXL3.** Both split only over two ranks. This line uses neither: `serve.sh` passes `--drafter none` and the checkpoint is NVFP4.
 - **Streamed replies.** With drafts, one round can cross from thinking into the answer, so one delta can carry both `reasoning_content` and `content`. A client that reads only one field per delta loses text; non-streamed replies are whole.
 - **FP8 KV is lossy** against BF16 KV, as in 1.x; drafted replies still equal serial ones. On four short texts the two caches gave NLL within 0.011 of each other (2026-10-02).
@@ -203,7 +215,7 @@ Public recipes that serve GLM-5.3-Flash on TensorFold. This table owns their lin
 
 | Recipe | License | What this line took from it |
 |---|---|---|
-| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0 (MIT up to 0.5.0) | The engine. The release branch is upstream v0.6.4 plus its own commits, offered back as upstream issues #308, #309, #310 and #339 and pull request #333 |
+| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0 (MIT up to 0.5.0) | The engine. The release branch is upstream v0.6.5 plus its own commits, offered back as upstream issues #308, #309, #310 and #339 and pull request #333 |
 | [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | The FP8 latent KV follows its patch 0038, rewritten on v0.6.x and credited in the engine's notices (upstream issue #309). The TP=3 shares use the same rule as its patch 0066 (cut at unit boundaries, the remainder to the lower ranks). Its upstream pull request #301 (a stopped request ends on every rank) is in the release as it is. It serves its own EXL3 checkpoint with DFlash2 drafts, up to eight requests at once and image and video input |
 | [jakejharris/jspark3 v2.0.1](https://github.com/jakejharris/jspark3/releases/tag/v2.0.1) | Apache-2.0 (recipe); MIT (its engine, a fork of TensorFold 0.3.6.2) | Nothing. Three hosts at TP=3 on its own TensorFold fork with 4-bit MLX-format weights split across the hosts, DFlash2 drafts by default with `--drafter none` as its commercial path, a session cache on disk, measured with RigMark |
 
@@ -219,11 +231,10 @@ Each item is a trigger and what this line then does.
 
 - Upstream merges pull request [#320](https://github.com/ashhart/TensorFold/pull/320) (both ranks stop a GLM reply when its caller asks, in review for 0.6.6 as of 2026-10-04) or #301 → take upstream's stop in place of the release branch's #301, rebase onto that release, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
 - Upstream takes the work of issues #308, #309, #310, #339 or pull request #333 (none is on upstream's list for 0.6.6 as of 2026-10-04) → rebase the release branch onto that upstream release, drop what upstream now carries, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
-- Follow upstream to v0.6.5 → API keys on the engine (`--api-key`, `--api-key-file` or `TENSORFOLD_API_KEY`; `/health` stays open and `/metrics` needs a key unless `--metrics-open`): set one through the rank file and rewrite the security note in [Quick Start](#quick-start).
+- An operator serves rank 0 beyond loopback → set an API key through the rank file (`TENSORFOLD_API_KEY`; `/metrics` then needs it unless `--metrics-open`, which the decode check reads) and rewrite the security note in [Quick Start](#quick-start).
 - Upstream releases 0.6.6 (under test as of 2026-10-04: unoffered `<tool_call>` markup leaking into the reply text, #285 with #256; `--loop-guard` against a token repeated without end, #210 and #262 for #204; the open-file limit raised at start, #294) → read it against the release branch and follow it in a 2.x release.
 - Upstream pull request [#243](https://github.com/ashhart/TensorFold/pull/243) (`--parallel N` on two ranks) merges → take up more than one sequence at a time.
-- Image input: planned after 2.0.0. Read upstream pull request [#194](https://github.com/ashhart/TensorFold/pull/194) (GLM-5.3-Flash image input on CUDA over two ranks) first and build on it if it fits; otherwise wire it into this line's engine. Until a release accepts it, the engine refuses images.
-- The CPU-frequency check of the hosts in [1.x's Next Action](../v1/README.md#next-action) → its result applies to this line's figures too.
+- Upstream merges pull request [#194](https://github.com/ashhart/TensorFold/pull/194) (GLM-5.3-Flash image input on CUDA over two ranks), which the release branch carries with three ranks added → take upstream's in its place and accept the image input again.
 - The published AXL weights on 2.x: on hold after 2.0.0; 2.x serves the pinned weights only.
 
 ## Local Data and Contribution

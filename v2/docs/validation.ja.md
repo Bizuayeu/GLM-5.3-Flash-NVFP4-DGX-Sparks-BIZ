@@ -21,13 +21,13 @@ done
 
 **合格の条件**：各タスクが起動の中で一つのcompletion（`distinct_completions` が1）で、その `completion_sha256` がそのTPの基準と同じこと。
 
-| タスク | TP=2 `completion_sha256` | TP=3 `completion_sha256` | TP=3 `token_ids_sha256` |
-|---|---|---|---|
-| count | `93951874af05c708` | `be0f5d346e96452b` | `3e398a9c0dfc5cd9` |
-| prose | `e33450686f6b5624` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
-| code | `389d8fb9e3972b66` | `ac0a26c61c97838c` | `91f20cec01a74182` |
+| タスク | TP=2 `completion_sha256` | TP=2 `token_ids_sha256` | TP=3 `completion_sha256` | TP=3 `token_ids_sha256` |
+|---|---|---|---|---|
+| count | `aa5a33f7dfae78e6` | `77fcc6e0c2a8540c` | `67058e32104fa3d1` | `3e398a9c0dfc5cd9` |
+| prose | `e33450686f6b5624` | `3ee287174a7b9ae3` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
+| code | `0ffecb8187fd7084` | `f579ca05b8be8490` | `43edfcefb4bafdb8` | `91f20cec01a74182` |
 
-TP=2のhashはエンジンの7つの版と1本・2本のrailで、TP=3のhashは10回の起動、1本・2本のrail、3通りのprefillの交換で変わりませんでした。TP=2とTP=3は設計上互いに違います（rank間の和の分け方が違う）。基準の速さ：TP=2 41.16／26.82／34.87 tok/s、TP=3 52.90／38.29／48.66。TP=3の受理長3.549／2.222／3.234。
+token idは、TP=2ではエンジンの7つの版、TP=3では10回の起動を通じて、1本・2本のrail、3通りのprefillの交換、TP=2のNCCLの4 channel、画像入力の有効（`VISION=1`）のどれでも変わりませんでした。2.1.0から、この検査は推論の終わりと本文の始まりを1つのdeltaで運ぶときに両方の欄を取ります。以前の版は片方だけを取っていたので、countとcodeは短い文字列を読んでいました（2.0.xのhash、TP=2の `93951874…`・`389d8fb9…`、TP=3の `be0f5d34…`・`ac0a26c6…` は同じtokenです）。TP=2とTP=3は設計上互いに違います（rank間の和の分け方が違う）。2.1.0の基準の速さ：TP=2 41.67／27.02／35.38 tok/s、TP=3 52.37／37.92／48.41。受理長はTP=2 3.821／2.098／3.180、TP=3 3.549／2.222／3.234。
 
 ## draftした応答とserialの一致
 

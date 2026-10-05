@@ -8,7 +8,29 @@ The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this
 
 ### Engine
 
-- The image builds TensorFold from the branch `release/2.1.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `9a1c7cc9fd231c65ebf5bffaed421937303e0796` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.0.0's additions moved onto upstream v0.6.5, with image input on CUDA (upstream pull request #194, generalized to three ranks) and the latent path's second copy of `kv_b` counted in the weights' bytes and the startup estimate.
+- The image builds TensorFold from the branch `release/2.1.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `9a1c7cc9fd231c65ebf5bffaed421937303e0796` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.0.0's additions moved onto upstream v0.6.5 without a conflict, plus:
+  - **Image input** from upstream pull request #194 (rank 0 encodes, the features go to the other ranks), carried to three ranks, with one image up to the checkpoint's 8,000 visual tokens and rank 0's workspace from a measurement of the tower ([decisions](docs/decisions.md#engine-commits-not-named-elsewhere)).
+  - The latent path's second copy of `kv_b` (`latent.AbsorbW`, `AbsorbQ4`) counted in the weights' bytes and the startup estimate, which had left it out.
+- Upstream v0.6.5 brings API keys (`--api-key`, `--api-key-file`, `TENSORFOLD_API_KEY`); this line sets none ([Quick Start](README.md#quick-start)).
+
+### Serving defaults
+
+- **Image input is on, by a switch in the rank file**: `VISION=1` on every rank, as the examples set it, makes `serve.sh` pass `--vision`; `VISION=0` turns it off. The window is unchanged; at TP=2 rank 0 holds the 1.05 GiB tower and other conversations' kept prompts get 2.4 GiB of the default 3 GiB (TP=3 keeps the 3 GiB).
+- **TP=2 opens four NCCL channels and names the IB transport** in its rank files, as TP=3 does: decode +0.8-1.0% and about 1.5 GiB more room at start against the 64 channels NCCL opened on its own, prefill within 0.4%. Pinning the ranks to the performance cores and fixed draft depths were measured and not taken ([decisions](docs/decisions.md)).
+
+### Fixed
+
+- The decode check kept one field of a streamed delta, so when a draft round's chunk ended the reasoning and started the content it dropped the reasoning's tail ("200." read "200"), and its text hash moved with the draft depth while the token ids did not. It keeps both now. Counting and code have new reference hashes for their texts ([validation](docs/validation.md#decode-check)); the token ids are 2.0.0's.
+
+### Accepted
+
+Measured on the reference hosts on 2026-10-05 with the release candidate image (linux/arm64 `sha256:d4d2014ca311841a5ff65c09d97a33abdf2c7db00ba4386dc7ecf7fd689cbb69`, the same on the three hosts) ([measured](README.md#measured-on-the-release)):
+
+- The decode check gave 2.0.0's token ids and acceptance lengths at TP=2 and TP=3, with image input off and on.
+- At TP=2 with image input off, the NLL set equalled 2.0.0's at full precision, and three 38,960-token prefills ran at 1,221.5 (the first), 1,331.1 and 1,329.9 tok/s.
+- Image input at both TP sizes: one image, a 4:3 image of 7,966 prompt tokens, two images in order, a single colour, an image in a tool result, a text question and a tool round trip answered correctly; a video part was refused with 400.
+
+The other 2.0.0 results stand: the prompt and decode paths give the same tokens. The tag in the commands is `glm53-tf:2.1.0`.
 
 ## 2.0.10 — 2026-10-05
 

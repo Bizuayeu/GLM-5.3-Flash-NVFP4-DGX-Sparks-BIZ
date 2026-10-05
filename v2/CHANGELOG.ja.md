@@ -10,7 +10,29 @@ TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの
 
 ### Engine
 
-- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.0` の `9a1c7cc9fd231c65ebf5bffaed421937303e0796`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.0.0の追加を上流のv0.6.5へ載せ直し、CUDAの画像入力（上流のpull request #194、3 rankへ一般化）と、latentの経路が持つ `kv_b` の2つ目の写しを重みのバイト数と起動時の見積もりに数えることを加えました。
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.0` の `9a1c7cc9fd231c65ebf5bffaed421937303e0796`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.0.0の追加を上流のv0.6.5へ衝突なしで載せ直し、次を足しました：
+  - **画像入力**。上流のpull request #194（rank 0でencodeし、特徴量を他のrankへ送る）を3 rankへ広げ、1枚の画像をcheckpointの上限8,000の視覚tokenまでにし、rank 0の作業域をtowerの実測から決めます（[採否](docs/decisions.ja.md#他で名前を挙げていないエンジンのcommit)）。
+  - latentの経路が持つ `kv_b` の2つ目の写し（`latent.AbsorbW`・`AbsorbQ4`）を、重みのバイト数と起動時の見積もりに数えます。これまで漏れていました。
+- 上流のv0.6.5でAPI key（`--api-key`・`--api-key-file`・`TENSORFOLD_API_KEY`）が入りました。この系列は設定しません（[はじめ方](README.ja.md#はじめ方)）。
+
+### Serving defaults
+
+- **画像入力を有効にし、rankのファイルで切り替えます**：例のファイルのとおり全rankで `VISION=1` なら `serve.sh` が `--vision` を渡し、`VISION=0` で無効になります。窓は変わりません。TP=2ではrank 0が1.05 GiBのtowerを持ち、他の会話の保持promptは既定の3 GiBのうち2.4 GiBになります（TP=3は3 GiBのまま）。
+- **TP=2はNCCLを4 channelにし、rankのファイルにIBのtransportを書きます**（TP=3と同じ）。NCCLが自分で開く64本と比べ、decodeは+0.8〜1.0%、起動時の余地は約1.5 GiB増、prefillは0.4%以内でした。各rankの性能コアへの固定と、draftの深さの固定は測って採りませんでした（[採否](docs/decisions.ja.md)）。
+
+### Fixed
+
+- decode検査はstreamingのdeltaの欄を1つしか取っていませんでした。draftの1 roundの塊が推論を終えて本文を始めると推論の末尾を捨て（「200.」が「200」になる）、token idは同じでも文字列のhashがdraftの深さで動きました。今は両方を取ります。countとcodeは文字列の基準のhashが新しくなりました（[検証](docs/validation.ja.md#decode検査)）。token idは2.0.0のままです。
+
+### Accepted
+
+2026-10-05に参照機で、リリース候補のimage（linux/arm64 `sha256:d4d2014ca311841a5ff65c09d97a33abdf2c7db00ba4386dc7ecf7fd689cbb69`、3台で同じ）で測りました（[測定値](README.ja.md#リリースでの測定値)）：
+
+- decode検査はTP=2とTP=3で、画像入力の無効・有効とも、2.0.0のtoken idと受理長を出しました。
+- 画像入力を無効にしたTP=2のNLLの採点セットは2.0.0と全精度で同じで、38,960 tokenのprefillは1,221.5（1回目）・1,331.1・1,329.9 tok/sでした。
+- 画像入力は両TPで、1枚、prompt 7,966 tokenの4:3の画像、2枚の順番、単色、toolの結果の画像、文字の質問、toolの往復に正しく答え、動画は400で拒みました。
+
+2.0.0の他の結果はそのまま有効です。promptとdecodeの経路は同じtokenを出します。コマンドのtagは `glm53-tf:2.1.0` です。
 
 ## 2.0.10 — 2026-10-05
 

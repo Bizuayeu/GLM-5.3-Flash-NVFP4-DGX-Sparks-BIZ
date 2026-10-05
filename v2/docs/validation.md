@@ -21,13 +21,13 @@ Before each sample it sends `TF_GLM_CACHE_ENTRIES` (default 8, the engine's) sho
 
 **Accepted when** each task gives one completion within the launch (`distinct_completions` 1) and its `completion_sha256` is the reference of its TP:
 
-| Task | TP=2 `completion_sha256` | TP=3 `completion_sha256` | TP=3 `token_ids_sha256` |
-|---|---|---|---|
-| count | `93951874af05c708` | `be0f5d346e96452b` | `3e398a9c0dfc5cd9` |
-| prose | `e33450686f6b5624` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
-| code | `389d8fb9e3972b66` | `ac0a26c61c97838c` | `91f20cec01a74182` |
+| Task | TP=2 `completion_sha256` | TP=2 `token_ids_sha256` | TP=3 `completion_sha256` | TP=3 `token_ids_sha256` |
+|---|---|---|---|---|
+| count | `aa5a33f7dfae78e6` | `77fcc6e0c2a8540c` | `67058e32104fa3d1` | `3e398a9c0dfc5cd9` |
+| prose | `e33450686f6b5624` | `3ee287174a7b9ae3` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
+| code | `0ffecb8187fd7084` | `f579ca05b8be8490` | `43edfcefb4bafdb8` | `91f20cec01a74182` |
 
-The TP=2 hashes held across seven engine builds and with one or two rails; the TP=3 hashes across ten launches, one or two rails and the three prefill exchanges. TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds: TP=2 41.16 / 26.82 / 34.87 tok/s, TP=3 52.90 / 38.29 / 48.66; acceptance length at TP=3 3.549 / 2.222 / 3.234.
+The token ids held across seven engine builds at TP=2 and ten launches at TP=3, with one or two rails, the three prefill exchanges, four NCCL channels at TP=2 and image input on (`VISION=1`). From 2.1.0 the check keeps both fields of a delta that carries the end of the reasoning and the start of the content; earlier versions kept one, so counting and code read shorter texts (2.0.x's hashes `93951874…`, `389d8fb9…` at TP=2 and `be0f5d34…`, `ac0a26c6…` at TP=3 are the same tokens). TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds on 2.1.0: TP=2 41.67 / 27.02 / 35.38 tok/s, TP=3 52.37 / 37.92 / 48.41; acceptance length 3.821 / 2.098 / 3.180 at TP=2 and 3.549 / 2.222 / 3.234 at TP=3.
 
 ## Drafted equals serial
 
