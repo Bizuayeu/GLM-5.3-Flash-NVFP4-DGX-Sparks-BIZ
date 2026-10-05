@@ -67,7 +67,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 
 モデルは答える前に考えます。思考は `reasoning_content`、答えは `content` に返るので、`max_tokens` を指定しない要求は両方で32,768 tokenまで使えます。小さい上限では思考の途中で終わり、`content` が空になることがあります。起動したら、日常の運用の前に[検証](docs/validation.ja.md)の検査（まずdecode検査）で受け入れます。
 
-**安全。** この系列はAPI keyを設定しません。エンジンは上流のv0.6.5からAPI keyを持ちます（`--api-key`・`--api-key-file`・`TENSORFOLD_API_KEY`。`/health` は開いたまま）が、2.1.0の検査はどれもkeyを使っていません。`serve.sh` はrank 0を `127.0.0.1` で待ち受けさせ、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)もloopbackだけで待ち受けます。SSHのtunnel（`ssh -L 8095:127.0.0.1:8095 <rank 0>`）か、認証を足すproxyを通して使ってください。rankのファイルで `HOST=0.0.0.0` にすると、APIは認証なしで外に出ます。
+**安全。** `serve.sh` はrank 0を `127.0.0.1` で待ち受けさせ、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)もloopbackだけで待ち受けます。SSHのtunnel（`ssh -L 8095:127.0.0.1:8095 <rank 0>`）か、認証を足すproxyを通して使ってください。loopbackの外で配信する（rankのファイルで `HOST=0.0.0.0`）ときは、API keyも設定します。rank 0のrankのファイルに `TENSORFOLD_API_KEY=<key>` の行を書くと（例のファイルではコメントにしてあります）、エンジンは `Authorization: Bearer <key>` の無い要求をすべて拒みます。`/metrics` も同じで、`/health` だけは開いたままです。この系列のdecode検査と `score-nll` は、走らせる側で `TENSORFOLD_API_KEY` が設定されていればkeyを送り、tool引数ゲートはそのheaderをそのまま渡します。keyは平文のファイルに置く秘密なので、rankのファイルは持ち主だけが読めるようにします（`chmod 600`）。keyなしで `HOST=0.0.0.0` にすると、APIは認証なしで外に出ます。
 
 ## 配信の既定
 
@@ -238,7 +238,6 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 
 - 上流がpull request [#320](https://github.com/ashhart/TensorFold/pull/320)（呼び手が止めたらGLMの応答を両rankで止める。2026-10-04時点で0.6.6の審査中）か#301をmergeする → リリースのbranchの#301を上流の停止に置き換え、そのリリースに載せ直し、imageを受け入れ直して、2.x系のリリースで `TENSORFOLD_REF` を動かす。
 - 上流がissue #308・#309・#310・#339やpull request #333の中身を取り込む（2026-10-04時点で0.6.6の一覧にはどれも無い）→ リリースのbranchをその上流のリリースに載せ直し、上流が持つようになったものを外し、imageを受け入れ直して、2.x系のリリースで `TENSORFOLD_REF` を動かす。
-- rank 0をloopbackの外で配信する → rankのファイルでAPI keyを設定し（`TENSORFOLD_API_KEY`。そのとき `/metrics` は `--metrics-open` でなければkeyが要り、decode検査はそれを読む）、[はじめ方](#はじめ方)の安全の注意を書き直す。
 - 上流が0.6.6を出す（2026-10-04時点で試験中：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262（#204向け）、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系のリリースで追う。
 - 上流のpull request [#243](https://github.com/ashhart/TensorFold/pull/243)（2 rankで `--parallel N`）がmergeされる → 同時に2系列以上を扱う作業に入る。
 - 上流がpull request [#194](https://github.com/ashhart/TensorFold/pull/194)（GLM-5.3-FlashのCUDAの2 rankでの画像入力）をmergeする（リリースのbranchは3 rankを足して持つ） → 上流のものに置き換え、画像入力を受け入れ直す。

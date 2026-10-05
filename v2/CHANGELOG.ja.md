@@ -6,6 +6,22 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.3 — 2026-10-06
+
+### Added
+
+- decode検査と `score-nll` は、走らせる側で `TENSORFOLD_API_KEY` が設定されていればサーバーのAPI keyを送り（`Authorization: Bearer`）、無ければ何も送りません。rank 0のrankのファイルの `TENSORFOLD_API_KEY` の行でkeyを付けて起動したエンジンは、keyの無い要求をすべて拒みます（`/metrics` も）。loopbackの外でkey付きで配信する方法は[安全](README.ja.md#はじめ方)の注意に書き、rank 0の例のファイルにその行をコメントで入れました。
+
+### Documentation
+
+- [検証](docs/validation.ja.md#prefillとdecodeの速さ)は2.1.2の記述を直しました。長いpromptは、同じクロック・温度のまま約7.5%離れた2つの速さのどちらかで走り、3回続けると2つの起動では落ちず、1つでは落ちました。熱では説明できず、原因は分かっていません。起動後の最初の長いpromptは遅い、という記述は取り下げます（ある起動では速かった）。[決定](docs/decisions.ja.md)にTP=2の `split` と `gather` の比較を足しました：2つの速さのどちらでも `split` が約5%速く、tokenは同じです。
+- [手順書](SETUP.ja.md#3-image)：imageのtagは、imageに写るファイルを最後に変えた版の名前で、文書やホスト側の道具だけの版ではそのままです。
+- [CONTRIBUTING](../CONTRIBUTING.ja.md)：CUDAか固定のvLLMのimageが要る1.x系のテストは、GPUのホストでだけ走ります。
+
+### Accepted
+
+2026-10-06に参照機の対で、TP=2、2.1.1のimage（変わらず）、rank 0のrankのファイルにkeyを置いて：keyなしの `/health` は200、`/v1/models` と `/metrics` はkeyなしと違うkeyで401、正しいkeyで200。keyを渡したdecode検査は2.1.1のtoken idと文字列を出し、keyなしでは401で止まりました。rank 0のserveと記憶の見張りのlog、検査のlogにkeyは出ていません。
+
 ## 2.1.2 — 2026-10-05
 
 ### Documentation

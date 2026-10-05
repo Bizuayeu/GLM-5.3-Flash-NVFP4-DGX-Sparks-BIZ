@@ -4,6 +4,22 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.3 — 2026-10-06
+
+### Added
+
+- The decode check and `score-nll` send the server's API key (`Authorization: Bearer`) when `TENSORFOLD_API_KEY` is set where they run, and nothing without it. An engine started with a key, from a `TENSORFOLD_API_KEY` line in rank 0's rank file, refuses every request without it, `/metrics` included; the [Security](README.md#quick-start) note says how to serve beyond loopback with one, and the rank 0 examples carry the line commented out.
+
+### Documentation
+
+- [Validation](docs/validation.md#prefill-and-decode-speed) corrects 2.1.2: a long prompt runs at one of two speeds about 7.5% apart at the same clocks and temperatures, and three prompts back to back held in two launches but not in a third; heat does not explain it and the cause is not known. The claim that the first long prompt after a start is slower is withdrawn (it was fast in one launch). [Decisions](docs/decisions.md) adds TP=2's comparison of `split` and `gather`: about 5% for `split` in both speeds, the same tokens.
+- [Setup](SETUP.md#3-image): the image tag names the last version that changed a file the image copies; a version for documents or host-side tools keeps it.
+- [CONTRIBUTING](../CONTRIBUTING.md): the 1.x tests that need CUDA or the pinned vLLM image run on the GPU hosts only.
+
+### Accepted
+
+On the reference pair on 2026-10-06 at TP=2 with 2.1.1's image (unchanged) and a key in rank 0's rank file: `/health` answered 200 without the key; `/v1/models` and `/metrics` answered 401 without it or with a wrong one and 200 with it; the decode check with the key gave 2.1.1's token ids and texts; without it, it stopped at 401. Rank 0's serve and memory-guard logs and the check logs did not contain the key.
+
 ## 2.1.2 — 2026-10-05
 
 ### Documentation

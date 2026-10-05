@@ -60,7 +60,7 @@
 | prompt chunkの交換を4つの行の片に分け、2本目のstreamで重ねる | 2026-10-02 | 1,068.2 → 1,150.7 tok/s。片が2と8では1,119.6と1,116.6 | — |
 | KDAのpromptのstep kernelをblockあたり8 warpに | 2026-10-02 | 1,150.7 → 1,169.9 tok/s、同じビット | — |
 | BF16のsplit-Kの部分和は短い窓のためだけに確保する | 2026-10-02 | `--context 0` の窓が約490Kから567,255 tokenに増えた。prefillは変わらない | — |
-| prefillの交換の既定を `split` に（`TF_GLM_PREFILL_REDUCE`） | 2026-10-03 | TP=3、一続きの起動の中で：それまでの `gather`（1,394〜1,398 tok/s）に対し `scatter` +6.8%、`split` +19.6%。decode検査のhashもNLL採点セットも変わらない。rankどうしが送り合えるところで採り、それ以外は `gather`。TP=2ではリリースで初めて走り、hashは変わらなかった。TP=2の伸びのうちの寄与は単独では測っていない | — |
+| prefillの交換の既定を `split` に（`TF_GLM_PREFILL_REDUCE`） | 2026-10-03 | TP=3、一続きの起動の中で：それまでの `gather`（1,394〜1,398 tok/s）に対し `scatter` +6.8%、`split` +19.6%。decode検査のhashもNLL採点セットも変わらない。rankどうしが送り合えるところで採り、それ以外は `gather`。TP=2（2026-10-06、2.1.1）では、promptの2つの速さのどちらでも `split` が `gather` より約5%速く（1,326対1,262 tok/s、1,228対1,171）、decode検査のtoken idと文字列は同じだった | — |
 | indexerのpromptの仕事：programあたり16行、選択が読むpoolの列だけを採点、長い行の読みを5回から3回に | 2026-10-03 | 実のDSAの層で1 GPU、1M tokenでのchunkのtokenの選択が209.5 → 165.5 ms（−21%）、同じビット。上の交換の仕事と合わせ、200Kと500Kの実測に当てた1Mのprefillの見積もりは短くなった（[長い入力](validation.ja.md#長い入力)）。試して遅かったもの：histogramを採点に融合、11 bitで3 pass、persistent grid、2,048のblock | — |
 | ビットが変わるprefillの案 | 2026-10-02と03に不採用 | 行のblockの32頭を一つのGEMMで採点し頭の和を後に回す（採点が2倍速くなれば1Mのprefillで約240秒の短縮と見積もり）、FP8のtensor coreでの採点、chunked KDA（その漸化式は38,960 tokenのpromptで2.06秒で、得は多くて数%）、MiaAI-Labの1 passのsparse attention。どれも基準のhashとNLLの元のビットを変える、または変え得る | — |
 
