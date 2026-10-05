@@ -4,6 +4,24 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.1 — 2026-10-05
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.1.1` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `1a3fb1789830f4c336179eae21129f21c5abae0f` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.1.0's engine and the fix below.
+
+### Fixed
+
+- A request with several images had them encoded in one call of the image tower, and an image's features then changed with the other images in that call (on the real tower, a 448×448 image beside an 896×672 one gave the first different bits wherever it stood). Each image is now its own tower call, so its features are the same whatever else the request carries.
+
+### Accepted
+
+Measured on the reference hosts on 2026-10-05 at TP=2 with image input on, with the release candidate image (linux/arm64 `sha256:54cf0e5bc7fe56a218a91f704443285caa11f68f5389fa618ef577d7b9fcad67`, the same on the three hosts) ([measured](README.md#measured-on-the-release)):
+
+- The decode check gave 2.1.0's token ids, text hashes and acceptance lengths.
+- The image checks passed; two images of one size read the same numbers asked one at a time and together.
+- Three 38,960-token prefills back to back, without cooling between them, ran at 1,327.0, 1,326.8 and 1,322.8 tok/s. Through them the GPU clock held 2,184 MHz with no clock event reason, every CPU core held its full frequency, and the hottest ACPI zone rose from 56 to 88.5 °C, below the heat wait.
+
 ## 2.1.0 — 2026-10-05
 
 ### Engine

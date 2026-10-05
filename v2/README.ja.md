@@ -11,7 +11,7 @@
 ## 要約
 
 - **何であるか。** 固定したcheckpointを、固定したTensorFoldのcommitで一つのOpenAI互換endpointとして配信するための、build手順・起動の台本・受け入れ検査です。2台なら直結のConnectX-7リンクでTP=2、3台ならswitchなしのリングでTP=3です。公開している測定値はMSI EdgeXpert（MS-C931）で取りました。
-- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。2.1.0（エンジンを上流のv0.6.5へ載せ直し、画像入力を足した版）は2026-10-05に受け入れました。両TPでdecode検査が2.0.0のtoken idと受理長を出し、TP=2のNLLの採点セットは2.0.0と全精度で同じで、画像入力は両TPで検査を通りました（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
+- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。2.1.0（エンジンを上流のv0.6.5へ載せ直し、画像入力を足した版）は2026-10-05に受け入れました。両TPでdecode検査が2.0.0のtoken idと受理長を出し、TP=2のNLLの採点セットは2.0.0と全精度で同じで、画像入力は両TPで検査を通りました。2.1.1（画像を1枚ごとにtowerでencodeする版）は同じ日にTP=2・画像入力を有効にして受け入れました。2.1.0のtoken idと文字列を出し、画像の検査を通りました（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
 - **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
@@ -20,7 +20,7 @@
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.1` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.0 .
-v2/scripts/create_container.sh glm53-tf:2.1.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.1 .
+v2/scripts/create_container.sh glm53-tf:2.1.1
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1。その後この機の値に直す
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -140,6 +140,13 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 2.x系の各設定を選んだ理由と、試して採らなかったものは[決定](docs/decisions.ja.md)にあります。
 
 ## リリースでの測定値
+
+**2.1.1**（2026-10-05、エンジン `1a3fb17`、image `glm53-tf:2.1.1`）。要求の画像は1枚ごとに画像のtowerを呼びます。TP=2・画像入力を有効にして、decode検査は2.1.0のtoken id・文字列・受理長を出し、画像の検査はすべて合格でした。同じ大きさの2枚の画像は、1枚ずつでもまとめてでも同じに読みました。
+
+| 2.1.1、TP=2、画像入力を有効 | |
+|---|---|
+| decode検査 count／prose／code（tok/s） | 41.62／27.03／35.37 |
+| 38,960 tokenのprefill、冷まさずに3回続けて（tok/s） | 1,327.0／1,326.8／1,322.8 |
 
 **2.1.0**（2026-10-05、エンジン `9a1c7cc`、image `glm53-tf:2.1.0`）。エンジンを上流のv0.6.5へ載せ直して画像入力を足し、TP=2はNCCLを4 channelにしました。両TPでdecode検査は2.0.0のtoken idと受理長を出しました（文字列の新しいhashは[検証](docs/validation.ja.md#decode検査)にあります）。画像入力の無効と有効のどちらでも同じです。TP=2のNLLの採点セットは2.0.0と全精度で同じでした。下の表で断りの無い行は2.0.0の値です。promptとdecodeの経路が同じtokenを出すので、他の測定は繰り返していません。
 

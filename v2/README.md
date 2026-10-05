@@ -11,7 +11,7 @@
 ## Summary
 
 - **What it is.** Build steps, launch scripts and acceptance checks that serve the pinned checkpoint through a pinned TensorFold commit as one OpenAI-compatible endpoint: two hosts at TP=2 over a direct ConnectX-7 link, or three at TP=3 in a switchless ring. The published measurements come from MSI EdgeXpert (MS-C931) systems.
-- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). 2.1.0, the engine moved onto upstream v0.6.5 with image input, was accepted on 2026-10-05: at both TP sizes the decode check gave 2.0.0's token ids and acceptance lengths, the NLL set at TP=2 equalled 2.0.0's at full precision, and image input passed its checks at both ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
+- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). 2.1.0, the engine moved onto upstream v0.6.5 with image input, was accepted on 2026-10-05: at both TP sizes the decode check gave 2.0.0's token ids and acceptance lengths, the NLL set at TP=2 equalled 2.0.0's at full precision, and image input passed its checks at both. 2.1.1, which encodes each image in its own call of the tower, was accepted the same day at TP=2 with image input on: 2.1.0's token ids and texts, and the image checks passed ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
 - **Repeatable by contract.** Drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on how the prompt is chunked. These are the engine's contract, where 1.x buys repeatability with switches on vLLM ([differences from 1.x](#differences-from-1x)).
 - **Precision.** W4A16 for the routed experts and the dense MLP, BF16 elsewhere, FP8 KV. NVIDIA's model card measured its checkpoint under another recipe on other hardware, so its accuracy table does not describe this serving; [validation](docs/validation.md) gives the numbers that do.
 - **Licensing.** Apache-2.0 code and engine, MIT weights that the operator downloads, nothing non-commercial in the serving path ([licensing at a glance](../README.md#licensing-at-a-glance)).
@@ -20,7 +20,7 @@
 ## What It Is
 
 - **Weights**: `nvidia/GLM-5.3-Flash-NVFP4` at revision `423acf37583782c51c142d145aef733d72943d93`, the same as 1.x, derived from [Z.ai's GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash). The routed experts and the dense MLP run as W4A16 from the checkpoint's NVFP4 blocks; attention, the shared experts and the head stay BF16. One exception, inside the engine: the MTP layer's routed experts are BF16 in the checkpoint and are quantized to NVFP4 for drafting only. Every drafted token is verified by the full model, so replies are unchanged.
-- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, and image input from upstream pull request #194, carried to three ranks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
+- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.1` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, and image input from upstream pull request #194, carried to three ranks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
 - **Image**: [`docker/Dockerfile`](docker/Dockerfile), NVIDIA's PyTorch container 26.07 plus the measured package versions (transformers 5.18.0, xgrammar 0.2.8 for structured output, the Hugging Face hub client) and the engine.
 - **Launch**: shell scripts in [`scripts/`](scripts/) and one environment file per rank ([`examples/`](examples/) holds the reference hosts' files). [SETUP.md](SETUP.md) is the order.
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # Each host, from the checkout root (SETUP §3-§5); build once and `docker load` it elsewhere, then compare image IDs
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.0 .
-v2/scripts/create_container.sh glm53-tf:2.1.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.1 .
+v2/scripts/create_container.sh glm53-tf:2.1.1
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # tp2-rank1 on the other host; then put this host's values
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -140,6 +140,13 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 Why each 2.x setting was chosen, and what was tried and not adopted, is in [decisions](docs/decisions.md).
 
 ## Measured on the Release
+
+**2.1.1** (2026-10-05, engine `1a3fb17`, image `glm53-tf:2.1.1`). Each image of a request is its own call of the image tower. At TP=2 with image input on, the decode check gave 2.1.0's token ids, texts and acceptance lengths, and the image checks passed, with two images of one size read alike one at a time and together.
+
+| 2.1.1, TP=2, image input on | |
+|---|---|
+| Decode check count / prose / code (tok/s) | 41.62 / 27.03 / 35.37 |
+| Prefill of 38,960 tokens, three back to back without cooling (tok/s) | 1,327.0 / 1,326.8 / 1,322.8 |
 
 **2.1.0** (2026-10-05, engine `9a1c7cc`, image `glm53-tf:2.1.0`). The engine moved onto upstream v0.6.5 and gained image input; TP=2 took four NCCL channels. At both TP sizes the decode check gave 2.0.0's token ids and acceptance lengths ([validation](docs/validation.md#decode-check) gives its texts' new hashes), with image input off and on; at TP=2 the NLL set equalled 2.0.0's at full precision. The rows below are 2.0.0's unless the table says otherwise; the other measurements were not repeated, since the prompt and decode paths give the same tokens.
 

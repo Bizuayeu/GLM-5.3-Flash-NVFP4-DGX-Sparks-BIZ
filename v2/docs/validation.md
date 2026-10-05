@@ -27,7 +27,7 @@ Before each sample it sends `TF_GLM_CACHE_ENTRIES` (default 8, the engine's) sho
 | prose | `e33450686f6b5624` | `3ee287174a7b9ae3` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
 | code | `0ffecb8187fd7084` | `f579ca05b8be8490` | `43edfcefb4bafdb8` | `91f20cec01a74182` |
 
-The token ids held across seven engine builds at TP=2 and ten launches at TP=3, with one or two rails, the three prefill exchanges, four NCCL channels at TP=2 and image input on (`VISION=1`). From 2.1.0 the check keeps both fields of a delta that carries the end of the reasoning and the start of the content; earlier versions kept one, so counting and code read shorter texts (2.0.x's hashes `93951874…`, `389d8fb9…` at TP=2 and `be0f5d34…`, `ac0a26c6…` at TP=3 are the same tokens). TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds on 2.1.0: TP=2 41.67 / 27.02 / 35.38 tok/s, TP=3 52.37 / 37.92 / 48.41; acceptance length 3.821 / 2.098 / 3.180 at TP=2 and 3.549 / 2.222 / 3.234 at TP=3.
+The token ids held across eight engine builds at TP=2 and ten launches at TP=3, with one or two rails, the three prefill exchanges, four NCCL channels at TP=2 and image input on (`VISION=1`). From 2.1.0 the check keeps both fields of a delta that carries the end of the reasoning and the start of the content; earlier versions kept one, so counting and code read shorter texts (2.0.x's hashes `93951874…`, `389d8fb9…` at TP=2 and `be0f5d34…`, `ac0a26c6…` at TP=3 are the same tokens). TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds on 2.1.0: TP=2 41.67 / 27.02 / 35.38 tok/s, TP=3 52.37 / 37.92 / 48.41; acceptance length 3.821 / 2.098 / 3.180 at TP=2 and 3.549 / 2.222 / 3.234 at TP=3.
 
 ## Drafted equals serial
 
@@ -56,7 +56,7 @@ Needs the `tokenizers` package in the environment that runs it; the Hugging Face
 
 ## Prefill and decode speed
 
-A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, on a build before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3, below the heat wait's threshold and with the clock unchanged. The measurement scripts are not part of this repository; [benchmark method](benchmarks.md) describes what they do.
+A 38,960-token prompt three times with a fresh nonce at its start (median), then 512 tokens after a short fixed prompt. Reference: TP=2 1,217.2 tok/s prefill and 35.61 tok/s decode (two rails, on a build before the `split` exchange); TP=3 1,673.1 and 1,667.9 tok/s prefill with `split` in two launches, 53.03 and 52.93 tok/s decode. With one rail TP=3 prefill was 13% slower and decode unchanged. Let the hosts cool before each prompt: three back to back fell from 1,670 to 1,540 tok/s at TP=3, below the heat wait's threshold and with the clock unchanged. At TP=2 (2.1.1) three back to back held at 1,327 to 1,323 tok/s, with the GPU clock, power limits and CPU frequencies unchanged. The measurement scripts are not part of this repository; [benchmark method](benchmarks.md) describes what they do.
 
 ## Long inputs
 

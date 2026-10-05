@@ -85,6 +85,7 @@
 - `c3ec51d`：上流の通信のinterfaceに任意の機能として `send_recv` を足す。`split` がこれを使う。
 - `d5e65e2`：rankが選んだ層だけを読み込める。実のcheckpointでの試験のため。
 - `9c78e43`・`aba0f21`・`4a41c21`・`d21c834`：2.1.0が上流のpull request #194（その7本、`4fcfb10` から `f9ee1d9`）に足したもの。1枚の画像をcheckpointの上限8,000の視覚tokenまで、rank 0の画像の作業域をtowerの実測から、3 rankの全rankへの画像の特徴量、hostとGPUがメモリを共有するGPUでの `--vision-offload` の拒否。
+- `eaf06cc`・`1a3fb17`（2.1.1）：要求の画像を1枚ごとにtowerで呼びます。他の画像と1回の呼び出しでencodeすると特徴量が変わったためです。
 
 ## 1.x系の施策で2.x系では未評価のもの
 

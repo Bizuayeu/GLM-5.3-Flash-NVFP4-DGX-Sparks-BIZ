@@ -6,6 +6,24 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.1 — 2026-10-05
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.1` の `1a3fb1789830f4c336179eae21129f21c5abae0f`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.1.0のエンジンに下の直しを足したものです。
+
+### Fixed
+
+- 複数の画像を持つ要求では、画像のtowerを1回だけ呼んでまとめてencodeしていました。そのため、ある画像の特徴量が同じ呼び出しの他の画像によって変わりました（実物のtowerで、448×448の画像を896×672の画像と並べると、どちらの順でも448×448の側のビットが変わりました）。今は1枚ごとにtowerを呼ぶので、要求に他の何が入っていても画像の特徴量は同じです。
+
+### Accepted
+
+2026-10-05に参照機で、TP=2・画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:54cf0e5bc7fe56a218a91f704443285caa11f68f5389fa618ef577d7b9fcad67`、3台で同じ）で測りました（[測定値](README.ja.md#リリースでの測定値)）：
+
+- decode検査は2.1.0のtoken id・文字列のhash・受理長を出しました。
+- 画像の検査はすべて合格でした。同じ大きさの2枚の画像は、1枚ずつ聞いても2枚まとめて聞いても同じ数を読みました。
+- 38,960 tokenのprefillを冷まさずに3回続けて、1,327.0・1,326.8・1,322.8 tok/sでした。その間、GPUのクロックは2,184 MHzのままでclock event reasonは無く、CPUの全コアは最大の周波数のままで、最も熱いACPIのzoneは56 °Cから88.5 °Cまで上がり、熱の待ちには達しませんでした。
+
 ## 2.1.0 — 2026-10-05
 
 ### Engine
