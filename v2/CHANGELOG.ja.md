@@ -6,6 +6,15 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.0.10 — 2026-10-05
+
+### Documentation
+
+- [採否](docs/decisions.ja.md)は、2.x系がまだ取り上げていない1.x系の施策にLPAを加えました。1.x系の後段Prefill近似は長いprefillの結果を設計上変え、2.x系の基準のhashとNLLは厳密なprefillのものです。
+- [QSFPネットワーク](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)は、dummy interfaceの `glmhost` が例の名前であることを書きます。参照機のリングでは `tp3host0` で、この系列のTP=3のrankのファイルが `NCCL_SOCKET_IFNAME` に書く名前です。
+
+image・台本・配信の既定値は変わらないので、2.0.7のimageと受け入れはそのまま有効です。
+
 ## 2.0.9 — 2026-10-05
 
 ### Tests

@@ -4,6 +4,15 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.0.10 — 2026-10-05
+
+### Documentation
+
+- [Decisions](docs/decisions.md) lists LPA among 1.x's measures 2.x has not taken up: 1.x's late-prefill approximation changes a long prefill's result by design, while 2.x's reference hashes and NLL are the exact prefill's.
+- The [QSFP network](../docs/qsfp-network.md#8-three-hosts-in-a-ring) page says that its dummy interface `glmhost` is an example name; the reference ring's is `tp3host0`, the name this line's TP=3 rank files give `NCCL_SOCKET_IFNAME`.
+
+The image, the scripts and the serving defaults are unchanged, so 2.0.7's image and acceptance stand.
+
 ## 2.0.9 — 2026-10-05
 
 ### Tests
