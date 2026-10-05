@@ -4,6 +4,14 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.2 — 2026-10-05
+
+### Documentation
+
+- [Validation](docs/validation.md#prefill-and-decode-speed) no longer says to cool the hosts because back-to-back prefills slow down: on 2.1.1 three 38,960-token prefills without cooling held their speed at TP=2 and TP=3, with the clocks and CPU frequencies unchanged and below the heat wait. The fall from 1,670 to 1,540 tok/s at TP=3 it quoted, seen while 2.0.0 was accepted, did not come back. It also says to run one long prompt after a start before measuring, since the first is slower.
+
+The image, the scripts and the serving defaults are unchanged, so 2.1.1's image and acceptance stand.
+
 ## 2.1.1 — 2026-10-05
 
 ### Engine
