@@ -274,6 +274,7 @@ KVが不足すれば起動が拒否される場合があり、実行時は待ち
 | `GLM53_TP_PAD_API=1` | ヘッド・MoE幅・語彙をTPが割り切らない3ノード（`tp_padding_support`）。そのときランチャーが全rankに `GLM53_TP_PAD_MULTIPLE` を設定し、imageが読み込み時にzero-padする（`glm53_setup/runtime/patch_tp_padding.py`） | 1.24.0 |
 | `GLM53_SAMPLER_VOCAB_BOUND=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.25.0 |
 | `GLM53_IMAGE_BUDGET_EXACT=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.29.0 |
+| `GLM53_VISION_ROPE_TABLE=1` | 要求しない（[運用手順](operations.ja.md#フルモデルの起動検査)） | 1.29.9 |
 
 preflightが要求しないmarkerは、無くてもimageは起動でき、`cluster switch` を通ります。
 

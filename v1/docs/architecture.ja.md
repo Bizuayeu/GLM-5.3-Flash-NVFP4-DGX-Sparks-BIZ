@@ -43,6 +43,7 @@
 | `glm53_setup/runtime/patch_tp_padding.py` | その埋め方をロード時に組み込むsource固定patch。text config、column・row・shardedのparameter loader、FusedMoEのloader、語彙のembeddingに当て、checkpointは公開されたままにする。`patch_load_clone` の後に当てる（[3ノード](server-configuration.ja.md#3ノード)） |
 | `glm53_setup/runtime/patch_sampler_nonfinite.py` | source固定patch：Gumbel sampler、rejection samplerのgreedyの統計とresampleで、tileのargmaxを語彙の範囲に収め、非有限のlogitsの行が語彙外のidを出さないようにする（vLLM #50843、上流では未merge） |
 | `glm53_setup/runtime/patch_image_budget.py` | source固定patch：GLM-5.3-Flashのprocessing infoが、画像のencoder cacheを正方形の試算ではなくprocessorのtoken上限ちょうどから見積もり、上限のすぐ下の画像を拒まなくなる（[画像入力](vision.ja.md#限界と未解決の事項)。vLLM #59565、固定より後にmerge） |
+| `glm53_setup/runtime/patch_vision_rope.py` | source固定patch（`patch_image_budget`の後に当てる）：vision towerのrope表を8,192ではなく`max_position_embeddings`の位置まで持ち、token上限に収まる細長い画像が表の外を読んでエンジンごと落ちることがなくなる（[画像入力](vision.ja.md#限界と未解決の事項)。vLLM #59126、固定より後にmerge） |
 | `glm53_setup/runtime/inductor_pin.py`、`inductor_pin_pth.txt` | Dynamo の状態復元が最初の compile の後に切ってしまう Inductor の決定性モードを保つ（`runtime.inductor_deterministic`）。テキストファイルを image の site ディレクトリに `glm53-inductor-pin.pth` として mount し、インタプリタ起動時に読み込ませる |
 | `glm53_setup/runtime/shm_spin.py`、`shm_spin_pth.txt` | 共有メモリのbroadcastのreaderが眠る前にspinする時間を設定する（`runtime.shm_spin_seconds`。未指定はvLLMの1秒）。テキストファイルを image の site ディレクトリに `glm53-shm-spin.pth` として mount し、インタプリタ起動時に読み込ませる |
 | `glm53_setup/runtime/lpa.py`、`lpa_query.py` | LPAのworker制御、Attention入力の近似、要求単位のquery省略 |

@@ -264,6 +264,7 @@ Build the reference image from the checkout you launch (`python -m glm53_setup b
 | `GLM53_TP_PAD_API=1` | Three nodes, whose TP does not divide the heads, MoE width and vocabulary (`tp_padding_support`); the launcher then sets `GLM53_TP_PAD_MULTIPLE` on every rank, and the image zero-pads at load time (`glm53_setup/runtime/patch_tp_padding.py`) | 1.24.0 |
 | `GLM53_SAMPLER_VOCAB_BOUND=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.25.0 |
 | `GLM53_IMAGE_BUDGET_EXACT=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.29.0 |
+| `GLM53_VISION_ROPE_TABLE=1` | Never ([operations](operations.md#full-model-launch-checks)) | 1.29.9 |
 
 An image without a marker that preflight never requires still launches and passes `cluster switch`.
 
