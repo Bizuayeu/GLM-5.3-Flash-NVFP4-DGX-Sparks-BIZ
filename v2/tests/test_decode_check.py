@@ -91,6 +91,35 @@ def run(replies, metrics, sent=None, tokens_out=None):
     return [json.loads(line) for line in out.getvalue().splitlines()]
 
 
+class TextTests(unittest.TestCase):
+    def test_a_chunk_with_reasoning_and_content_keeps_both(self):
+        """A draft round's chunk can end the reasoning and start the content; the text keeps both, in order."""
+        chunks = [
+            {"choices": [{"delta": {"reasoning_content": "go to 200"}}]},
+            {"choices": [{"delta": {"reasoning_content": ".", "content": "1\n"}}]},
+            {"choices": [{"delta": {"content": "2\n"}}]},
+            {
+                "choices": [{"delta": {}, "finish_reason": "length"}],
+                "tensorfold": dict(TF_BLOCK, token_ids=[7, 8, 9]),
+            },
+            {"choices": [], "usage": {"prompt_tokens": 2066, "completion_tokens": 3}},
+        ]
+        reply = [f"data: {json.dumps(c)}\n\n".encode() for c in chunks] + [
+            b"data: [DONE]\n"
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "tokens.json")
+            lines = run([reply] * 3, [TF_METRICS, TF_METRICS], tokens_out=path)
+            with open(path, encoding="utf-8") as f:
+                saved = json.load(f)
+        want = "go to 200.1\n2\n"
+        self.assertEqual(saved["samples"][0]["text"], want)
+        self.assertEqual(
+            lines[0]["completion_sha256"],
+            hashlib.sha256(want.encode()).hexdigest()[:16],
+        )
+
+
 class AcceptanceLengthTests(unittest.TestCase):
     def test_tensorfold_reply_blocks_give_one_plus_accepted_over_rounds(self):
         lines = run([stream(TF_BLOCK)] * 3, [TF_METRICS, TF_METRICS])
