@@ -2,6 +2,17 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.30.0 — 2026-10-07
+
+### Removed
+
+- `nodes[].host_interface_wifi_test`, the test setting that let a ring node put its sockets (Gloo, TCPStore, NCCL bootstrap) on the management Wi-Fi while the hosts had no /32 of their own. A profile that still carries the key, whatever its value and on two nodes too, is refused before launch ("nodes[N].host_interface_wifi_test was removed in 1.30.0; delete the key from the profile (a Wi-Fi host_interface is refused)"), and a Wi-Fi `host_interface` is refused outright. To migrate, delete the key and give each node a `host_address` on a /32 of its own with static routes over the direct links ([QSFP network](../docs/qsfp-network.md#8-three-hosts-in-a-ring), [server configuration](docs/server-configuration.md#three-nodes)).
+
+### Changed
+
+- Comments in `glm53_setup/`, with no behaviour change: the FA2 mounts go once every image a launch may use, the recovery target included, carries this checkout's copies; the TP=3 KV budget is stated as decided (no limit beyond the explicit `cache.kv_cache_memory_bytes`); the subnet-aware routing deferral keeps its open concern with a trigger; `patch_image_budget` says that dropping it means re-pinning `patch_vision_rope` or dropping both; `patch_load_clone` names vLLM #58868; `download.py` names its readers in words 2.x's copy keeps true.
+- The two-node and AXL templates link the [1.25.0 measurements](docs/benchmarks.md#measurements-on-1250) of `runtime.shm_spin_seconds` instead of restating them, and the defaults template links the NCCL channel count at `../docs/`. `pyproject.toml` excludes only `overlays/` from Ruff.
+
 ## 1.29.14 — 2026-10-06
 
 ### Fixed

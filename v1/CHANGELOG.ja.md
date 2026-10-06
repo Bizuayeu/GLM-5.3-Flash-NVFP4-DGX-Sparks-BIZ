@@ -4,6 +4,17 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.30.0 — 2026-10-07
+
+### Removed
+
+- `nodes[].host_interface_wifi_test` を取り除きました。ホストが自分の /32 を持つ前に、リングのノードのsocket（Gloo・TCPStore・NCCL bootstrap）を管理用Wi-Fiに載せるための試験用の設定でした。keyを持つprofileは、値によらず、2ノードでも起動前に拒みます（"nodes[N].host_interface_wifi_test was removed in 1.30.0; delete the key from the profile (a Wi-Fi host_interface is refused)"）。Wi-Fiの `host_interface` はそれだけで拒みます。移行するには、keyを消し、各ノードに自分の /32 の `host_address` と直結リンク越しの静的経路を与えてください（[QSFPネットワーク](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)、[起動設定](docs/server-configuration.ja.md#3ノード)）。
+
+### Changed
+
+- `glm53_setup/` のコメントを直しました（挙動は変わりません）。FA2のmountは、起動が使いうるimageが復旧先も含めてこのcheckoutの写しを持つようになったら外します。TP=3のKVの予算は決定として書きます（明示した `cache.kv_cache_memory_bytes` のほかに上限を掛けない）。subnet-aware routingの先送りは、残る懸念とトリガーだけを書きます。`patch_image_budget` は、外すときは `patch_vision_rope` を固定し直すか一緒に外すと書きます。`patch_load_clone` はvLLM #58868を名指します。`download.py` は読み手を、2.x系の写しでも正しい言い方で書きます。
+- 2ノードとAXLのテンプレートは、`runtime.shm_spin_seconds` の測定値を写さず[1.25.0での測定](docs/benchmarks.ja.md#1250での測定)を指します。配布既定のテンプレートはNCCLチャネル数を `../docs/` で指します。`pyproject.toml` がRuffから除くのは `overlays/` だけです。
+
 ## 1.29.14 — 2026-10-06
 
 ### Fixed
