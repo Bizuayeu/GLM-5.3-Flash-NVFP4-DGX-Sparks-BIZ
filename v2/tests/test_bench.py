@@ -9,9 +9,32 @@ from unittest.mock import patch
 
 from glm53_tf import bench
 
-# The reply's block on TensorFold: bench keeps prefill_s, heat_wait_s and cached.
-BLOCK = {"prefill_s": 30.25, "heat_wait_s": 1.5, "cached": 0, "rounds": 1}
+# The reply's block on TensorFold: prefill and decode keep prefill_s, heat_wait_s and
+# cached; edit keeps cached and the draft counts.
+BLOCK = {
+    "prefill_s": 30.25,
+    "heat_wait_s": 1.5,
+    "cached": 0,
+    "rounds": 1,
+    "drafted": 5,
+    "accepted": 3,
+    "copy_rounds": 1,
+    "copy_drafted": 5,
+    "copy_accepted": 3,
+    "sha256": "0123456789abcdef",
+    "stages_ms": {"draft": 1.0},
+}
 BLOCK_KEPT = {"prefill_s": 30.25, "heat_wait_s": 1.5, "cached": 0}
+EDIT_KEPT = {
+    "cached": 0,
+    "rounds": 1,
+    "drafted": 5,
+    "accepted": 3,
+    "copy_rounds": 1,
+    "copy_drafted": 5,
+    "copy_accepted": 3,
+    "sha256": "0123456789abcdef",
+}
 
 
 def prefill_reply(prompt_tokens=38960, cached=0):
@@ -135,6 +158,40 @@ class PromptTests(unittest.TestCase):
             {"reasoning_effort": "low", "clear_thinking": True},
         )
 
+    def test_the_edit_prompt_is_the_same_every_time(self):
+        body = bench.edit_body()
+        self.assertEqual(body, bench.edit_body())
+        self.assertNotIn("nonce", json.dumps(body))
+        (message,) = body["messages"]
+        self.assertEqual(message["role"], "user")
+        self.assertIn("```python\n" + bench.PASSAGE + "```", message["content"])
+        self.assertEqual(
+            {k: body[k] for k in ("max_tokens", "temperature", "stream")},
+            {"max_tokens": bench.EDIT_TOKENS, "temperature": 0, "stream": True},
+        )
+        # the reply ends on its own: a cut reply would not be the edit it claims
+        self.assertNotIn("ignore_eos", body)
+        self.assertEqual(body["stream_options"], {"include_usage": True})
+        self.assertEqual(
+            body["chat_template_kwargs"],
+            {"reasoning_effort": "low", "clear_thinking": True},
+        )
+
+    def test_each_named_edit_has_one_target_in_the_passage(self):
+        # a few small edits: the rest of the reply is the passage, copied
+        self.assertEqual(len(bench.EDITS), 3)
+        for old, new in bench.EDITS:
+            self.assertEqual(bench.PASSAGE.count(old), 1, old)
+            self.assertNotIn(new, bench.PASSAGE)
+            self.assertIn(f"`{old}`", bench.edit_body()["messages"][0]["content"])
+            self.assertIn(f"`{new}`", bench.edit_body()["messages"][0]["content"])
+
+    def test_the_passage_is_a_fixed_python_module_of_some_length(self):
+        compile(bench.PASSAGE, "passage", "exec")
+        # about 1.5-2k tokens of code (code runs 3-4 characters a token)
+        self.assertTrue(5000 <= len(bench.PASSAGE) <= 8000, len(bench.PASSAGE))
+        self.assertTrue(bench.PASSAGE.endswith("\n"))
+
 
 class RowTests(unittest.TestCase):
     def test_a_prefill_row(self):
@@ -170,9 +227,31 @@ class RowTests(unittest.TestCase):
             },
         )
 
+    def test_an_edit_row_times_from_the_first_streamed_token(self):
+        sent = []
+        (row, summary) = run(["--kinds", "edit", "--runs", "1"], sent=sent)
+        self.assertEqual(sent, [bench.edit_body()])
+        self.assertEqual(
+            row,
+            {
+                "kind": "edit",
+                "prompt_tokens": 17,
+                "completion_tokens": 4,
+                "finish_reason": "length",
+                "ttft": 1.0,
+                "seconds_after_first": 1.0,
+                "tok_per_s": 3.0,
+                "tensorfold": EDIT_KEPT,
+                "start_epoch": 1759700000.0,
+                "end_epoch": 1759700000.0,
+            },
+        )
+        self.assertEqual(summary["summary"], {"edit": 3.0})
+
     def test_a_reply_without_a_block_records_an_empty_one(self):
         self.assertEqual(bench.kept(None), {})
         self.assertEqual(bench.kept({"rounds": 3}), {})
+        self.assertEqual(bench.kept(None, bench.EDIT_KEPT), {})
 
 
 class RunTests(unittest.TestCase):
