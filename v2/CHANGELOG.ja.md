@@ -6,6 +6,22 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.9 — 2026-10-06
+
+### Changed
+
+- decode検査はTensorFoldだけを読みます。vLLMの `/metrics` のcounterを読むことも、エンジンを見分けるために `/metrics` を読むこともやめました。受理長は応答の `tensorfold` blockから取り、保持promptの追い出しは毎回のsampleの前に行い、要約からTensorFoldでは空だった `spec_before` と `spec_after` を外しました。1.x系は自分のvLLM用の検査を持ちます。
+
+### Documentation
+
+- [SETUPの手順8](SETUP.ja.md#8-受け入れ)は、AGENTS.mdのとおり、受け入れの範囲と証拠の所在を書きます。クロックの上限の一文はREADMEだけに置きます。[検証](docs/validation.ja.md#tool引数ゲート越しのtool)は、tool-eval-benchの値が開発ビルドでの基準であることと、各リリースの値はREADMEにあることを書きます。READMEのAPIの一覧は、decode検査が `/metrics` を読むとは書きません。
+
+### Tests
+
+- decode検査の試験から3件のvLLMの場合を外し、GETがあれば落ちるようにし、要約のキーとblockの無い応答を確かめます。
+
+imageは変わらず、2.1.4のままです。
+
 ## 2.1.8 — 2026-10-06
 
 ### Documentation

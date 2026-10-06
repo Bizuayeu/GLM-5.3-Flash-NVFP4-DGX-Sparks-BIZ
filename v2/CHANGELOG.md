@@ -4,6 +4,22 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.9 — 2026-10-06
+
+### Changed
+
+- The decode check reads TensorFold only. It no longer parses vLLM's `/metrics` counters or reads `/metrics` to tell the engines apart: the acceptance length comes from the replies' `tensorfold` blocks, the kept prompts are pushed out before every sample, and the summary drops `spec_before` and `spec_after`, which were empty on TensorFold. 1.x keeps its own vLLM check.
+
+### Documentation
+
+- [SETUP step 8](SETUP.md#8-accept) says where the acceptance scope and its evidence are, as AGENTS.md says each line's SETUP does. The clock-cap statement stays in the README only. [Validation](docs/validation.md#tools-through-the-tool-argument-gate) says its tool-eval-bench values are the development build's reference and points at the README for each release's score. The README's API list no longer says the decode check reads `/metrics`.
+
+### Tests
+
+- The decode check's tests drop the three vLLM cases, fail on any GET, and check the summary's keys and replies with no block.
+
+The image is unchanged; it stays 2.1.4's.
+
 ## 2.1.8 — 2026-10-06
 
 ### Documentation

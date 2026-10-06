@@ -2,6 +2,22 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.14 — 2026-10-06
+
+### Fixed
+
+- The [AXL example](examples/server.axl.example.toml) pointed both overlay sources at `/srv/glm53/source/overlays/`, which no checkout has had since the package moved into `v1/`; it now uses `state/overlays/` of the checkout, where the [overlays README](overlays/README.md) says to copy them. The TP=2 and TP=3 launch goldens move only in those two mount paths and the AXL profiles' fingerprint and startup label.
+- `tools/decode_check.py --help` prints its usage instead of running the check against `BASE`.
+
+### Documentation
+
+- [SETUP](SETUP.md) sends the check procedures to [component validation](docs/component-validation.md) and [launch safety](docs/launch-safety.md); [validation](docs/validation.md) holds the acceptance scope and its evidence.
+- The README's long-prompt disclaimer points at [launch safety](docs/launch-safety.md#after-a-switch-the-decode-check) for how launches are compared (`token_ids_sha256` across 1.29.8); the 1.19.0 re-baseline stays as history. Its measurement paragraph states the decode reproduction once, citing [1.29.9](docs/benchmarks.md#measurements-on-1299).
+- The 1.25.0 vocabulary-bound check moves from validation to [its own subsection of the 1.25.0 measurements](docs/benchmarks.md#the-samplers-vocabulary-bound-2026-10-02); the benchmarks index says that heading also holds the NLL set taken on 1.26.0's defaults.
+- The [document index](docs/README.md) lists [operations](docs/operations.md) among the pages that own measured numbers; the eager-loading failure of 2026-09-26 is told in full in the [1.19.0 measurements](docs/benchmarks.md#measurements-on-1190), and SETUP and operations point there. The ZCode hook's README keeps the setup and links the facts it restated.
+
+No file of the reference image changes; it stays 1.29.9's.
+
 ## 1.29.13 — 2026-10-06
 
 ### Documentation

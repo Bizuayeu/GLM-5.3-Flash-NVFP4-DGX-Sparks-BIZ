@@ -4,6 +4,22 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.14 — 2026-10-06
+
+### Fixed
+
+- [AXLの例](examples/server.axl.example.toml)は2枚のoverlayのsourceを `/srv/glm53/source/overlays/` に置いていましたが、packageが `v1/` へ移ってからそのパスはどのcheckoutにもありません。[overlaysのREADME](overlays/README.md)が複写先とする、checkoutの `state/overlays/` を使うようにしました。TP=2とTP=3の起動のgoldenが動くのは、その2つのmountのパスと、AXLのprofileのfingerprintと起動labelだけです。
+- `tools/decode_check.py --help` は、`BASE` へ検査を走らせずに使い方を表示します。
+
+### Documentation
+
+- [SETUP](SETUP.ja.md)は検査の手順を[部品検証](docs/component-validation.ja.md)と[起動の安全](docs/launch-safety.ja.md)へ送ります。受け入れの範囲と証拠は[検証](docs/validation.ja.md)が持ちます。
+- READMEの長いpromptの但し書きは、起動の比べ方を[起動の安全](docs/launch-safety.ja.md#切替の後のdecode検査)へ送ります（1.29.8を跨ぐときは `token_ids_sha256`）。1.19.0での取り直しは経緯として残します。測定の段落はdecodeの再現を一度だけ述べ、[1.29.9](docs/benchmarks.ja.md#1299での測定)を引きます。
+- 1.25.0の語彙の範囲のガードの確認を、検証から[1.25.0での測定の小節](docs/benchmarks.ja.md#samplerの語彙の範囲のガード2026-10-02)へ移しました。ベンチマークの索引は、その見出しが1.26.0の配布既定で取ったNLL採点セットも持つことを書きます。
+- [文書一覧](docs/README.ja.md)は、実測値を持つ文書に[運用手順](docs/operations.ja.md)を加えます。2026-09-26のeagerでの読み込みの失敗は[1.19.0での測定](docs/benchmarks.ja.md#1190での測定)に全体を書き、SETUPと運用手順はそこを指します。ZCodeのhookのREADMEは導入手順だけを持ち、再掲していた事実へはリンクします。
+
+参照imageのファイルは変わらず、1.29.9のままです。
+
 ## 1.29.13 — 2026-10-06
 
 ### Documentation
