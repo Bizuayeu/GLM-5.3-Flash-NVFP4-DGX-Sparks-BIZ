@@ -14,6 +14,8 @@ What to do when a 2.x launch goes wrong, and the routine changes around it: a ne
 
 Each rank logs to `~/glm53-tf/logs/serve-r<RANK>-<LABEL>.log`, which a start with the same label overwrites; give every start its own label to keep the earlier logs. The memory guard appends to `hostwatch-<LABEL>.log`: the time and `MemAvailable` in GiB every 2 s, `KILLED` when it stopped the engine, `done` when the engine is gone.
 
+A start can also stop at once with `CUDA startup memory budget cannot fit requested context 300000`, right after a new image was loaded or another engine read the weights. On GB10's unified memory the free memory CUDA reports leaves the page cache out, and the cached weights take the window's margin (on 2026-10-06, 9 GiB of cache left 108.8 GiB free and the TP=2 window did not fit). Ask the kernel to drop the cache of the Hugging Face cache's files on every host (`os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)` on each file; no root needed), then start again; `python3 -c "import torch; print(torch.cuda.mem_get_info())"` in the container shows the free memory the start will see.
+
 ## A rank stops and the others wait
 
 Two watchers stop one host's engine, each on its own host only:
@@ -49,7 +51,7 @@ After `cluster.sh state/cluster.env stop`, on each host:
 
 ```sh
 docker rm -f glm53-tf                                  # the container only sleeps between starts
-v2/scripts/create_container.sh glm53-tf:2.1.1
+v2/scripts/create_container.sh glm53-tf:2.1.4
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 ```
 
@@ -59,7 +61,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 A new image is a new engine build: accept it again before routine use.
 
-1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.1.1 glm53-tf:2.1.1-<engine>`, as the records did), so that going back is a container away.
+1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.1.4 glm53-tf:2.1.4-<engine>`, as the records did), so that going back is a container away.
 2. Load it on the other hosts and compare the image IDs of every host; they must be equal. The ID that `docker images` shows also covers the build's provenance and changes with each checkout the image is built from ([changelog 2.0.0](../CHANGELOG.md)).
 3. Stop, then recreate the container on every host from the new image and run `build_ext.sh` ([above](#recreate-the-container)). For each new engine on the reference hosts it rebuilt all seven extensions, about 155-160 s a host.
 4. Start, and run [validation](validation.md) from the decode check on. A new engine must give the reference hashes; one that does not is a finding to explain, not a value to replace.

@@ -20,7 +20,7 @@
 ## What It Is
 
 - **Weights**: `nvidia/GLM-5.3-Flash-NVFP4` at revision `423acf37583782c51c142d145aef733d72943d93`, the same as 1.x, derived from [Z.ai's GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash). The routed experts and the dense MLP run as W4A16 from the checkpoint's NVFP4 blocks; attention, the shared experts and the head stay BF16. One exception, inside the engine: the MTP layer's routed experts are BF16 in the checkpoint and are quantized to NVFP4 for drafting only. Every drafted token is verified by the full model, so replies are unchanged.
-- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.1` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, and image input from upstream pull request #194, carried to three ranks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
+- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.4` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, and image input from upstream pull request #194, carried to three ranks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
 - **Image**: [`docker/Dockerfile`](docker/Dockerfile), NVIDIA's PyTorch container 26.07 plus the measured package versions (transformers 5.18.0, xgrammar 0.2.8 for structured output, the Hugging Face hub client) and the engine.
 - **Launch**: shell scripts in [`scripts/`](scripts/) and one environment file per rank ([`examples/`](examples/) holds the reference hosts' files). [SETUP.md](SETUP.md) is the order.
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # Each host, from the checkout root (SETUP §3-§5); build once and `docker load` it elsewhere, then compare image IDs
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.1 .
-v2/scripts/create_container.sh glm53-tf:2.1.1
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.4 .
+v2/scripts/create_container.sh glm53-tf:2.1.4
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # tp2-rank1 on the other host; then put this host's values
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -140,6 +140,8 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 Why each 2.x setting was chosen, and what was tried and not adopted, is in [decisions](docs/decisions.md).
 
 ## Measured on the Release
+
+**2.1.4** (2026-10-06, engine `a265436`, image `glm53-tf:2.1.4`). A new conversation after a long one no longer copies and drops the kept prompts first (TensorFold pull request #421). At TP=2 with image input on, the decode check gave 2.1.1's token ids and texts and the image checks passed; after a conversation of 247,330 tokens over 11 turns, a new one kept `MemAvailable` at 11–12 GiB on rank 0 and 12–15 GiB on rank 1.
 
 **2.1.1** (2026-10-05, engine `1a3fb17`, image `glm53-tf:2.1.1`). Each image of a request is its own call of the image tower. At TP=2 with image input on, the decode check gave 2.1.0's token ids, texts and acceptance lengths, and the image checks passed, with two images of one size read alike one at a time and together.
 

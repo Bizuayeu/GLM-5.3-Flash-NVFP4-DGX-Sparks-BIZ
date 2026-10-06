@@ -6,6 +6,25 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.4 — 2026-10-06
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.4` の `a265436de869bd596b20a915758de0cc829fb5a0`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.1.1のエンジンに、TensorFoldのpull request #421（m-naoki-m）を上流のmergeより先に取り込みました。`_take_over` は、残す保持promptを決めてから写すようになりました。長い会話の後に新しい会話が来ても、他の保持promptを写しては捨てることがなくなります（issue #420の測定ではrankあたり約15 GiB）。pull requestの試験は2.1.1のエンジンで6本中3本が落ち、このエンジンでは通ります。上流の試験2本の作り物のsnapshotには、本物が持つ `drafter_rows` の欄を足しました。
+
+### Documentation
+
+- [運用](docs/operations.ja.md#起動の結果)：新しいimageや別のエンジンが重みを読んだ直後に、起動が窓を断るときと、その対処（ページキャッシュ）。
+
+### Accepted
+
+2026-10-06に参照機の対で、TP=2・画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:257c69ba7c8586bd8ce5f158e9cf87af6365a78e2b7baa00338d1ac0c0d4a717`、3台で同じ）で測りました：
+
+- decode検査は2.1.1のtoken idと文字列を出し、画像の検査はすべて合格しました。
+- issue #420の筋書き：11 turnで247,330 tokenまで伸ばした会話の後に、頭を共有しない会話を送りました。新しい会話の間も `MemAvailable` はrank 0で11〜12 GiB、rank 1で12〜15 GiBのままで、最初の要求は1.4秒で答えました。
+- 200,000×20の画像（vLLM #59126のもの）と114,000×28の画像は400（decodeした画素数の上限）で断られ、エンジンは配信を続けました。
+- エンジン自身の試験：briefの一式は1,263 passed、小さなモデルのビットの照合は2.1.1と同じです。
+
 ## 2.1.3 — 2026-10-06
 
 ### Added

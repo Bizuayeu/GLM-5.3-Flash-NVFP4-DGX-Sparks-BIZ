@@ -4,6 +4,25 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.4 — 2026-10-06
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.1.4` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `a265436de869bd596b20a915758de0cc829fb5a0` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.1.1's engine and TensorFold pull request #421 (m-naoki-m), taken before upstream merges it. `_take_over` now decides which kept prompts stay before it copies any, so a new conversation after a long one no longer copies and drops the others first; issue #420 measured that at about 15 GiB per rank. The pull request's tests failed on 2.1.1's engine (3 of 6) and pass on this one, and two upstream tests' fake snapshots gained the `drafter_rows` field the real one has.
+
+### Documentation
+
+- [Operations](docs/operations.md#start-outcomes): a start that refuses the window right after a new image or another engine read the weights, and what to do (the page cache).
+
+### Accepted
+
+Measured on the reference pair on 2026-10-06 at TP=2 with image input on, with the release candidate image (linux/arm64 `sha256:257c69ba7c8586bd8ce5f158e9cf87af6365a78e2b7baa00338d1ac0c0d4a717`, the same on the three hosts):
+
+- The decode check gave 2.1.1's token ids and texts, and the image checks passed.
+- Issue #420's scenario: a conversation grown to 247,330 tokens over 11 turns, then one that shares no prefix with it. Through the new conversation `MemAvailable` held at 11–12 GiB on rank 0 and 12–15 GiB on rank 1, and its first request answered in 1.4 s.
+- A 200,000×20 image (vLLM #59126's) and a 114,000×28 one were refused with 400 (the decoded pixel limit), and the engine kept serving.
+- The engine's own tests: the brief set 1,263 passed; the tiny model's bit checks equal 2.1.1's.
+
 ## 2.1.3 — 2026-10-06
 
 ### Added

@@ -14,6 +14,8 @@
 
 各rankのlogは `~/glm53-tf/logs/serve-r<RANK>-<LABEL>.log` で、同じlabelの起動が上書きします。前のlogを残すには、起動ごとに別のlabelを付けます。メモリの見張りは `hostwatch-<LABEL>.log` に追記します：2秒ごとの時刻とGiB単位の `MemAvailable`、エンジンを止めたときの `KILLED`、エンジンがいなくなったときの `done` です。
 
+新しいimageを読み込んだ直後や、別のエンジンが重みを読んだ直後には、起動が `CUDA startup memory budget cannot fit requested context 300000` ですぐに止まることもあります。GB10の統合メモリでは、CUDAが返す空きはページキャッシュの分を含まないので、キャッシュに残った重みが窓の余裕を食います（2026-10-06には9 GiBのキャッシュで空きが108.8 GiBになり、TP=2の窓が入りませんでした）。全ホストでHugging Faceのcacheのファイルのキャッシュを捨てるようカーネルに伝え（各ファイルに `os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)`、rootは要りません）、起動し直します。起動が見る空きは、containerの中の `python3 -c "import torch; print(torch.cuda.mem_get_info())"` で分かります。
+
 ## 一つのrankが止まり、他は待つ
 
 ホストのエンジンを止める見張りは二つで、どちらも自分のホストだけに働きます：
@@ -49,7 +51,7 @@ rankどうしはTCPのsocketではなくRoCEで話す必要があります：
 
 ```sh
 docker rm -f glm53-tf                                  # containerは起動の合間は眠っているだけ
-v2/scripts/create_container.sh glm53-tf:2.1.1
+v2/scripts/create_container.sh glm53-tf:2.1.4
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 ```
 
@@ -59,7 +61,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 新しいimageは新しいエンジンのbuildです。日常の利用の前に受け入れ直します。
 
-1. 一台でbuildします（[手順書 §3](../SETUP.ja.md#3-image)）。先に全ホストで、使っているimageに二つ目のtagを付けて残します（記録と同じく `docker tag glm53-tf:2.1.1 glm53-tf:2.1.1-<engine>`）。戻るのがcontainer一つで済みます。
+1. 一台でbuildします（[手順書 §3](../SETUP.ja.md#3-image)）。先に全ホストで、使っているimageに二つ目のtagを付けて残します（記録と同じく `docker tag glm53-tf:2.1.4 glm53-tf:2.1.4-<engine>`）。戻るのがcontainer一つで済みます。
 2. 他のホストへ読み込み、全ホストのimageのIDを比べます。等しくなければなりません。`docker images` が示すIDはbuildの来歴も含み、buildしたcheckoutごとに変わります（[changelogの2.0.0](../CHANGELOG.ja.md)）。
 3. 止めてから、全ホストで新しいimageからcontainerを作り直し、`build_ext.sh` を実行します（[上](#containerを作り直す)）。参照機では、新しいエンジンのたびに7つのextensionを全部buildし直し、1台あたり約155〜160秒でした。
 4. 起動し、decode検査から[検証](validation.ja.md)を回します。新しいエンジンは基準のhashを出さなければなりません。出さなければ、それは説明すべき所見で、置き換える値ではありません。

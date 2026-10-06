@@ -86,6 +86,7 @@ The release branch is upstream v0.6.5 plus the commits that the [changelog](../C
 - `d5e65e2`: a rank can load only chosen layers, for the tests against the real checkpoint.
 - `9c78e43`, `aba0f21`, `4a41c21`, `d21c834`: what 2.1.0 adds to upstream pull request #194 (its seven commits, `4fcfb10` to `f9ee1d9`): one image up to the checkpoint's 8,000 visual tokens, rank 0's image workspace from a measurement of the tower, the image features on every rank of three, and `--vision-offload` refused on a GPU that shares the host's memory.
 - `eaf06cc`, `1a3fb17` (2.1.1): each image of a request is its own call of the image tower, since an image encoded in one call with others got different features.
+- `e735c14`, `a265436` (2.1.4): TensorFold pull request #421 (m-naoki-m), taken before upstream merges it: `_take_over` decides which kept prompts stay before copying any (issue #420); the fake snapshots of two upstream tests carry `drafter_rows`.
 
 ## Measures from 1.x not yet evaluated on 2.x
 
