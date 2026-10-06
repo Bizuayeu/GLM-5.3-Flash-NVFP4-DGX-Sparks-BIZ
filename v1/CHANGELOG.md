@@ -2,6 +2,18 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.12 — 2026-10-06
+
+### Documentation
+
+- Links named "validation" that open [repeatability](docs/repeatability.md) or [component validation](docs/component-validation.md) are named after their pages, and [operations](docs/operations.md) step 4 links the single-GPU fixture procedure instead of the validation page, which has no procedure. The [benchmark](docs/benchmarks.md) index lists 1.29.0, 1.29.8 and 1.29.9. The Japanese CPU-placement paragraph says the list goes to `--cpuset-cpus`, as the English does. The AXL and TP=3 templates link the shared pages at `../docs/`, and the TP=3 header says its values differ from the defaults only in the nodes.
+
+### Tests
+
+- The test lock pins filelock, so CI's required job runs the download lock tests of both lines ([CONTRIBUTING](../CONTRIBUTING.md)). The overlays' README hash table is checked against the AXL example. The publication audit checks that each Japanese page has its English page's headings, table rows and code blocks, and 2.x's copies of `download`, `io`, `verify_download` and the tool gate's check and repair are checked to differ from this line's only in the package name. Test modules call `v1/` `LINE` and `state/` `STATE`, as the package does.
+
+No file of the reference image changes; it stays 1.29.9's.
+
 ## 1.29.11 — 2026-10-06
 
 ### Documentation

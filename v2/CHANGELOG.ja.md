@@ -6,6 +6,18 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.7 — 2026-10-06
+
+### Documentation
+
+- [判断](docs/decisions.ja.md)：熱の帯の行は「`serve.sh` が仮置きとしている」と書かなくなりました（2.0.7で外れています）。画像入力なしの2.0.0の行は、それを再開した行を指します。rankのファイルの例は、値に日付を付けなくなりました。[リポジトリのREADME](../README.ja.md)は、この系の入力に画像を挙げます。`decode-check` と `score-nll` は、1.x系の道具と今も共有しているものを書きます。
+
+### Tests
+
+- 公開監査は、日本語の頁が英語の頁と同じ見出し・表の行・コードブロックを持つことを確かめます。この系が持つ1.x系の `download`・`io`・`verify_download` とtool gateのcheck・repairの写しは、package名だけ違うことを確かめます。CIの必須jobがfilelockを入れるので、この系のダウンロードのロックのテストもそこで走ります。
+
+imageは変わらず、2.1.4のままです。
+
 ## 2.1.6 — 2026-10-06
 
 ### Fixed

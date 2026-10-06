@@ -4,6 +4,18 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.7 — 2026-10-06
+
+### Documentation
+
+- [Decisions](docs/decisions.md): the heat bands' row no longer says `serve.sh` keeps them provisional (2.0.7 dropped that), and the 2.0.0 row without image input points to the row that reopened it. The example rank files no longer date their values. The [repository README](../README.md) lists images among this line's inputs. `decode-check` and `score-nll` say what they still share with 1.x's tools.
+
+### Tests
+
+- The publication audit checks that each Japanese page has its English page's headings, table rows and code blocks. This line's copies of 1.x's `download`, `io`, `verify_download` and the tool gate's check and repair are checked to differ only in the package name. CI's required job installs filelock, so this line's download lock test runs there.
+
+The image is unchanged; it stays 2.1.4's.
+
 ## 2.1.6 — 2026-10-06
 
 ### Fixed

@@ -4,6 +4,18 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.12 — 2026-10-06
+
+### Documentation
+
+- 「検証」と名付けたまま[再現性](docs/repeatability.ja.md)や[部品検証](docs/component-validation.ja.md)を開いていたリンクを、開くページの名前にしました。[運用](docs/operations.ja.md)の手順4は、手順を持たない検証のページではなく、GPU 1台のfixture手順を指します。[ベンチマーク](docs/benchmarks.ja.md)の索引に1.29.0・1.29.8・1.29.9を足しました。CPU配置の日本語の段落に、英語版と同じく「`--cpuset-cpus` に渡す」を補いました。AXLとTP=3のテンプレートは共有のページを `../docs/` で指し、TP=3のヘッダは「値の違いはノードだけ」と書きます。
+
+### Tests
+
+- test lockにfilelockを固定し、CIの必須jobが両系のダウンロードのロックのテストを走らせます（[CONTRIBUTING](../CONTRIBUTING.ja.md)）。overlaysのREADMEのhash表をAXLの例と照合します。公開監査は、日本語の頁が英語の頁と同じ見出し・表の行・コードブロックを持つことを確かめ、2.x系の `download`・`io`・`verify_download` とtool gateのcheck・repairの写しが、この系とpackage名だけ違うことを確かめます。テストのモジュールは、packageと同じく `v1/` を `LINE`、`state/` を `STATE` と呼びます。
+
+参照imageのファイルは変わらず、1.29.9のままです。
+
 ## 1.29.11 — 2026-10-06
 
 ### Documentation
