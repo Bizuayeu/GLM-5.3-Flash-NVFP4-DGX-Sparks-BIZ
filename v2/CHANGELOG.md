@@ -4,6 +4,23 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.5 — 2026-10-06
+
+### Added
+
+- `python -m glm53_tf bench`: the prefill and decode speed of [benchmark method](docs/benchmarks.md#prefill-and-decode-speed) (a 38,960-token prompt with a fresh nonce, then 512 tokens after a short fixed prompt), one JSON line per request with the reply's `prefill_s`, `heat_wait_s` and `cached`, and a summary of medians.
+- `python -m glm53_tf long-input`: the [long inputs](docs/benchmarks.md#long-inputs), one passphrase in the middle of a ledger or three at one twentieth from the start, the middle and one twentieth from the end, the length set in lines or fitted to a token count with the engine's `/tokenize`; it exits 1 when a passphrase is missing.
+- The [host telemetry](../host/README.md#telemetry-record) records the GPU's cumulative clock event counters (`event_counters_us`: SW power cap, sync boost, SW and HW thermal slowdown, HW power brake). On GB10 the power limit and the memory clock read N/A, and an SW power cap that comes and goes between samples shows only there. The existing fields keep their names and order. Reinstall the host tools to pick it up.
+
+### Documentation
+
+- [Validation](docs/validation.md#prefill-and-decode-speed): on 2.1.4 at TP=2, 22 prompts of 38,960 tokens in two launches, each after a cooling gate, all ran at the faster of the two speeds, and the SW power cap counter did not grow during any of them; it grows only while no engine runs. The cause stays open.
+- [Benchmark method](docs/benchmarks.md) names the two commands instead of scripts outside the repository.
+
+### Accepted
+
+On the reference pair on 2026-10-06 at TP=2 with 2.1.4's image (unchanged): `bench` read a 38,961-token prompt at 1,322.0 tok/s and decoded 512 tokens at 35.88 tok/s; `long-input` fitted three passphrases to 59,976 tokens and one passphrase over 800 lines, and the replies held all of them. The new telemetry field read integers on rank 0's host.
+
 ## 2.1.4 — 2026-10-06
 
 ### Engine

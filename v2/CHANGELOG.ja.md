@@ -6,6 +6,23 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.5 — 2026-10-06
+
+### Added
+
+- `python -m glm53_tf bench`：[ベンチマークの方法](docs/benchmarks.ja.md)のprefillとdecodeの速さ（新しいnonceを付けた38,960 tokenのprompt、続いて短い固定promptの後に512 token）。要求ごとに、応答の `prefill_s`・`heat_wait_s`・`cached` を含むJSONを1行出し、最後に中央値の要約を出します。
+- `python -m glm53_tf long-input`：[ベンチマークの方法](docs/benchmarks.ja.md)の長文。帳簿の真ん中に合言葉を1つ、または先頭から20分の1・真ん中・末尾から20分の1に3つ置きます。長さは行数で指定するか、エンジンの `/tokenize` でtoken数に合わせます。合言葉が欠けると終了コード1です。
+- [ホストのtelemetry](../host/README.ja.md)が、GPUのclock eventの累積カウンタ（`event_counters_us`：SW power cap、sync boost、SWとHWの熱による減速、HWの電力ブレーキ）を記録します。GB10では電力の上限とメモリのクロックがN/Aで、標本の合間に立っては消えるSW power capはこのカウンタにしか出ません。既存の欄の名前と順序は変えていません。取り込むにはホストの道具を入れ直します。
+
+### Documentation
+
+- [検証](docs/validation.ja.md)：2.1.4のTP=2で、2回の起動で冷却の待ちの後に1本ずつ流した38,960 tokenのprompt 22本は、すべて2つの速さの速い側でした。SW power capのカウンタはそのどの間も増えず、増えるのはengineが動いていない間だけでした。原因は未解決のままです。
+- [ベンチマークの方法](docs/benchmarks.ja.md)は、リポジトリの外の台本ではなく2つのコマンドを示します。
+
+### Accepted
+
+2026-10-06に参照機の対で、TP=2・2.1.4のimage（変更なし）で：`bench` は38,961 tokenのpromptを1,322.0 tok/sで読み、512 tokenを35.88 tok/sでdecodeしました。`long-input` は3つの合言葉を59,976 tokenに合わせた長文と、1つの合言葉を800行に置いた長文の両方で、応答がすべての合言葉を含みました。新しいtelemetryの欄は、rank 0のホストで整数を読みました。
+
 ## 2.1.4 — 2026-10-06
 
 ### Engine
