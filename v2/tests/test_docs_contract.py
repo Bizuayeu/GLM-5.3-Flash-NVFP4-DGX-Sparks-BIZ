@@ -46,6 +46,14 @@ def row(text, key):
     return rows[0]
 
 
+def row_starting(text, prefix):
+    """The one line of a page that starts with ``prefix``."""
+    lines = [line for line in text.splitlines() if line.startswith(prefix)]
+    if len(lines) != 1:
+        raise AssertionError(f"{len(lines)} lines start with {prefix!r}")
+    return lines[0]
+
+
 def readme(suffix):
     return read(f"README{suffix}.md")
 
@@ -197,6 +205,19 @@ class ImageTests(unittest.TestCase):
                 with self.subTest(page=name + suffix):
                     self.assertTrue(commands)
                     self.assertEqual(set(commands), {tag})
+
+    def test_the_readme_names_the_image_it_builds(self):
+        # The image's version is the release accepted last: the Status bullet names it
+        # and the release measurements have its entry.
+        version = owned(r"-t glm53-tf:(\S+) \.", "docker/Dockerfile")
+        for suffix, status, measured in (
+            ("", "- **Status.**", "Measured on the Release"),
+            (".ja", "- **状態。**", "リリースでの測定値"),
+        ):
+            text = readme(suffix)
+            with self.subTest(suffix=suffix):
+                self.assertIn(version, row_starting(text, status))
+                self.assertIn(f"**{version}**", section(text, measured))
 
 
 class MemoryGuardTests(unittest.TestCase):
