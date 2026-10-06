@@ -17,8 +17,9 @@ of the same profile (docs/validation.md, "Decode check").
 
 Environment: BASE (default http://127.0.0.1:8095), MODEL (default glm-tf), PROMPT_TOKENS (2048),
 MAX_TOKENS (512), SAMPLES (3), TF_GLM_CACHE_ENTRIES (8, TensorFold's default; set it to the server's value).
-The BASE and MODEL defaults are 2.x's: the engine as scripts/serve.sh starts it on rank 0. The rest is 1.x's
-v1/tools/decode_check.py, copied, so the same measurement reads the same on both lines.
+The BASE and MODEL defaults are 2.x's: the engine as scripts/serve.sh starts it on rank 0. The prompt, the samples and
+the hashes are those of 1.x's v1/tools/decode_check.py, from which this one split for
+TensorFold, so the same measurement reads the same on both lines.
 """
 
 import argparse

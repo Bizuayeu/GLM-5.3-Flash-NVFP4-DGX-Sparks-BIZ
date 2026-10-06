@@ -9,7 +9,7 @@ one the set was built with, 1 when a request failed.
     python -m glm53_tf score-nll --url http://127.0.0.1:8095 \\
         --tokenizer <checkpoint snapshot>/tokenizer.json --out ../records/<run>/nll.json
 
-The arguments are 1.x's v1/tools/score_nll_set.py, whose code this copies; the set is a byte copy
+The arguments and the scoring are 1.x's v1/tools/score_nll_set.py (this one also sends the API key); the set is a byte copy
 of 1.x's, so the two lines' figures compare.
 """
 
