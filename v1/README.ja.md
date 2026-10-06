@@ -186,7 +186,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 - **BIZは意図であり、約束ではありません**（[リポジトリのREADME](../README.ja.md#biz)）。この系列が業務利用に適するかは、宣言した範囲についての検収です（[範囲ごとの状態](#範囲ごとの状態)）。
 - **kpool tail ringの修正は部分的です。** [vLLM #58454](https://github.com/vllm-project/vllm/pull/58454) の移植（`patch_kpool_ring`）は上流自身が部分的な修正としており、続く変更が予定されています（[運用手順](docs/operations.ja.md#フルモデルの起動検査)）。
 - **tail ringはMTPの深さで変わります。** blockは深さとともに大きくなるため、KV容量の分解と起動から記録する値は深さによって変わります（[KV容量](docs/server-configuration.ja.md#kv容量とramの条件)）。
-- **文脈が2,048 tokenを超えるdecodeの再現性の基準値は、1.19.0で取り直しました。** indexerの `index_topk`（2,048）を超えると、ringの修正はMTPありのdecode中に作られるpoolの圧縮keyを変え得るため、以前のimageで記録した基準hashは基準になりません。promptで超える要求は、両profileのdecode検査のhashが基準です（[1.19.0での測定](docs/benchmarks.ja.md#1190での測定)）。出力で2,048を超える要求の基準値は取っていません。
+- **文脈が2,048 tokenを超えるdecodeの再現性の基準値は、1.19.0で取り直しました。** indexerの `index_topk`（2,048）を超えると、ringの修正はMTPありのdecode中に作られるpoolの圧縮keyを変え得るため、以前のimageで記録した基準hashは基準になりません。promptで超える要求については、その時に両profileのdecode検査のhashを取りました（[1.19.0での測定](docs/benchmarks.ja.md#1190での測定)）。起動は、[切替の後のdecode検査](docs/launch-safety.ja.md#切替の後のdecode検査)のとおり同じprofileの前の起動と比べます（completionの文字を直した1.29.8を跨ぐときは `token_ids_sha256`）。出力で2,048を超える要求の基準値は取っていません。
 - **`runtime.stable_indexer_topk = false` にすると、[vLLM #58785](https://github.com/vllm-project/vllm/pull/58785) が直す不具合の影響を受けます。** このpull requestは上流でまだopenで、persistent top-kがoverflow時に候補を失い得ます。このkeyは有効のままにしてください（どのテンプレートでも有効）。
 
 ## Next Action
