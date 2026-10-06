@@ -51,11 +51,14 @@ def number(text):
 
 
 def counters(texts):
-    """The counters' values in COUNTERS order as integers; N/A or [N/A] gives None."""
+    """The counters' values in COUNTERS order as integers; N/A or [N/A] gives None.
+
+    Without nounits nvidia-smi prints them as "<n> us"; the unit is dropped either way.
+    """
     values = {}
     for name, text in zip(COUNTERS, texts, strict=True):
         try:
-            values[name] = int(text)
+            values[name] = int(text.removesuffix(" us"))
         except ValueError:
             values[name] = None
     return values

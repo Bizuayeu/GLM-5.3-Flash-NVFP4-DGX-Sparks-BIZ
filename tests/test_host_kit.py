@@ -218,7 +218,8 @@ class TelemetryTests(unittest.TestCase):
     def test_counters_read_microseconds_and_not_available_as_null(self):
         with tempfile.TemporaryDirectory() as log_dir:
             telemetry = load("gb10-telemetry", log_dir)
-        counters = telemetry.counters(["55157801736", "0", "[N/A]", "N/A", "0"])
+        # "us" in case nounits leaves the counters' unit, as csv prints it.
+        counters = telemetry.counters(["55157801736", "0", "[N/A]", "N/A", "470 us"])
         self.assertEqual(
             counters,
             {
@@ -226,7 +227,7 @@ class TelemetryTests(unittest.TestCase):
                 "sync_boost": 0,
                 "sw_thermal_slowdown": None,
                 "hw_thermal_slowdown": None,
-                "hw_power_brake_slowdown": 0,
+                "hw_power_brake_slowdown": 470,
             },
         )
 
