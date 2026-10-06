@@ -9,9 +9,9 @@ from pathlib import Path
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE, STATE
 from glm53_setup.runtime import shm_spin
 
-ROOT = Path(__file__).resolve().parents[1]
 TARGET = "fakevllm.shm_broadcast"
 
 
@@ -80,12 +80,10 @@ class HookTests(unittest.TestCase):
 
 class SettingTests(unittest.TestCase):
     def setUp(self):
-        self.profile = config.load(ROOT / "examples/server.example.toml")
+        self.profile = config.load(LINE / "examples/server.example.toml")
 
     def command(self, profile):
-        return server.command(
-            profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
-        )
+        return server.command(profile, STATE / "server.toml", 0, "c", STATE / "test-hf")
 
     def test_absent_key_adds_no_hook_and_keeps_the_fingerprint(self):
         # The templates set the key from 1.26.0; a profile without it launches as before.

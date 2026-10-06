@@ -6,11 +6,10 @@ from pathlib import Path
 
 from glm53_setup import server
 from glm53_setup import server_config as config
-from glm53_setup.config import REVISION
+from glm53_setup.config import LINE, REVISION
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULTS = ROOT / "examples/server.example.toml"
-AXL = ROOT / "examples/server.axl.example.toml"
+DEFAULTS = LINE / "examples/server.example.toml"
+AXL = LINE / "examples/server.axl.example.toml"
 SIX_GIB = 6 * 2**30
 IMAGE = "sha256:" + "1" * 64
 VLLM_MODELS = "/usr/local/lib/python3.12/dist-packages/vllm/models/glm5next/nvidia"
@@ -119,18 +118,18 @@ class AxlExampleTests(unittest.TestCase):
         for overlay in overlays:
             with self.subTest(target=overlay["target"]):
                 content = (
-                    ROOT / "overlays" / Path(overlay["source"]).name
+                    LINE / "overlays" / Path(overlay["source"]).name
                 ).read_bytes()
                 self.assertEqual(hashlib.sha256(content).hexdigest(), overlay["sha256"])
                 self.assertIn(overlay["marker"].encode(), content)
         self.assertEqual(
             sorted(Path(o["source"]).name for o in overlays),
-            sorted(path.name for path in (ROOT / "overlays").glob("*.py")),
+            sorted(path.name for path in (LINE / "overlays").glob("*.py")),
         )
 
     def test_the_overlays_readme_table_states_the_examples_overlays(self):
         # The README is where a host's operator copies the hashes from.
-        readme = (ROOT / "overlays/README.md").read_text(encoding="utf-8")
+        readme = (LINE / "overlays/README.md").read_text(encoding="utf-8")
         rows = {
             cells[0].strip("`"): [cell.strip("`") for cell in cells[1:]]
             for cells in (

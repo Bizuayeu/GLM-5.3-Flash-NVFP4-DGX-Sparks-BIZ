@@ -1,19 +1,17 @@
 import copy
 import sys
 import unittest
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE, STATE
 from glm53_setup.runtime.memory_probe import (
     MemoryProbeWorker,
     summarize,
     summarize_host,
 )
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 class MemoryProbeTests(unittest.TestCase):
@@ -224,7 +222,7 @@ class MemoryProbeTests(unittest.TestCase):
         self.assertEqual(whole_words(7), 0)
 
     def test_profile_key_mounts_the_probe_and_stays_exclusive(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         self.assertNotIn(
             "--worker-extension-cls", config.serve_args(profile, 0, "/hf/model")
         )
@@ -237,7 +235,7 @@ class MemoryProbeTests(unittest.TestCase):
         )
         self.assertIn("--enable-prefix-caching", args)  # nothing else changes
         command = server.command(
-            profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+            profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
         )
         self.assertTrue(
             any(

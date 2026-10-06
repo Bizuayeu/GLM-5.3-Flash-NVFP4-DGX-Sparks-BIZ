@@ -7,12 +7,13 @@ from pathlib import Path
 
 from glm53_setup import server, warmup
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE, STATE
 from glm53_setup.runtime import lpa
 from glm53_setup.validation import run_apc_lpa_fixture, run_lpa
+from tests.test_server import dockerfile_env, enabled_profile, ring_profile
 from tools import decode_check
 
-ROOT = Path(__file__).resolve().parents[1]
-RUNTIME = ROOT / "glm53_setup/runtime"
+RUNTIME = LINE / "glm53_setup/runtime"
 
 
 def package_imports(path):
@@ -63,12 +64,12 @@ class MountedRuntimeTests(unittest.TestCase):
 
     def mounted(self):
         # FA2 excludes LPA, so every mount shows up across two launches.
-        fa2 = config.load(ROOT / "examples/server.example.toml")
+        fa2 = config.load(LINE / "examples/server.example.toml")
         fa2["runtime"]["fa2_attention"] = True
         fa2["runtime"]["inductor_deterministic"] = True
         fa2["runtime"]["shm_spin_seconds"] = 0.002
         fa2.setdefault("validation", {})["memory_probe"] = True
-        with_lpa = config.load(ROOT / "examples/server.example.toml")
+        with_lpa = config.load(LINE / "examples/server.example.toml")
         with_lpa["lpa"]["enabled"] = True
         with_lpa["runtime"]["fa2_attention"] = False
         with_lpa["runtime"]["enforce_eager"] = True
@@ -77,7 +78,7 @@ class MountedRuntimeTests(unittest.TestCase):
         names = set()
         for profile in (fa2, with_lpa):
             args = server.command(
-                profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+                profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
             )
             for i, arg in enumerate(args):
                 if arg == "-v":
@@ -98,7 +99,7 @@ class MountedRuntimeTests(unittest.TestCase):
 
 class ImagePackageDirTests(unittest.TestCase):
     def test_the_mount_target_is_where_the_image_copies_the_package(self):
-        dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+        dockerfile = (LINE / "docker/Dockerfile.reference").read_text(encoding="utf-8")
         copied = re.search(r"(?m)^COPY v1/glm53_setup (\S+)$", dockerfile)
         self.assertEqual(copied[1], server.IMAGE_PACKAGE_DIR)
 
@@ -108,7 +109,7 @@ class LpaMtpDepthTests(unittest.TestCase):
     # same depths; a depth the settings pass and a worker refuses fails every
     # LPA request after an otherwise healthy start.
     def test_settings_accept_exactly_the_worker_depths(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         profile["lpa"]["enabled"] = True
         profile["runtime"]["fa2_attention"] = False
         profile["runtime"]["enforce_eager"] = True
@@ -153,7 +154,7 @@ DOCS = ("docs/server-configuration.md", "docs/server-configuration.ja.md")
 
 def doc_table(name, header):
     """The rows of the table that starts at ``header``, as first cell -> rest."""
-    text = (ROOT / name).read_text(encoding="utf-8")
+    text = (LINE / name).read_text(encoding="utf-8")
     lines = text[text.index(header) :].splitlines()[2:]
     rows = {}
     for line in lines:
@@ -175,30 +176,9 @@ class MarkerTableTests(unittest.TestCase):
         "GLM53_STABLE_INDEXER_TOPK=1",
     }
 
-    def enabled_profile(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
-        profile["runtime"].update(
-            pipeline_parallel_size=2,
-            expert_parallel=True,
-            decode_graphs=True,
-            canonical_moe_order=True,
-            stable_indexer_topk=True,
-            prefix_page_dedup=True,
-            fa2_attention=True,
-        )
-        profile["validation"]["component_worker"] = True
-        profile["cache"].update(fused_unpack=True, prefix_caching=True)
-        profile["lpa"]["enabled"] = True
-        return profile
-
     def test_each_language_lists_every_marker_with_the_check_that_needs_it(self):
-        dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
-        env = re.findall(r"^ENV (GLM53_\w+=\S+)$", dockerfile, re.MULTILINE)
-        # TP=3 is the only shape that pads; the two-node profile cannot.
-        profiles = (
-            self.enabled_profile(),
-            config.load(ROOT / "examples/server.tp3.example.toml"),
-        )
+        env = dockerfile_env()
+        profiles = (enabled_profile(), ring_profile())
         for name, header in zip(DOCS, self.HEADERS, strict=True):
             rows = {
                 marker.strip("`"): cell
@@ -229,7 +209,7 @@ class TemplateTableTests(unittest.TestCase):
     HEADERS = ("| Item | Default |", "| 項目 | 既定値 |")
 
     def test_the_summary_values_are_the_example_values(self):
-        p = config.load(ROOT / "examples/server.example.toml")
+        p = config.load(LINE / "examples/server.example.toml")
         expected = [
             f"{p['context']['max_model_len']:,}",
             f"chunk {p['context']['max_num_batched_tokens']}",
@@ -260,7 +240,7 @@ class HarnessStatusTests(unittest.TestCase):
     STATUS = r"(PASS|PARTIAL|FAIL|NOT RUN|BLOCKED)"
 
     def matrix(self, name):
-        text = (ROOT / name).read_text(encoding="utf-8")
+        text = (LINE / name).read_text(encoding="utf-8")
         return {
             case: status
             for case, status in re.findall(
@@ -277,7 +257,7 @@ class HarnessStatusTests(unittest.TestCase):
             matrix = self.matrix(owner)
             self.assertIn("H-06", matrix)
             for name in quoting:
-                text = (ROOT / name).read_text(encoding="utf-8")
+                text = (LINE / name).read_text(encoding="utf-8")
                 for case, status in re.findall(
                     rf"(H-\d\d)\]?(?:\([^)]*\))? {self.STATUS}", text
                 ):
@@ -292,7 +272,7 @@ class CanaryDocTests(unittest.TestCase):
 
     def test_the_numbers_quoted_are_the_code_values(self):
         for name in self.PAGES:
-            text = (ROOT / name).read_text(encoding="utf-8")
+            text = (LINE / name).read_text(encoding="utf-8")
             for value in (
                 f"{warmup.CANARY_COUNT}",
                 f"{warmup.CANARY_TOKENS} token",
@@ -302,11 +282,11 @@ class CanaryDocTests(unittest.TestCase):
                     self.assertIn(value, text)
 
     def test_the_prompt_is_not_copied_into_the_documents(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         prompt = dict(warmup.rungs(profile))["canary"]["messages"][0]["content"]
         for name in self.PAGES:
             with self.subTest(page=name):
-                text = (ROOT / name).read_text(encoding="utf-8")
+                text = (LINE / name).read_text(encoding="utf-8")
                 self.assertFalse(prompt in text, "quote the prompt from warmup.py")
 
 

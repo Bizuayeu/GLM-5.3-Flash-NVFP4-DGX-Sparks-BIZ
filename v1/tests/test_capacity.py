@@ -1,10 +1,8 @@
 import unittest
-from pathlib import Path
 
 from glm53_setup import capacity
 from glm53_setup import server_config as config
-
-ROOT = Path(__file__).resolve().parents[1]
+from glm53_setup.config import LINE
 
 LOGS = """
 (EngineCore pid=1) INFO [kv_cache_utils.py:2315] GPU KV cache size: 235,016 tokens, Maximum concurrency for 204,800 tokens per request: 1.15x
@@ -22,7 +20,7 @@ METRICS = (
 
 class CapacityTests(unittest.TestCase):
     def setUp(self):
-        self.profile = config.load(ROOT / "examples/server.example.toml")
+        self.profile = config.load(LINE / "examples/server.example.toml")
         # LOGS and the layouts below were captured on the 204,800-token profile.
         self.profile["context"]["max_model_len"] = 204800
 

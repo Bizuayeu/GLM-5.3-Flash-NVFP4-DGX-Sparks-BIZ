@@ -17,13 +17,13 @@ from unittest.mock import MagicMock, patch
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE
 
-ROOT = Path(__file__).resolve().parents[1]
 INHERITED_ALLOCATOR = {"PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"}
 
 
 def profile():
-    return config.load(ROOT / "examples/server.example.toml")
+    return config.load(LINE / "examples/server.example.toml")
 
 
 @contextlib.contextmanager

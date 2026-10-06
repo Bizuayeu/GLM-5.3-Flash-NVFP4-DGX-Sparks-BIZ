@@ -7,9 +7,9 @@ from pathlib import Path
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE, STATE
 from glm53_setup.runtime import inductor_pin
 
-ROOT = Path(__file__).resolve().parents[1]
 UNSET = object()
 
 
@@ -81,16 +81,14 @@ class PinTests(unittest.TestCase):
 
 class LaunchTests(unittest.TestCase):
     def test_the_key_mounts_the_pin_and_its_pth_and_nothing_without_it(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         profile["runtime"]["inductor_deterministic"] = False
-        off = server.command(
-            profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
-        )
+        off = server.command(profile, STATE / "server.toml", 0, "c", STATE / "test-hf")
         self.assertFalse(any("inductor_pin" in v for v in off))
         profile["runtime"]["inductor_deterministic"] = True
         config.validate(profile)
         command = server.command(
-            profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+            profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
         )
         for target in (
             f":{server.IMAGE_PACKAGE_DIR}/runtime/inductor_pin.py:ro",

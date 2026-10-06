@@ -26,26 +26,26 @@ from pathlib import Path
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE
 
-ROOT = Path(__file__).resolve().parents[1]
-GOLDEN = ROOT / "tests/tp2_launch_golden.json"
+GOLDEN = LINE / "tests/tp2_launch_golden.json"
 IMAGE = "sha256:" + "1" * 64
 CACHE = Path("/cache")
 
 
 def variants():
     """The shipped two-node examples, and the PP2 and EP shapes of the defaults."""
-    defaults = config.load(ROOT / "examples/server.example.toml")
-    pp2 = config.load(ROOT / "examples/server.example.toml")
+    defaults = config.load(LINE / "examples/server.example.toml")
+    pp2 = config.load(LINE / "examples/server.example.toml")
     pp2["runtime"]["pipeline_parallel_size"] = 2
-    ep = config.load(ROOT / "examples/server.example.toml")
+    ep = config.load(LINE / "examples/server.example.toml")
     ep["runtime"]["expert_parallel"] = True
     for profile in (pp2, ep):
         profile["mtp"]["enabled"] = False
         profile["cache"].update(prefix_caching=False, fused_unpack=False)
     result = {
         "defaults": defaults,
-        "axl": config.load(ROOT / "examples/server.axl.example.toml"),
+        "axl": config.load(LINE / "examples/server.axl.example.toml"),
         "pp2": pp2,
         "ep": ep,
     }
@@ -61,7 +61,7 @@ def variants():
 
 
 def reference_env():
-    dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+    dockerfile = (LINE / "docker/Dockerfile.reference").read_text(encoding="utf-8")
     return re.findall(r"^ENV (GLM53_\w+=\S+)$", dockerfile, re.MULTILINE)
 
 

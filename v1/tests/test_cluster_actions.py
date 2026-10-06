@@ -20,8 +20,7 @@ from unittest.mock import MagicMock, patch
 
 from glm53_setup import cluster, server
 from glm53_setup import server_config as config
-
-ROOT = Path(__file__).resolve().parents[1]
+from glm53_setup.config import LINE
 
 
 @contextlib.contextmanager
@@ -35,7 +34,7 @@ def rooted(root):
 
 
 def profile():
-    return config.load(ROOT / "examples/server.example.toml")
+    return config.load(LINE / "examples/server.example.toml")
 
 
 class ActionTableTests(unittest.TestCase):
@@ -77,7 +76,7 @@ class ActionTableTests(unittest.TestCase):
             args = [
                 "switch",
                 "--config",
-                str(ROOT / "examples/server.example.toml"),
+                str(LINE / "examples/server.example.toml"),
                 "--remote-config",
                 "relative/server.toml",
                 "--hosts",
@@ -168,7 +167,7 @@ class ActionOutcomeTests(unittest.TestCase):
     """What each action leaves on disk and prints once its work returns or raises."""
 
     def test_resume_saves_the_carried_record_and_prints_its_status(self):
-        for source in (None, ROOT / "examples/server.example.toml"):
+        for source in (None, LINE / "examples/server.example.toml"):
             with (
                 self.subTest(config=source),
                 tempfile.TemporaryDirectory() as tmp,
@@ -247,7 +246,7 @@ class ActionOutcomeTests(unittest.TestCase):
                     [
                         "switch",
                         "--config",
-                        str(ROOT / "examples/server.example.toml"),
+                        str(LINE / "examples/server.example.toml"),
                         "--remote-config",
                         "/srv/glm53/state/server.toml",
                         "--hosts",

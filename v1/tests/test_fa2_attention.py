@@ -2,14 +2,12 @@ import copy
 import importlib.util
 import os
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE, STATE
 from glm53_setup.runtime import fa2_attention
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 class Fa2SwitchTests(unittest.TestCase):
@@ -29,7 +27,7 @@ class Fa2SwitchTests(unittest.TestCase):
                 fa2_attention.use_fa2(2048)
 
     def test_the_decode_bound_is_one_sequence_at_the_deepest_accepted_depth(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
 
         def accepted(depth):
             p = copy.deepcopy(profile)
@@ -52,7 +50,7 @@ class Fa2SwitchTests(unittest.TestCase):
             self.assertTrue(fa2_attention.use_fa2(2 * (3 + 1)))
 
     def test_profile_key_sets_the_switch_and_mounts_the_newer_modules(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         # On in the template from 1.6.0. A profile written before the key has none,
         # keeps the reference path and its fingerprint.
         self.assertIs(profile["runtime"]["fa2_attention"], True)
@@ -66,7 +64,7 @@ class Fa2SwitchTests(unittest.TestCase):
                 config.environment(profile, rank)["GLM53_FA2_ATTENTION"], "1"
             )
         command = server.command(
-            profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+            profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
         )
         for target in (
             f":{server.IMAGE_PACKAGE_DIR}/runtime/fa2_attention.py:ro",
@@ -96,13 +94,11 @@ class Fa2SwitchTests(unittest.TestCase):
         )
         profile["runtime"]["fa2_attention"] = False
         self.assertEqual(config.environment(profile, 0)["GLM53_FA2_ATTENTION"], "0")
-        off = server.command(
-            profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
-        )
+        off = server.command(profile, STATE / "server.toml", 0, "c", STATE / "test-hf")
         self.assertFalse(any("fa2_attention.py" in v for v in off))
 
     def test_the_switch_is_boolean_and_excludes_lpa(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         for bad in (1, "true", None):
             p = copy.deepcopy(profile)
             p["runtime"]["fa2_attention"] = bad

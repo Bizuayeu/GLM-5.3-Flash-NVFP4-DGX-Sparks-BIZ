@@ -9,9 +9,9 @@ import unittest
 from pathlib import Path
 
 from glm53_setup.__main__ import COMMANDS
+from glm53_setup.config import LINE
 from glm53_setup.runtime import pinned_patch
 
-ROOT = Path(__file__).resolve().parents[1]
 TARGET = "v1/example.py"
 RECORD = "glm53-example-patch.json"
 
@@ -135,7 +135,7 @@ class PinnedPatchCommandTests(unittest.TestCase):
                 self.run_main(package)
 
 
-DOCKERFILE = ROOT / "docker/Dockerfile.reference"
+DOCKERFILE = LINE / "docker/Dockerfile.reference"
 
 
 class ImageBuildContractTests(unittest.TestCase):
@@ -151,7 +151,7 @@ class ImageBuildContractTests(unittest.TestCase):
             if COMMANDS[name].startswith("runtime.patch_"):
                 built.add(COMMANDS[name].removeprefix("runtime."))
         present = {
-            path.stem for path in (ROOT / "glm53_setup/runtime").glob("patch_*.py")
+            path.stem for path in (LINE / "glm53_setup/runtime").glob("patch_*.py")
         }
         self.assertEqual(built, present)
 

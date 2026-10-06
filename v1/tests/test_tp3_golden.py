@@ -20,16 +20,16 @@ from pathlib import Path
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE
 
-ROOT = Path(__file__).resolve().parents[1]
-GOLDEN = ROOT / "tests/tp3_launch_golden.json"
+GOLDEN = LINE / "tests/tp3_launch_golden.json"
 IMAGE = "sha256:" + "1" * 64
 CACHE = Path("/cache")
 
 
 def variants():
-    ring = config.load(ROOT / "examples/server.tp3.example.toml")
-    axl = config.load(ROOT / "examples/server.axl.example.toml")
+    ring = config.load(LINE / "examples/server.tp3.example.toml")
+    axl = config.load(LINE / "examples/server.axl.example.toml")
     axl["nodes"] = ring["nodes"]
     result = {"ring": ring, "ring_axl": axl}
     for name in ("ring", "ring_axl"):
@@ -44,7 +44,7 @@ def variants():
 
 
 def reference_env():
-    dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+    dockerfile = (LINE / "docker/Dockerfile.reference").read_text(encoding="utf-8")
     return re.findall(r"^ENV (GLM53_\w+=\S+)$", dockerfile, re.MULTILINE)
 
 

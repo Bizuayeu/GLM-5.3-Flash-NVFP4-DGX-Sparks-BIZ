@@ -4,9 +4,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from glm53_setup.config import LINE
 from glm53_setup.validation import run_apc_lpa_fixture as fixture
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def worker(cached, skipped):
@@ -94,7 +93,7 @@ class ImportTests(unittest.TestCase):
         )
         result = subprocess.run(
             [sys.executable, "-c", code],
-            cwd=ROOT,
+            cwd=LINE,
             capture_output=True,
             text=True,
             check=False,

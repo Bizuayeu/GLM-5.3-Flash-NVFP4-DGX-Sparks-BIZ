@@ -7,28 +7,26 @@ import tempfile
 import tomllib
 import unittest
 from contextlib import redirect_stderr
-from pathlib import Path
 
 from glm53_setup import __main__ as cli
 from glm53_setup import server
+from glm53_setup.config import LINE
 from tools import check_prefix_cache
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 class PublicCliTests(unittest.TestCase):
-    def invoke(self, *args, cwd=ROOT):
+    def invoke(self, *args, cwd=LINE):
         return subprocess.run(
             [sys.executable, "-m", "glm53_setup", *args],
             cwd=cwd,
-            env={**os.environ, "PYTHONPATH": str(ROOT)},
+            env={**os.environ, "PYTHONPATH": str(LINE)},
             capture_output=True,
             text=True,
             check=False,
         )
 
     def test_version_and_help_do_not_require_gpu_packages(self):
-        version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
+        version = tomllib.loads((LINE / "pyproject.toml").read_text())["project"][
             "version"
         ]
         result = self.invoke("--version")
@@ -90,7 +88,7 @@ class HelpTextTests(unittest.TestCase):
         self.assertTrue(description.startswith("The launcher of the TP=2 serving pair"))
         self.assertNotIn("experiment", description.lower())
         for path in re.findall(r"docs/[\w.-]+\.md", description):
-            self.assertTrue((ROOT / path).is_file(), path)
+            self.assertTrue((LINE / path).is_file(), path)
 
     def test_check_prefix_cache_usage_is_one_command_line(self):
         # argparse re-wraps --help, so the docstring is where the line lives.

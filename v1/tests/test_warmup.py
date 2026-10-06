@@ -3,12 +3,10 @@ import copy
 import struct
 import unittest
 import zlib
-from pathlib import Path
 
 from glm53_setup import server_config as config
 from glm53_setup import warmup
-
-ROOT = Path(__file__).resolve().parents[1]
+from glm53_setup.config import LINE
 
 LOG_LINE = (
     "(Worker_TP0 pid=1) WARNING [jit_monitor.py:141] Triton kernel JIT compilation "
@@ -22,7 +20,7 @@ def fake_count(text):
 
 class WarmupTests(unittest.TestCase):
     def setUp(self):
-        self.profile = config.load(ROOT / "examples/server.example.toml")
+        self.profile = config.load(LINE / "examples/server.example.toml")
         self.profile["generation"]["max_tokens"] = 4096
 
     def test_ladder_follows_profile_features(self):
@@ -164,7 +162,7 @@ class CanaryTests(unittest.TestCase):
     """Mia #268: a boot that answers /health but serves garbage must not pass."""
 
     def setUp(self):
-        self.profile = config.load(ROOT / "examples/server.example.toml")
+        self.profile = config.load(LINE / "examples/server.example.toml")
         self.profile["generation"]["max_tokens"] = 4096
         self.profile["runtime"]["vision"] = False
         self.profile["mtp"]["enabled"] = True

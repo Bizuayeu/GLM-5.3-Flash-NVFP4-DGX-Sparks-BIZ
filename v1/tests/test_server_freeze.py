@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 from glm53_setup import server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE
 
-ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / "examples/server.example.toml"
+EXAMPLE = LINE / "examples/server.example.toml"
 MANIFEST = {"profile": {"frozen": True}, "fingerprint": "f" * 64}
 
 

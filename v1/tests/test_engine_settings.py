@@ -24,9 +24,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from glm53_setup.config import LINE
 from glm53_setup.server_config import speculative_config
-
-ROOT = Path(__file__).resolve().parents[1]
 
 BLOCKED = """
 import json, sys
@@ -56,8 +55,8 @@ def kwargs_without_gpu(module, argv, extra=()):
     script = BLOCKED.format(module=module, argv=repr(argv), extra=repr(list(extra)))
     result = subprocess.run(
         [sys.executable, "-c", script],
-        cwd=ROOT,
-        env={**os.environ, "PYTHONPATH": str(ROOT)},
+        cwd=LINE,
+        env={**os.environ, "PYTHONPATH": str(LINE)},
         capture_output=True,
         text=True,
         check=False,

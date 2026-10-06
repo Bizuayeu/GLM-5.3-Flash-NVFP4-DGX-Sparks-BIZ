@@ -14,9 +14,7 @@ from unittest.mock import mock_open, patch
 
 from glm53_setup import server
 from glm53_setup import server_config as config
-from glm53_setup.config import DEFAULT_PROFILE, STATE
-
-ROOT = Path(__file__).resolve().parents[1]
+from glm53_setup.config import DEFAULT_PROFILE, LINE, STATE
 
 
 def preflight_harness(
@@ -51,7 +49,7 @@ def preflight_harness(
 
 class ServerConfigTests(unittest.TestCase):
     def setUp(self):
-        self.profile = config.load(ROOT / "examples/server.example.toml")
+        self.profile = config.load(LINE / "examples/server.example.toml")
         # Independent feature tests start from an explicit all-off baseline.
         self.profile["runtime"]["index_checks"] = "auto"
         self.profile["runtime"]["vision"] = False
@@ -67,7 +65,7 @@ class ServerConfigTests(unittest.TestCase):
         self.profile["cache"].pop("prefix_cache_retention_interval", None)
 
     def test_distributed_profile_wires_combined_paths_on_both_ranks(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         for rank in (0, 1):
             args = config.serve_args(profile, rank, "/hf/mtp-view")
             env = config.environment(profile, rank)
@@ -108,15 +106,13 @@ class ServerConfigTests(unittest.TestCase):
         for rank in (0, 1):
             self.assertNotIn(
                 "--cpuset-cpus",
-                server.command(self.profile, ROOT / "state/server.toml", rank, "test"),
+                server.command(self.profile, STATE / "server.toml", rank, "test"),
             )
         self.profile["nodes"][0]["cpuset_cpus"] = "5-9,15-19"
         self.profile["nodes"][1]["cpuset_cpus"] = "1,3-4"
         config.validate(self.profile)
         for rank, requested in ((0, "5-9,15-19"), (1, "1,3-4")):
-            args = server.command(
-                self.profile, ROOT / "state/server.toml", rank, "test"
-            )
+            args = server.command(self.profile, STATE / "server.toml", rank, "test")
             self.assertEqual(args[args.index("--cpuset-cpus") + 1], requested)
         for invalid in ("", "1-", "4-2", "1,1", "1-3,3-4", "1, 2", "10000", 5):
             profile = copy.deepcopy(self.profile)
@@ -137,14 +133,14 @@ class ServerConfigTests(unittest.TestCase):
             ),
         ):
             result = server.preflight(
-                self.profile, ROOT / "state/server.toml", 0, check_memory=False
+                self.profile, STATE / "server.toml", 0, check_memory=False
             )
             self.assertIs(result["checks"]["cpu_set_available"], True)
             with patch.object(
                 server.os, "sched_getaffinity", return_value={5}, create=True
             ):
                 denied = server.preflight(
-                    self.profile, ROOT / "state/server.toml", 0, check_memory=False
+                    self.profile, STATE / "server.toml", 0, check_memory=False
                 )
             self.assertIs(denied["checks"]["cpu_set_available"], False)
             self.assertIs(denied["passed"], False)
@@ -301,7 +297,7 @@ class ServerConfigTests(unittest.TestCase):
         # then compile while serving (the incident behind these variables).
         self.profile["runtime"]["inductor_deterministic"] = True
         args = server.command(
-            self.profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+            self.profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
         )
         mount = f"{server.runtime_cache_dir()}:{config.RUNTIME_CACHE}"
         self.assertIn(mount, args)
@@ -346,17 +342,17 @@ class ServerConfigTests(unittest.TestCase):
 
     def test_toml_validation_stays_at_load_and_command_boundaries(self):
         with patch.object(config, "validate", wraps=config.validate) as validate:
-            config.load(ROOT / "examples/server.example.toml")
+            config.load(LINE / "examples/server.example.toml")
             self.assertEqual(validate.call_count, 1)
             validate.reset_mock()
             config.serve_args(self.profile, 0, "/hf/model")
             validate.assert_not_called()
-            server.command(self.profile, ROOT / "state/server.toml", 0, "test")
+            server.command(self.profile, STATE / "server.toml", 0, "test")
             self.assertEqual(validate.call_count, 1)
             validate.reset_mock()
             self.profile["context"]["max_num_seqs"] = 0
             with self.assertRaises(ValueError):
-                server.command(self.profile, ROOT / "state/server.toml", 0, "test")
+                server.command(self.profile, STATE / "server.toml", 0, "test")
             self.assertEqual(validate.call_count, 1)
 
     def test_throughput_sequences_are_separate_from_lpa_layout(self):
@@ -401,7 +397,7 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(
                 config.environment(self.profile, rank)["VLLM_SERVER_DEV_MODE"], "1"
             )
-        distributed = config.load(ROOT / "examples/server.example.toml")
+        distributed = config.load(LINE / "examples/server.example.toml")
         self.assertIs(distributed["api"]["dev_endpoints"], False)
         for bad in (1, "true", None):
             profile = copy.deepcopy(self.profile)
@@ -450,7 +446,7 @@ class ServerConfigTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             config.validate(profile)
-        distributed = config.load(ROOT / "examples/server.example.toml")
+        distributed = config.load(LINE / "examples/server.example.toml")
         self.assertEqual(distributed["resources"]["stall_seconds"], 600)
         self.assertIs(distributed["generation"]["warmup"], True)
 
@@ -477,7 +473,7 @@ class ServerConfigTests(unittest.TestCase):
         # Both templates set high; the checkpoint's template resolves an omitted
         # effort to max, so the server default is what an omitting client gets.
         for name in ("server.example.toml", "server.axl.example.toml"):
-            template = config.load(ROOT / "examples" / name)
+            template = config.load(LINE / "examples" / name)
             self.assertEqual(template["api"]["default_reasoning_effort"], "high")
         for effort in ("low", "high", "max"):
             self.profile["api"]["default_reasoning_effort"] = effort
@@ -503,7 +499,7 @@ class ServerConfigTests(unittest.TestCase):
 
     def test_nccl_channels_is_optional_and_pins_both_bounds(self):
         # The template pins 8, measured against NCCL's own 64 on the reference pair.
-        distributed = config.load(ROOT / "examples/server.example.toml")
+        distributed = config.load(LINE / "examples/server.example.toml")
         self.assertEqual(distributed["runtime"]["nccl_channels"], 8)
         for rank in (0, 1):
             env = config.environment(distributed, rank)
@@ -523,7 +519,7 @@ class ServerConfigTests(unittest.TestCase):
                 config.validate(profile)
 
     def test_canonical_moe_order_is_on_in_the_template_and_optional(self):
-        distributed = config.load(ROOT / "examples/server.example.toml")
+        distributed = config.load(LINE / "examples/server.example.toml")
         self.assertIs(distributed["runtime"]["canonical_moe_order"], True)
         self.assertEqual(
             config.environment(distributed, 0)["GLM53_CANONICAL_MOE_ORDER"], "1"
@@ -593,7 +589,7 @@ class ServerConfigTests(unittest.TestCase):
                 config.validate(profile)
 
     def test_stable_indexer_topk_is_on_in_the_template_and_optional(self):
-        distributed = config.load(ROOT / "examples/server.example.toml")
+        distributed = config.load(LINE / "examples/server.example.toml")
         self.assertIs(distributed["runtime"]["stable_indexer_topk"], True)
         self.assertEqual(
             config.environment(distributed, 0)["GLM53_STABLE_INDEXER_TOPK"], "1"
@@ -640,7 +636,7 @@ class ServerConfigTests(unittest.TestCase):
         # On in both templates from 1.12.0; an earlier profile without the key
         # keeps its fingerprint and the timed choice.
         for name in ("server.example.toml", "server.axl.example.toml"):
-            template = config.load(ROOT / "examples" / name)
+            template = config.load(LINE / "examples" / name)
             self.assertIs(template["runtime"]["inductor_deterministic"], True, name)
             self.assertEqual(
                 config.environment(template, 1)["TORCHINDUCTOR_DETERMINISTIC"], "1"
@@ -687,7 +683,7 @@ class ServerConfigTests(unittest.TestCase):
                 config.validate(profile)
 
     def test_prefix_page_dedup_is_off_unless_set_and_needs_the_image_marker(self):
-        distributed = config.load(ROOT / "examples/server.example.toml")
+        distributed = config.load(LINE / "examples/server.example.toml")
         self.assertNotIn("prefix_page_dedup", distributed["runtime"])
         self.assertNotIn("GLM53_PREFIX_PAGE_DEDUP", config.environment(distributed, 0))
         self.assertNotIn(
@@ -724,7 +720,7 @@ class ServerConfigTests(unittest.TestCase):
 
     def test_retired_mla_decode_cpb_is_gone_from_the_examples(self):
         for name in ("server.example.toml", "server.axl.example.toml"):
-            example = config.load(ROOT / "examples" / name)
+            example = config.load(LINE / "examples" / name)
             self.assertNotIn("mla_decode_cpb", example["runtime"])
             self.assertNotIn("GLM53_MLA_DECODE_CPB", config.environment(example, 0))
 
@@ -1054,7 +1050,7 @@ class ServerConfigTests(unittest.TestCase):
 
         with preflight_harness(model, image_id, containers=[owned]):
             result = server.preflight(
-                profile, ROOT / "state/server.toml", 0, check_memory=False
+                profile, STATE / "server.toml", 0, check_memory=False
             )
         self.assertIs(result["checks"]["exclusive_gpu"], True)
         self.assertEqual(result["foreign_gpu_containers"], [])
@@ -1068,7 +1064,7 @@ class ServerConfigTests(unittest.TestCase):
             patch.object(server.host, "fabric_gid_hints", return_value=hint) as hints,
         ):
             result = server.preflight(
-                profile, ROOT / "state/server.toml", 0, check_memory=False
+                profile, STATE / "server.toml", 0, check_memory=False
             )
         self.assertFalse(result["passed"])
         self.assertEqual(result["gid_hints"], hint)
@@ -1083,7 +1079,7 @@ class ServerConfigTests(unittest.TestCase):
                 ):
                     result = server.preflight(
                         profile,
-                        ROOT / "state/server.toml",
+                        STATE / "server.toml",
                         0,
                         check_memory=check_memory,
                     )
@@ -1254,7 +1250,7 @@ class ServerConfigTests(unittest.TestCase):
     def test_the_speculative_examples_are_what_the_launcher_passes(self):
         # docs/README.md names the two files as the MTP configuration examples.
         for depth in (1, 3):
-            text = (ROOT / f"examples/speculative.mtp{depth}.json").read_text(
+            text = (LINE / f"examples/speculative.mtp{depth}.json").read_text(
                 encoding="utf-8"
             )
             self.assertEqual(
@@ -1333,9 +1329,9 @@ class ServerConfigTests(unittest.TestCase):
     def test_command_mounts_mtp_view_and_projector_without_mutating_cache(self):
         self.profile["lpa"]["enabled"] = True
         self.profile["mtp"]["enabled"] = True
-        path = ROOT / "state/server.toml"
+        path = STATE / "server.toml"
         args = server.command(
-            self.profile, path, 1, "test-container", ROOT / "state/test-hf"
+            self.profile, path, 1, "test-container", STATE / "test-hf"
         )
         self.assertIn(
             "/hf/local-views/glm53-mtp-compatible/" + config.load_lock()["revision"],
@@ -1357,8 +1353,8 @@ class ServerConfigTests(unittest.TestCase):
             f"{server.LINE / 'glm53_setup/runtime/lpa.py'}"
             f":{server.IMAGE_PACKAGE_DIR}/runtime/lpa.py:ro"
         )
-        path = ROOT / "state/server.toml"
-        hf = ROOT / "state/test-hf"
+        path = STATE / "server.toml"
+        hf = STATE / "test-hf"
         self.assertNotIn(mount, server.command(self.profile, path, 0, "c", hf))
         self.profile["lpa"]["enabled"] = True
         self.assertIn(mount, server.command(self.profile, path, 0, "c", hf))
@@ -1421,7 +1417,7 @@ class ServerConfigTests(unittest.TestCase):
             config.validate(self.profile)
             self.assertIsNone(config.derived_checkpoint(self.profile))
             args = server.command(
-                self.profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+                self.profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
             )
             self.assertNotIn("/derived", args)
             derived["enabled"] = True
@@ -1436,7 +1432,7 @@ class ServerConfigTests(unittest.TestCase):
             derived = self.derived(Path(tmp).resolve())
             self.profile["runtime"]["derived_checkpoint"] = derived
             args = server.command(
-                self.profile, ROOT / "state/server.toml", 0, "c", ROOT / "state/test-hf"
+                self.profile, STATE / "server.toml", 0, "c", STATE / "test-hf"
             )
         self.assertIn(derived["path"] + ":/derived:ro", args)
         self.assertIn("/derived", args)
@@ -1524,7 +1520,7 @@ class ServerConfigTests(unittest.TestCase):
             }
             with preflight_harness(snapshot, image_id, metadata=metadata, run=run):
                 result = server.preflight(
-                    self.profile, ROOT / "state/server.toml", 0, check_memory=False
+                    self.profile, STATE / "server.toml", 0, check_memory=False
                 )
         for key in (
             "derived_checkpoint",
@@ -1699,6 +1695,35 @@ class ServerConfigTests(unittest.TestCase):
             config.request_body(self.profile, {"messages": [], "stream": True})
 
 
+def dockerfile_env():
+    """The reference build's GLM53_* ENV lines."""
+    dockerfile = (LINE / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+    return re.findall(r"^ENV (GLM53_\w+=\S+)$", dockerfile, re.MULTILINE)
+
+
+def enabled_profile():
+    """The defaults with every feature a capability check is conditional on turned on."""
+    profile = config.load(LINE / "examples/server.example.toml")
+    profile["runtime"].update(
+        pipeline_parallel_size=2,
+        expert_parallel=True,
+        decode_graphs=True,
+        canonical_moe_order=True,
+        stable_indexer_topk=True,
+        prefix_page_dedup=True,
+        fa2_attention=True,
+    )
+    profile["validation"]["component_worker"] = True
+    profile["cache"].update(fused_unpack=True, prefix_caching=True)
+    profile["lpa"]["enabled"] = True
+    return profile
+
+
+def ring_profile():
+    # TP=3: the only shape that pads; the two-node profile cannot.
+    return config.load(LINE / "examples/server.tp3.example.toml")
+
+
 class ReferenceImageMarkerTests(unittest.TestCase):
     """The markers preflight requires are the ones the reference build bakes."""
 
@@ -1716,34 +1741,9 @@ class ReferenceImageMarkerTests(unittest.TestCase):
         "GLM53_STABLE_INDEXER_TOPK=1": "switch default read by stable_topk",
     }
 
-    def dockerfile_env(self):
-        dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
-        return re.findall(r"^ENV (GLM53_\w+=\S+)$", dockerfile, re.MULTILINE)
-
-    def enabled_profile(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
-        # Every feature a check is conditional on, turned on.
-        profile["runtime"].update(
-            pipeline_parallel_size=2,
-            expert_parallel=True,
-            decode_graphs=True,
-            canonical_moe_order=True,
-            stable_indexer_topk=True,
-            prefix_page_dedup=True,
-            fa2_attention=True,
-        )
-        profile["validation"]["component_worker"] = True
-        profile["cache"].update(fused_unpack=True, prefix_caching=True)
-        profile["lpa"]["enabled"] = True
-        return profile
-
-    def ring_profile(self):
-        # TP=3: the only shape that pads; the two-node profile above cannot.
-        return config.load(ROOT / "examples/server.tp3.example.toml")
-
     def test_every_reference_marker_is_required_or_named_unchecked(self):
-        env = self.dockerfile_env()
-        profiles = (self.enabled_profile(), self.ring_profile())
+        env = dockerfile_env()
+        profiles = (enabled_profile(), ring_profile())
         # A marker is required when the checks fail without it (new launch).
         unchecked = {
             marker
@@ -1760,7 +1760,7 @@ class ReferenceImageMarkerTests(unittest.TestCase):
         self.assertEqual(unchecked, set(self.UNCHECKED_MARKERS))
 
     def test_the_reference_dockerfile_satisfies_every_capability_check(self):
-        env, profile = self.dockerfile_env(), self.enabled_profile()
+        env, profile = dockerfile_env(), enabled_profile()
         # A new launch: the stricter requirement.
         checks = config.image_capability_checks(profile, {"Config": {"Env": env}})
         # A check added without turning its feature on above fails this list.
@@ -1783,9 +1783,7 @@ class ReferenceImageMarkerTests(unittest.TestCase):
             ],
         )
         self.assertEqual([key for key, ok in checks.items() if not ok], [])
-        ring = config.image_capability_checks(
-            self.ring_profile(), {"Config": {"Env": env}}
-        )
+        ring = config.image_capability_checks(ring_profile(), {"Config": {"Env": env}})
         self.assertIn("tp_padding_support", ring)
         self.assertEqual([key for key, ok in ring.items() if not ok], [])
 
@@ -1818,7 +1816,7 @@ class HeadClientTests(unittest.TestCase):
         self.assertEqual(server.api_origin(self.PROFILE), "http://127.0.0.1:8123")
 
     def test_clients_call_the_address_the_server_binds(self):
-        profile = config.load(ROOT / "examples/server.example.toml")
+        profile = config.load(LINE / "examples/server.example.toml")
         args = config.serve_args(profile, 0, "/model")
         host = args[args.index("--host") + 1]
         self.assertEqual(host, config.API_HOST)
@@ -1862,7 +1860,7 @@ class RecordedHeadRunTests(unittest.TestCase):
     }
 
     def setUp(self):
-        self.profile = config.load(ROOT / "examples/server.example.toml")
+        self.profile = config.load(LINE / "examples/server.example.toml")
         self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.enterContext(patch.object(server, "RECORDS", self.tmp))
         self.locked = []

@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from glm53_setup.config import LINE
 from glm53_setup.runtime import patch_nope_reference
 
-ROOT = Path(__file__).resolve().parents[1]
 MLA = "model_executor/layers/mla.py"
 BACKEND = "v1/attention/backends/mla/flashinfer_mla_sparse_sm120.py"
 
@@ -165,7 +165,7 @@ class BackendPatchOrderTests(unittest.TestCase):
     """What the image build leaves in forward_mqa of the SM120 backend."""
 
     def test_the_backend_is_patched_by_patch_reference_only(self):
-        dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+        dockerfile = (LINE / "docker/Dockerfile.reference").read_text(encoding="utf-8")
         runs = re.findall(r"^RUN python3 -m glm53_setup[ .](\S+)$", dockerfile, re.M)
         self.assertIn("patch-reference", runs)
         # No other build patch edits the same file.

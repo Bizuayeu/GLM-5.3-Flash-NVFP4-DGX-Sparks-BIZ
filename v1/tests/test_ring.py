@@ -12,11 +12,11 @@ from unittest.mock import patch
 
 from glm53_setup import fabric, server
 from glm53_setup import server_config as config
+from glm53_setup.config import LINE
 from glm53_setup.runtime.tp_padding import HEADS
 
-ROOT = Path(__file__).resolve().parents[1]
-RING = ROOT / "examples/server.tp3.example.toml"
-DEFAULTS = ROOT / "examples/server.example.toml"
+RING = LINE / "examples/server.tp3.example.toml"
+DEFAULTS = LINE / "examples/server.example.toml"
 IMAGE = "sha256:" + "1" * 64
 
 
@@ -28,7 +28,7 @@ def ring():
 
 
 def reference_env():
-    dockerfile = (ROOT / "docker/Dockerfile.reference").read_text(encoding="utf-8")
+    dockerfile = (LINE / "docker/Dockerfile.reference").read_text(encoding="utf-8")
     return re.findall(r"^ENV (GLM53_\w+=\S+)$", dockerfile, re.MULTILINE)
 
 
@@ -142,7 +142,7 @@ class RingExampleTests(unittest.TestCase):
     def test_two_node_launches_set_neither_knob(self):
         profiles = [
             config.load(DEFAULTS),
-            config.load(ROOT / "examples/server.axl.example.toml"),
+            config.load(LINE / "examples/server.axl.example.toml"),
         ]
         pp2 = config.load(DEFAULTS)
         pp2["runtime"]["pipeline_parallel_size"] = 2

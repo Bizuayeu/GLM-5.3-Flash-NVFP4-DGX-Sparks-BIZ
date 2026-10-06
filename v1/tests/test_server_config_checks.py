@@ -15,12 +15,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from glm53_setup import server_config as config
-
-ROOT = Path(__file__).resolve().parents[1]
+from glm53_setup.config import LINE
 
 
 def profile():
-    return config.load(ROOT / "examples/server.example.toml")
+    return config.load(LINE / "examples/server.example.toml")
 
 
 class OptionalKeyTests(unittest.TestCase):
