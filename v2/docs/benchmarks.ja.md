@@ -2,7 +2,7 @@
 
 [English](benchmarks.md) · [2.x系の概要](../README.ja.md) · [検証](validation.ja.md) · [決定](decisions.ja.md)
 
-2.x系の値をどう取ったか：[リリースでの測定値](../README.ja.md#リリースでの測定値)の値と、[検証](validation.ja.md)の基準値です。値はその二つの頁にあり、この頁はその条件と手順を書きます。速さと長い入力の値を取った台本はこのリポジトリに入っていません。値を再現したり疑ったりできるよう、台本が何をするかをここに書きます。
+2.x系の値をどう取ったか：[リリースでの測定値](../README.ja.md#リリースでの測定値)の値と、[検証](validation.ja.md)の基準値です。値はその二つの頁にあり、この頁はその条件と手順を書きます。速さと長い入力の値を取った台本はリポジトリの外にありました。2.1.5で同じpromptと要求のまま `glm53_tf` に写し、`python -m glm53_tf bench` と `python -m glm53_tf long-input`（rank 0で `v2/` から実行）になりました。値を再現したり疑ったりできるよう、台本が何をするかをここに書きます。
 
 ## ホストと条件
 
@@ -41,12 +41,16 @@
 
 **短いpromptの後のdecode。** `Count upward from one, one number per line.` をstreamで、`ignore_eos` で512 token、temperature 0、effort low。速さは、最初の後のcompletionのtoken数を、最初にstreamで届いたtokenの後の時間で割ったもので、3回の中央値です。promptは毎回同じなので、受理長が回の間で比べられます。
 
+`python -m glm53_tf bench` が両方をそれぞれ3回ずつ走らせます。`--kinds prefill --runs 1` で1つのpromptを送り（冷却gateの後ごとに）、`--lines 250` で約3,000 tokenの慣らしになり、`--out` は要求ごとに1行を足します。行には応答の `prefill_s`・`heat_wait_s`・`cached` と、要求の開始と終了のepochが入ります。
+
 ## 長い入力
 
 長いpromptはどれも番号付きの行の台帳で（`Ledger <i>: the river barge delivered sacks of barley to the northern granary at dusk.`）、system messageは `You are a careful archivist. Read the ledger.`、temperature 0、effort lowです。保持promptから再開できないよう、各promptの前に関係の無い短い要求を送り、応答の `cached` は0でした。各promptの前にホストを冷ましました。
 
 - **199,652 tokenに合言葉一つ。** 8,806行の真ん中に合言葉。行数は1.x系が記録したもので、本文は1.x系のものと同じです。streamなし、最大512 token。応答に合言葉があれば正答です。最初のtokenまでの時間は、rank 0の `[tensorfold] done` の行の `ttft` です。リリースでは両TPとも `304109c` で取りました。
 - **499,622 tokenと1,036,859 tokenに合言葉三つ**（先頭から20分の1、真ん中、末尾から20分の1）。行数はエンジンの `/tokenize` で目標の長さに合わせます。streamで最大256 token、最初にstreamで届いたtokenまでをクライアントが測ります。応答が三つとも挙げれば正答です。リリースの1,036,859 tokenの値はTP=3の `2d4fa9b` で熱の待ちを入れたもので、待ちの合計は応答の `tensorfold` ブロックの `heat_wait_s` が示します。
+
+一つ目は `python -m glm53_tf long-input --passphrases 1 --lines 8806`、二つ目は `--passphrases 3 --tokens <目標>` です。行には `ttft`（streamのときだけ）、`prompt_tokens`、`cached`、`heat_wait_s` が入り、合言葉が欠けると終了コードは1です。
 
 検証の199,652と499,622 tokenの開発版の基準値は、エンジンのprofile（`TF_GLM_PROFILE=1`）を入れて取りました。profileは38,960 tokenのprefillに約11%を足しました。prefillのうち長さで伸びない部分をその分だけ伸ばすと、200Kの基準値は説明でき（見積もり146.4秒、実測145.6秒）、500Kでは約16秒が説明できずに残ります（見積もり438.5秒、実測454.1秒）。
 

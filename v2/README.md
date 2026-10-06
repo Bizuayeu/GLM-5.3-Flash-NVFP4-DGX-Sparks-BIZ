@@ -67,7 +67,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 
 The model thinks before it answers: the reasoning comes back in `reasoning_content` and the answer in `content`, and a request that names no `max_tokens` gets 32,768 tokens for both; a smaller limit can end inside the thinking with an empty `content`. Accept a new launch with the [validation](docs/validation.md) checks, the decode check first, before routine use.
 
-**Security.** `serve.sh` binds rank 0 to `127.0.0.1`, and the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional) also listens on loopback only; reach them through an SSH tunnel (`ssh -L 8095:127.0.0.1:8095 <rank 0>`) or a proxy that adds authentication. To serve beyond loopback (`HOST=0.0.0.0` in the rank file), set an API key too: a line `TENSORFOLD_API_KEY=<key>` in rank 0's rank file (the example has it commented out) makes the engine refuse every request without `Authorization: Bearer <key>`, `/metrics` included, while `/health` stays open. This line's decode check and `score-nll` send the key when `TENSORFOLD_API_KEY` is set where they run, and the tool-argument gate passes the header on. The key is a secret in a plain file: keep the rank file readable by its owner only (`chmod 600`). Without a key, `HOST=0.0.0.0` exposes the API unauthenticated.
+**Security.** `serve.sh` binds rank 0 to `127.0.0.1`, and the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional) also listens on loopback only; reach them through an SSH tunnel (`ssh -L 8095:127.0.0.1:8095 <rank 0>`) or a proxy that adds authentication. To serve beyond loopback (`HOST=0.0.0.0` in the rank file), set an API key too: a line `TENSORFOLD_API_KEY=<key>` in rank 0's rank file (the example has it commented out) makes the engine refuse every request without `Authorization: Bearer <key>`, `/metrics` included, while `/health` stays open. This line's decode check, `score-nll`, `bench` and `long-input` send the key when `TENSORFOLD_API_KEY` is set where they run, and the tool-argument gate passes the header on. The key is a secret in a plain file: keep the rank file readable by its owner only (`chmod 600`). Without a key, `HOST=0.0.0.0` exposes the API unauthenticated.
 
 ## Serving Defaults
 
@@ -200,7 +200,7 @@ v2/
   SETUP.md          the deployment runbook
   CHANGELOG.md      the 2.x releases; a v2.* tag publishes its section
   glm53_tf/         the Python tools: download, verify-download, tool-gate,
-                    decode-check, decode-divergence, score-nll
+                    decode-check, decode-divergence, score-nll, bench, long-input
   config/           model.lock.json (the pinned checkpoint), nll_set.json (the NLL set, a byte copy of 1.x's)
   requirements/     huggingface.lock.txt: the Hugging Face client for the download and its verification
   docker/           Dockerfile: the image, with the engine pinned by TENSORFOLD_REF

@@ -2,7 +2,7 @@
 
 [日本語](benchmarks.ja.md) · [2.x overview](../README.md) · [Validation](validation.md) · [Decisions](decisions.md)
 
-How the 2.x figures were taken: those of [measured on the release](../README.md#measured-on-the-release) and the reference values of [validation](validation.md). The values live on those two pages; this page gives the conditions and the procedure behind them. The scripts that took the speed and long-input figures are not part of this repository; what they do is described here so that a figure can be reproduced or questioned.
+How the 2.x figures were taken: those of [measured on the release](../README.md#measured-on-the-release) and the reference values of [validation](validation.md). The values live on those two pages; this page gives the conditions and the procedure behind them. The scripts that took the speed and long-input figures were outside the repository; 2.1.5 made `glm53_tf` copies of them with the same prompts and requests, `python -m glm53_tf bench` and `python -m glm53_tf long-input` (run from `v2/` on rank 0), so that a figure can be reproduced or questioned.
 
 ## Hosts and conditions
 
@@ -41,12 +41,16 @@ Before anything was timed, a prefill of about 3,000 tokens warmed up the prompt 
 
 **Decode after a short prompt.** `Count upward from one, one number per line.`, streamed, 512 tokens with `ignore_eos`, temperature 0, effort low. The rate is the completion tokens after the first over the time after the first streamed token; the median of three. The prompt is the same every time, so the acceptance stays comparable between runs.
 
+`python -m glm53_tf bench` runs both, three of each; `--kinds prefill --runs 1` sends one prompt (after each cooling gate), `--lines 250` gives a warm-up of about 3,000 tokens, and `--out` appends one row per request with the reply's `prefill_s`, `heat_wait_s` and `cached` and the request's start and end epochs.
+
 ## Long inputs
 
 Every long prompt is a ledger of numbered lines, `Ledger <i>: the river barge delivered sacks of barley to the northern granary at dusk.`, after the system message `You are a careful archivist. Read the ledger.`, at temperature 0 and effort low. A short unrelated request went before each, so that no kept prompt could be resumed, and the reply's `cached` was 0. The hosts were cooled before each.
 
 - **One passphrase at 199,652 tokens.** 8,806 lines with the passphrase in the middle, the line count 1.x recorded, so the text is 1.x's. Not streamed, up to 512 tokens; correct when the reply contains the passphrase. The time to the first token is the `ttft` of rank 0's `[tensorfold] done` line. At the release, on `304109c` at both TP sizes.
 - **Three passphrases** (one twentieth from the start, the middle, one twentieth from the end) **at 499,622 and 1,036,859 tokens.** The number of lines is fitted to the target with the engine's `/tokenize`. Streamed, up to 256 tokens; the client times the first streamed token; correct when the reply lists all three. The release's 1,036,859-token figure is TP=3 on `2d4fa9b` with the heat wait on, whose total the reply's `tensorfold` block gives as `heat_wait_s`.
+
+`python -m glm53_tf long-input --passphrases 1 --lines 8806` gives the first, `--passphrases 3 --tokens <target>` the second; the row carries `ttft` (streamed only), `prompt_tokens`, `cached` and `heat_wait_s`, and the exit status is 1 when a passphrase is missing.
 
 The development-build references of validation at 199,652 and 499,622 tokens were taken with the engine's profiling on (`TF_GLM_PROFILE=1`), which added about 11% to a 38,960-token prefill. Scaling the part of a prefill that does not grow with length by that much accounts for the 200K reference (146.4 s modelled, 145.6 measured) and leaves about 16 s unexplained at 500K (438.5 s modelled, 454.1 measured).
 

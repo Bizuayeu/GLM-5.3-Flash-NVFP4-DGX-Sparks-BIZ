@@ -67,7 +67,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 
 モデルは答える前に考えます。思考は `reasoning_content`、答えは `content` に返るので、`max_tokens` を指定しない要求は両方で32,768 tokenまで使えます。小さい上限では思考の途中で終わり、`content` が空になることがあります。起動したら、日常の運用の前に[検証](docs/validation.ja.md)の検査（まずdecode検査）で受け入れます。
 
-**安全。** `serve.sh` はrank 0を `127.0.0.1` で待ち受けさせ、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)もloopbackだけで待ち受けます。SSHのtunnel（`ssh -L 8095:127.0.0.1:8095 <rank 0>`）か、認証を足すproxyを通して使ってください。loopbackの外で配信する（rankのファイルで `HOST=0.0.0.0`）ときは、API keyも設定します。rank 0のrankのファイルに `TENSORFOLD_API_KEY=<key>` の行を書くと（例のファイルではコメントにしてあります）、エンジンは `Authorization: Bearer <key>` の無い要求をすべて拒みます。`/metrics` も同じで、`/health` だけは開いたままです。この系列のdecode検査と `score-nll` は、走らせる側で `TENSORFOLD_API_KEY` が設定されていればkeyを送り、tool引数ゲートはそのheaderをそのまま渡します。keyは平文のファイルに置く秘密なので、rankのファイルは持ち主だけが読めるようにします（`chmod 600`）。keyなしで `HOST=0.0.0.0` にすると、APIは認証なしで外に出ます。
+**安全。** `serve.sh` はrank 0を `127.0.0.1` で待ち受けさせ、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)もloopbackだけで待ち受けます。SSHのtunnel（`ssh -L 8095:127.0.0.1:8095 <rank 0>`）か、認証を足すproxyを通して使ってください。loopbackの外で配信する（rankのファイルで `HOST=0.0.0.0`）ときは、API keyも設定します。rank 0のrankのファイルに `TENSORFOLD_API_KEY=<key>` の行を書くと（例のファイルではコメントにしてあります）、エンジンは `Authorization: Bearer <key>` の無い要求をすべて拒みます。`/metrics` も同じで、`/health` だけは開いたままです。この系列のdecode検査、`score-nll`、`bench`、`long-input` は、走らせる側で `TENSORFOLD_API_KEY` が設定されていればkeyを送り、tool引数ゲートはそのheaderをそのまま渡します。keyは平文のファイルに置く秘密なので、rankのファイルは持ち主だけが読めるようにします（`chmod 600`）。keyなしで `HOST=0.0.0.0` にすると、APIは認証なしで外に出ます。
 
 ## 配信の既定
 
@@ -200,7 +200,7 @@ v2/
   SETUP.md          セットアップ手順書
   CHANGELOG.md      2.x系のリリース。v2.* のtagがその節を公開する
   glm53_tf/         Pythonの道具：download・verify-download・tool-gate・
-                    decode-check・decode-divergence・score-nll
+                    decode-check・decode-divergence・score-nll・bench・long-input
   config/           model.lock.json（固定のcheckpoint）、nll_set.json（NLL採点セット、1.x系のもののbyte単位の写し）
   requirements/     huggingface.lock.txt：ダウンロードとその検証に使うHugging Faceのclient
   docker/           Dockerfile：image。エンジンは TENSORFOLD_REF で固定
