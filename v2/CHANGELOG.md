@@ -4,6 +4,12 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.6 — 2026-10-06
+
+### Fixed
+
+- The [host tools'](../host/README.md#install) `install.sh` restarts the telemetry logger, so a reinstall runs the new program; before, `enable --now` left a running logger on the old one, and 2.1.5's counters appeared only after a manual `systemctl restart gb10-telemetry`. It also reads the last record from the newest day's file: with more than one day of records, `tail -1` over all of them stopped the script before it printed `installed for <user>`. Hosts that reinstalled 2.1.5 and restarted the logger by hand need nothing more.
+
 ## 2.1.5 — 2026-10-06
 
 ### Added
