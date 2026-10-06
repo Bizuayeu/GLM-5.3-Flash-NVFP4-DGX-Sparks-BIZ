@@ -879,7 +879,7 @@ decodeの速度は動かなかった。servingで一度も実行されないkey�
 - **読み込み**：weight digestは両rankとも同じでした（2,382 tensor）。MemAvailableの最小は、重みの読み込み中ではなくKV poolを確保した後に来ます。`patch_load_clone` が持つのは一度にtensor 1個分です。
 - **completion**：decode検査のpromptは約2,100 tokenなので、decode中に作るpoolはすべて `index_topk` を超えた後にあり、ringの修正で変わり得ます。3種ともcompletionが変わり、それぞれ3回ともbit単位で反復しました。draftがほぼすべて受理される数え上げのpromptも変わりました。
 - 化け検査は合格し、`server capacity` は最大長の要求が2本poolに入ると報告しました。
-- **eagerの試行**：この切替で先に試したvLLMの `--safetensors-load-strategy eager` はshardを二重に持ち（11.15 GiBのshardで22.81 GiB、GB10 1台）、rank 1がメモリを使い切ったので採りませんでした（[運用手順](operations.ja.md#フルモデルの起動検査)）。
+- **eagerの試行**：この切替で先に試したvLLMの `--safetensors-load-strategy eager` はshardを二重に持ち（11.15 GiBのshardで22.81 GiB、GB10 1台）、rank 1がメモリを使い切ってhostが約15分応答しなくなったので採りませんでした。代わりにimageが使うcloneは[運用手順](operations.ja.md#フルモデルの起動検査)にあります。
 
 ### 両profileを同じ枠で、GPUクロックの上限つきで（2026-09-28）
 

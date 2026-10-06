@@ -98,7 +98,7 @@ python -m unittest discover -s tests -t . -v
 
 **本リポジトリのvLLM／GLM runtimeパッチを導入するには、参照imageのビルドが必要です。** [sparse候補の順序正規化](docs/candidate-order.ja.md)も、確認したcheckoutで `python -m glm53_setup build-reference` を実行すると自動適用します。vLLM sourceの手編集は不要です。公式base imageだけには、この変更は入っていません。source更新後は再ビルドし、新しいimage IDを確認してからcontainerを切り替えます。既存imageや稼働containerは自動更新されません。sourceハッシュ不一致は回避せず、ビルドを停止してください。
 
-**重みの読み込み：imageのclone patchを使い、vLLMを自分で起動するときも `--safetensors-load-strategy eager` や `enable_multithread_load` は渡しません。** shardを丸ごとメモリに持ち、2026-09-26にeagerで片方のrankがメモリを使い切り、hostが約15分応答しなくなりました。転送速度と、imageが各tensorをcloneする理由は[起動検査](docs/operations.ja.md#フルモデルの起動検査)（`GLM53_LOAD_CLONE`）にあります。
+**重みの読み込み：imageのclone patchを使い、vLLMを自分で起動するときも `--safetensors-load-strategy eager` や `enable_multithread_load` は渡しません。** shardを丸ごとメモリに持ち、eagerでは基準の2台の片方のrankがメモリを使い切りました（[eagerの試行](docs/benchmarks.ja.md#1190での測定)）。転送速度と、imageが各tensorをcloneする理由は[起動検査](docs/operations.ja.md#フルモデルの起動検査)（`GLM53_LOAD_CLONE`）にあります。
 
 最初のホストで[単体GPU fixture手順](docs/component-validation.ja.md#gpu-1台のfixtureを再現する)を実施します。資源上限、精度、出力、判定を一緒に保存してください。fixture合格は一部カーネルと状態挙動の確認であり、フルモデル品質・複数rankでの合格ではありません。他方の準備後にも適切な部品検査を行います。
 

@@ -879,7 +879,7 @@ The reference pair switched from 1.18.0 to the 1.19.0 image (`sha256:99e6cf7a…
 - **Loading.** The weight digest was the same on both ranks (2,382 tensors). The lowest MemAvailable is reached after the KV pool is allocated, not while weights load; `patch_load_clone` holds one tensor at a time.
 - **Completions.** The decode check's prompts are about 2,100 tokens, so every pool built during decode lies past `index_topk` and the ring fix can change it. All three completions changed; each still repeated bit for bit over three runs. The counting prompt, whose drafts are almost all accepted, changed as well.
 - The mojibake check passed, and `server capacity` reports two full-length requests fitting the pool.
-- **The eager attempt.** vLLM's `--safetensors-load-strategy eager`, tried first at this switch, holds each shard twice (22.81 GiB for an 11.15 GiB shard, one GB10); rank 1 ran out of memory and the strategy was dropped ([operations](operations.md#full-model-launch-checks)).
+- **The eager attempt.** vLLM's `--safetensors-load-strategy eager`, tried first at this switch, holds each shard twice (22.81 GiB for an 11.15 GiB shard, one GB10); rank 1 ran out of memory, its host stopped answering for about 15 minutes, and the strategy was dropped. The clone the image uses instead is in [operations](operations.md#full-model-launch-checks).
 
 ### Both profiles in one window, with a GPU clock cap (2026-09-28)
 
