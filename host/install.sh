@@ -21,8 +21,9 @@ install -o root -g root -m 0644 "$here/gb10-clock-cap.service" /etc/systemd/syst
 install -d -o "$user" -g "$group" -m 0755 /var/log/gb10-telemetry
 systemctl daemon-reload
 systemctl enable --now gb10-clock-cap.service gb10-telemetry.service
+systemctl restart gb10-telemetry.service  # enable --now leaves a running logger on the old program
 sleep 5
 systemctl is-active gb10-clock-cap.service gb10-telemetry.service
 nvidia-smi -q -d CLOCK | sed -n '/Locked/,+3p;/Max Clocks/,+2p' | head -8
-tail -1 /var/log/gb10-telemetry/*.jsonl
+tail -n 1 "$(ls -t /var/log/gb10-telemetry/*.jsonl | head -n 1)"  # the newest day's file
 echo "$(hostname): installed for $user"

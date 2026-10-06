@@ -302,6 +302,19 @@ class InstallTests(unittest.TestCase):
     def test_refuses_without_root(self):
         self.assertIn('[ "$(id -u)" = 0 ]', self.install)
 
+    def test_restarts_the_logger_so_a_reinstall_runs_the_new_program(self):
+        # enable --now leaves a running logger on the old program (2026-10-06)
+        self.assertIn("systemctl restart gb10-telemetry.service", self.install)
+        self.assertNotIn("restart gb10-clock-cap", self.install)
+
+    def test_last_record_is_read_from_one_file(self):
+        # GNU tail refuses -1 with several files, and set -e ends the script there
+        self.assertNotRegex(self.install, r"tail -\d")
+        self.assertIn(
+            'tail -n 1 "$(ls -t /var/log/gb10-telemetry/*.jsonl | head -n 1)"',
+            self.install,
+        )
+
     def test_logger_unit_has_a_substitutable_user_line(self):
         unit = (HOST / "gb10-telemetry.service").read_text(encoding="utf-8")
         self.assertRegex(unit, r"(?m)^User=@SERVICE_USER@$")

@@ -11,7 +11,7 @@
 | `gb10-clock-cap.service` | systemdのoneshot。起動のたびに `nvidia-smi -lgc` でGPUクロックの範囲を固定し、止めるときに `-rgc` で外す |
 | `gb10-telemetry` | Pythonの記録係。2秒ごとに1行のJSONを `/var/log/gb10-telemetry/<UTCの日付>.jsonl` に書き、電源断でも直前の標本が残るよう1行ずつfsyncする。14日分を残す |
 | `gb10-telemetry.service` | 記録係をサービスのユーザーで常駐させる（`Restart=always`） |
-| `install.sh` | 2つのunitを据え付けて有効にし、状態、固定したクロック、記録の最後の1行を表示する |
+| `install.sh` | 2つのunitを据え付けて有効にし、入れ直しでも新しいプログラムで動くよう記録係を再起動し、状態、固定したクロック、記録の最後の1行を表示する |
 | `cool-gate` | 記録を読み、ホストが冷えるまで待つ |
 | `thermal-watch` | 記録を読み、ホストが熱いままならエンジンを止める |
 

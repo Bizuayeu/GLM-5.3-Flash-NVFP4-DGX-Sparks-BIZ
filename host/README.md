@@ -11,7 +11,7 @@ Host-side tools, independent of the serving engine, against the GB10 hard power-
 | `gb10-clock-cap.service` | systemd oneshot: locks the GPU clock range at every boot with `nvidia-smi -lgc`, and releases it with `-rgc` when stopped |
 | `gb10-telemetry` | Python logger: one JSON line every 2 s, fsynced line by line so the last samples survive a power-off, into `/var/log/gb10-telemetry/<UTC date>.jsonl`; keeps 14 days |
 | `gb10-telemetry.service` | runs the logger as a service user (`Restart=always`) |
-| `install.sh` | installs and enables both units, then prints their state, the locked clocks and the last telemetry line |
+| `install.sh` | installs and enables both units, restarts the logger so that a reinstall runs the new program, then prints their state, the locked clocks and the last telemetry line |
 | `cool-gate` | waits until the host has cooled down, reading the telemetry |
 | `thermal-watch` | stops the engine when the host stays too hot, reading the telemetry |
 
