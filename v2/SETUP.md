@@ -93,6 +93,8 @@ Clients that use tools then talk to port 8896.
 
 Run the checks of [validation](docs/validation.md) and compare them with its reference values before routine use: the decode check first, then NLL, then the long inputs and tool-eval-bench. Let the hosts cool between long requests.
 
+What 2.x is accepted for, image by image, is the README's [status](README.md#summary), and each item's evidence is in [measured on the release](README.md#measured-on-the-release); nothing outside that scope is qualified.
+
 ## 9. Stop
 
 ```sh
