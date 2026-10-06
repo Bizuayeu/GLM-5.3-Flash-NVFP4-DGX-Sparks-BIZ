@@ -4,7 +4,7 @@
 
 This is an engineering project with a measured scope. Keep claims limited to the exact hardware, image, weights, precision and workload tested.
 
-Use Python 3.11 or newer. The 1.x line (vLLM) lives in `v1/` and the 2.x line (TensorFold) in `v2/`; each line holds what is specific to its engine, and the checkout root holds what the lines share: the host and fabric pages in `docs/`, the host tools in `host/` and the repository tools (the publication audit and the release notes). Install the pinned check tools and 1.x's test dependencies once (`python -m pip install -r requirements/dev.lock.txt -r v1/requirements/test.lock.txt`: Ruff for every line, and NumPy, which some 1.x tests need), then run the checks of each place, as [CI](.github/workflows/ci.yml) does:
+Use Python 3.11 or newer. The 1.x line (vLLM) lives in `v1/` and the 2.x line (TensorFold) in `v2/`; each line holds what is specific to its engine, and the checkout root holds what the lines share: the host and fabric pages in `docs/`, the host tools in `host/` and the repository tools (the publication audit and the release notes). Install the pinned check tools and 1.x's test dependencies once (`python -m pip install -r requirements/dev.lock.txt -r v1/requirements/test.lock.txt`: Ruff for every line, NumPy, which some 1.x tests need, and filelock, which the download lock test of both lines needs), then run the checks of each place, as [CI](.github/workflows/ci.yml) does:
 
 ```sh
 # in v1/

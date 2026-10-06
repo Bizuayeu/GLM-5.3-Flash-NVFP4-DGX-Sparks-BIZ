@@ -4,7 +4,7 @@
 
 本プロジェクトは実測した範囲を明記するエンジニアリング作業です。主張は、実際に試験したハードウェア、イメージ、重み、精度、負荷の範囲に限定してください。
 
-Python 3.11以降を使います。1.x系（vLLM）は `v1/`、2.x系（TensorFold）は `v2/` にあり、各系列は自分のエンジンに固有のものを持ち、checkoutのルートには系列が共有するもの（`docs/` のホストとfabricの文書、`host/` のホストのツール、リポジトリの道具である公開監査とリリースノート）を置きます。固定した検査の道具と1.x系のテストの依存を一度入れ（`python -m pip install -r requirements/dev.lock.txt -r v1/requirements/test.lock.txt`：全系のRuffと、1.x系の一部のテストが使うNumPy）、それぞれの場所の検査を、[CI](.github/workflows/ci.yml)と同じく実行します。
+Python 3.11以降を使います。1.x系（vLLM）は `v1/`、2.x系（TensorFold）は `v2/` にあり、各系列は自分のエンジンに固有のものを持ち、checkoutのルートには系列が共有するもの（`docs/` のホストとfabricの文書、`host/` のホストのツール、リポジトリの道具である公開監査とリリースノート）を置きます。固定した検査の道具と1.x系のテストの依存を一度入れ（`python -m pip install -r requirements/dev.lock.txt -r v1/requirements/test.lock.txt`：全系のRuff、1.x系の一部のテストが使うNumPy、両系のダウンロードのロックのテストが使うfilelock）、それぞれの場所の検査を、[CI](.github/workflows/ci.yml)と同じく実行します。
 
 ```sh
 # v1/ で
