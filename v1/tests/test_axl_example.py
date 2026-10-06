@@ -128,6 +128,31 @@ class AxlExampleTests(unittest.TestCase):
             sorted(path.name for path in (ROOT / "overlays").glob("*.py")),
         )
 
+    def test_the_overlays_readme_table_states_the_examples_overlays(self):
+        # The README is where a host's operator copies the hashes from.
+        readme = (ROOT / "overlays/README.md").read_text(encoding="utf-8")
+        rows = {
+            cells[0].strip("`"): [cell.strip("`") for cell in cells[1:]]
+            for cells in (
+                [cell.strip() for cell in line.strip("|").split("|")]
+                for line in readme.splitlines()
+                if line.startswith("| `")
+            )
+        }
+        overlays = config.derived_checkpoint(config.load(AXL))["overlays"]
+        self.assertEqual(
+            rows,
+            {
+                Path(o["source"]).name: [
+                    f"{VLLM_MODELS}/{o['target']}",
+                    o["sha256"],
+                    o["base_sha256"],
+                    o["marker"],
+                ]
+                for o in overlays
+            },
+        )
+
     def test_a_kv_budget_above_three_gib_needs_the_derived_checkpoint(self):
         # Measured on the reference pair (2026-09-22): the pinned weights load 95.76 GiB
         # per rank and leave the head 5.5 GiB at 3 GiB of KV; the repacked ones load
