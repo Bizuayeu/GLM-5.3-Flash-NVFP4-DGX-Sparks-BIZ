@@ -8,7 +8,7 @@
 
 ConnectX-7のリンクを持つDGX Sparkまたは互換のGB10機を2台か3台、[1.x系の手順1](../v1/SETUP.ja.md#1-必要情報を集め2台とも現状確認する)のとおりに準備・確認します（棚卸し、kernel、他の負荷）。ケーブルとfabricの検証は[1.x系の手順5](../v1/SETUP.ja.md#5-ケーブル接続とfabric検証)のとおりで、対は直結、3台はリングです（[3台をリングにつなぐ](../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。各ホストについて、リンクのRDMAデバイス名（`ibdev2netdev`）、リンクのIPv4アドレスでRoCE v2になるGIDのindex、rankが待ち合わせるinterfaceかアドレスを記録します。
 
-長い処理の前に、全ホストのGPUクロックに上限を設けます（[GPUクロックの上限](../docs/hosts.ja.md#gpuクロックの上限)）。[ホストのツール](../host/README.ja.md#据え付け)が上限を起動時のunitとして据え付けます。2.x系の数値はすべてこの上限の下で測りました。
+長い処理の前に、全ホストのGPUクロックに上限を設けます（[GPUクロックの上限](../docs/hosts.ja.md#gpuクロックの上限)）。[ホストのツール](../host/README.ja.md#据え付け)が上限を起動時のunitとして据え付けます。
 
 ## 2. checkoutとcheckpoint
 

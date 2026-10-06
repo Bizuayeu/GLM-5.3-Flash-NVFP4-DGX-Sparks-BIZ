@@ -8,7 +8,7 @@ The ordered steps for serving the 2.x line on two hosts at TP=2 or three hosts a
 
 Two or three DGX Spark or compatible GB10 systems with ConnectX-7 links, prepared and inspected as in [1.x step 1](../v1/SETUP.md#1-collect-inputs-and-inspect-both-hosts) (inventory, kernel, other workloads). Cable and qualify the fabric as in [1.x step 5](../v1/SETUP.md#5-connect-and-qualify-the-fabric--cable-required): a direct link for the pair, a ring for three hosts ([three hosts in a ring](../docs/qsfp-network.md#8-three-hosts-in-a-ring)). Record for each host the RDMA device names on its links (`ibdev2netdev`), the GID index that is RoCE v2 on the link's IPv4 address, and the interface or address the ranks meet on.
 
-Cap the GPU clock on every host before long runs ([GPU clock cap](../docs/hosts.md#gpu-clock-cap)); the [host tools](../host/README.md#install) install the cap as a boot unit. Every 2.x figure was measured under the cap.
+Cap the GPU clock on every host before long runs ([GPU clock cap](../docs/hosts.md#gpu-clock-cap)); the [host tools](../host/README.md#install) install the cap as a boot unit.
 
 ## 2. Checkout and checkpoint
 
