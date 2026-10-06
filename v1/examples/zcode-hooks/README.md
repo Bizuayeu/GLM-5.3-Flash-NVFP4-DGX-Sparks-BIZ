@@ -10,11 +10,8 @@ this file is only the setup.
 
 ## Why a hook
 
-ZCode evaluates `yolo` before project permission rules and before
-`disallowedTools`, so path rules cannot narrow it. A `PreToolUse` hook is the
-only place where a policy `allow` can be turned back into a prompt. The
-permission descriptors carry no notion of "the file already exists": `Write`
-and `Edit` share one permission, and deletion goes through `Bash`.
+`yolo` is allowed before any path rule is read, so only a `PreToolUse` hook can
+turn it back into a prompt ([decision order and tool descriptors](../../docs/harnesses.md#zcode-permission-modes-model-limits-and-the-existing-file-guard)).
 
 ## Install
 
