@@ -22,7 +22,7 @@ This page owns the TP=2 benchmark method, the MTP-off baseline, the full-model r
 | [1.19.0](#measurements-on-1190) | 2026-09-26, 2026-09-28 | The kpool tail ring (vLLM #58454) and weight loading through a clone, on the published option at two sequences; both profiles in one window with a GPU clock cap (the README's main measurements); the LPA split (P27) |
 | [1.22.0](#measurements-on-1220) | 2026-09-29 | tool-eval-bench on the model API and through the tool-argument gate |
 | [1.24.0](#measurements-on-1240) | 2026-09-29, 2026-10-01 | Three hosts at TP=3: both profiles, NLL position by position, 500K and 1M input, the prefill cap |
-| [1.25.0](#measurements-on-1250) | 2026-10-02 | The shared-memory reader spin on the reference pair (P29) |
+| [1.25.0](#measurements-on-1250) | 2026-10-02 | The shared-memory reader spin on the reference pair (P29), the samplers' vocabulary bound, and the NLL set on 1.26.0's distributed defaults (taken the same day, kept under this heading) |
 | [1.29.0](#measurements-on-1290) | 2026-10-04 | Keeping the last block of a prefix-cache hit |
 | [1.29.8](#measurements-on-1298) | 2026-10-05 | The decode check reading whole deltas, both profiles |
 | [1.29.9](#measurements-on-1299) | 2026-10-06 | The decode check with the vision rope that spans a slim image's grid, both profiles |
@@ -979,6 +979,10 @@ The published option's two-sequence profile on the reference pair, 1.25.0 checko
 Only the head's EngineCore spun: every dump of arms A1 and A2 found it in `sched_yield` under `SpinCondition.wait`, every dump of arm B in the zmq poll. Worker 0 was computing in every dump and both workers' CPU (about two busy threads each) did not move with the arm; the peer was never seen spinning in nine dumps. With 0.002 s the head's SoC averaged 2.2–3.1 °C below the A arms while the peer, the control, ran 0.95–1.85 °C warmer. Counting decode fell 1.4%, outside the A1–A2 spread (their ranges do not overlap B's); prose and code stayed inside it. The lead suspect is the wake-up from the zmq poll; why only counting shows it was not checked.
 
 The adoption decision, against a line written before the window, is in [catalog P29](optimization-catalog.md#performance-initiatives). Not measured: the distributed defaults with the key, TP=3, two requests in flight.
+
+### The samplers' vocabulary bound (2026-10-02)
+
+The 1.25.0 image adds the samplers' vocabulary bound (vLLM #50843), which leaves a row of finite logits untouched. On it both profiles gave the decode-check completions of 1.24.0 bit for bit, and the published option's `server agreement` matched its reference record exactly (argmax agreement 1.0, no log-probability movement).
 
 ### The NLL set on 1.26.0's distributed defaults (2026-10-02)
 

@@ -84,4 +84,4 @@ reference imageは、2台のGB10ホストで45層の言語層すべてを、[初
 
 [vLLM公式の合成ベンチマーク](benchmarks.ja.md)は、計画した計測要求をすべて完了しました。MTPはテンプレートに入る前に、k=1とk=3で同じベンチとAPIのケースに合格しました。別のメタデータviewは、元のcheckpointを保ったまま、そのBF16 MTP層を全体のNVFP4から除外します。深さ1〜5と3の選定は[投機的デコーディング](speculative-decoding.ja.md)にあります。これらの確認はどれも、単体ではアプリケーションの品質を示しません。宣言した範囲での通常運用は、[SETUP手順6](../SETUP.ja.md#6-フルモデルの検証)に記録した受け入れに拠ります。
 
-1.25.0のimageには、samplerの語彙の範囲のガード（vLLM #50843）が入っています。有限のlogitsの行には何もしません。2026-10-02、このimageで両profileのdecodeの確認は1.24.0のcompletionとbit単位で同じになり、公開した任意設定の `server agreement` は基準の記録と完全に一致しました（argmaxの一致1.0、log確率の動きなし）。
+1.25.0のimageのsamplerの語彙の範囲のガードは、両profileのdecodeの確認も任意設定のagreementも変えませんでした（[1.25.0での測定](benchmarks.ja.md#samplerの語彙の範囲のガード2026-10-02)）。
