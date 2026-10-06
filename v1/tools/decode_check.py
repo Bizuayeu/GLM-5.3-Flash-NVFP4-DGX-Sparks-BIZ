@@ -17,6 +17,7 @@ MAX_TOKENS (512), SAMPLES (3).
 Same measurement as the decode rows of docs/benchmarks.md since 1.6.0.
 """
 
+import argparse
 import hashlib
 import json
 import os
@@ -139,7 +140,10 @@ def acceptance(before, after):
     return round(1 + accepted / drafts, 3) if drafts else None
 
 
-def main():
+def main(argv=None):
+    argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    ).parse_args(argv)
     prompt = prompt_text()
     before = spec_counters()
     rows = []

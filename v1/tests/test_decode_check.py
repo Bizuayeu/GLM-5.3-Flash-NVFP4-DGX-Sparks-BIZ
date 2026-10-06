@@ -73,7 +73,7 @@ def run(replies, metrics, sent=None, tokens_out=None):
         patch.dict(os.environ, env),
         contextlib.redirect_stdout(out),
     ):
-        decode_check.main()
+        decode_check.main([])
     return [json.loads(line) for line in out.getvalue().splitlines()]
 
 
@@ -168,6 +168,18 @@ class RequestTests(unittest.TestCase):
         sent = []
         run([stream()] * 3, [FLAT, FLAT], sent)
         self.assertEqual([b.get("stream") for b in sent], [True] * 3)
+
+    def test_help_prints_the_usage_and_sends_nothing(self):
+        out = io.StringIO()
+        with (
+            patch("urllib.request.urlopen") as urlopen,
+            contextlib.redirect_stdout(out),
+            self.assertRaises(SystemExit) as stop,
+        ):
+            decode_check.main(["--help"])
+        self.assertEqual(stop.exception.code, 0)
+        self.assertIn("PROMPT_KIND", out.getvalue())
+        urlopen.assert_not_called()
 
 
 if __name__ == "__main__":
