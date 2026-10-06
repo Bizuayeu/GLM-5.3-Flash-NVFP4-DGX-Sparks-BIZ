@@ -20,7 +20,7 @@
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.4` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.4` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（新しい会話が保持promptを先に写して捨てなくなる）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -95,7 +95,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 |---|---|---|---|
 | rankのファイル（`/work/rank.env`、`serve.sh` が読む） | `MASTER` | なし（必須） | リンク上のrank 0のaddress。全rankで同じ |
 | | `NCCL_IB_HCA`・`NCCL_IB_GID_INDEX`・`NCCL_SOCKET_IFNAME` | 参照機の値 | リンクのRDMA device（両rail）、RoCE v2のGIDの番号、bootstrapのinterface |
-| | `NCCL_NET`・`NCCL_IB_DISABLE`・`NCCL_IB_ROCE_VERSION_NUM`・`NCCL_IB_ADDR_FAMILY`・`NCCL_SOCKET_FAMILY`・`NCCL_MIN_NCHANNELS`・`NCCL_MAX_NCHANNELS` | RoCE v2とIPv4の上のNCCLのIBのtransport、4 channel | NCCLが気づかれずにsocketへ落ちないように明示します。4 channelでTP=2のdecodeは+1%、起動時の余地も増えました（[採否](docs/decisions.ja.md#fabric)）。TP=3はsubnet-aware routingが加わります（[`tp3-rank0.env`](examples/tp3-rank0.env)） |
+| | `NCCL_NET`・`NCCL_IB_DISABLE`・`NCCL_IB_ROCE_VERSION_NUM`・`NCCL_IB_ADDR_FAMILY`・`NCCL_SOCKET_FAMILY`・`NCCL_MIN_NCHANNELS`・`NCCL_MAX_NCHANNELS` | RoCE v2とIPv4の上のNCCLのIBのtransport、4 channel | NCCLが気づかれずにsocketへ落ちないように明示します。4 channelでTP=2のdecodeは+1%、起動時の余地も増えました（[採否](docs/decisions.ja.md#fabric)）。TP=3はsubnet-aware routingと、NCCL自身のIBのtransportを使う `NCCL_NET_PLUGIN=none` が加わります（[`tp3-rank0.env`](examples/tp3-rank0.env)） |
 | | `VISION` | 例のファイルは `1`（無ければ `0`） | 画像入力（`serve.sh` が `--vision` を足す）。`0` で無効。全rankで同じ値 |
 | | `NCCL_DEBUG`・`NCCL_DEBUG_SUBSYS` | `INFO`・`INIT,NET` | NCCLが起動時に各接続のtransportを一度だけ書き、[SETUP §6](SETUP.ja.md#6-起動)がそれを読みます |
 | | `MODEL_NAME`・`HOST`・`PORT` | `glm-tf`・`127.0.0.1`・`8095` | rank 0のmodel idと待ち受け |
@@ -108,7 +108,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | | `SSH`・`CONTAINER`・`WORK` | `ssh -o ConnectTimeout=20`・`glm53-tf`・`$HOME/glm53-tf` | 機への入り方、container、`/work` に見せる機のdirectory |
 | `create_container.sh` | `IMAGE [WORK_DIR]`・`CONTAINER`・`HF_HUB` | `~/glm53-tf`・`glm53-tf`・`~/.cache/huggingface/hub` | image、作業directory（rankのファイル・extension・log）、container名、`/hub` に読み取り専用で見せるHugging Faceのcache |
 
-rankのファイルは `bash` が全変数をexportしながら読むので、他の `TF_GLM_*` や `NCCL_*` の設定もエンジンに届きます。この表に無い設定は2.1.0では測っていません。
+rankのファイルは `bash` が全変数をexportしながら読むので、他の `TF_GLM_*` や `NCCL_*` の設定もエンジンに届きます。この表に無い設定は、この系では測っていません。
 
 ## API
 
@@ -155,7 +155,7 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 | 2.1.0 | TP=2 | TP=3 |
 |---|---|---|
 | decode検査 count／prose／code（tok/s） | 41.67／27.02／35.38 | 52.37／37.92／48.41（画像入力を有効） |
-| 38,960 tokenのprefill（tok/s、1回目の後の2回） | 1,331.1／1,329.9 | — |
+| 38,960 tokenのprefill（tok/s、3回のうち2回目と3回目。1回目は1,221.5） | 1,331.1／1,329.9 | — |
 | 画像の検査（`VISION=1`）：1枚、prompt 7,966 tokenの4:3の画像、2枚の順番、単色、toolの結果の画像。文字の質問、toolの往復、動画を拒む | すべて合格 | すべて合格 |
 
 **2.0.0。** 2026-10-04に参照機（MSI EdgeXpert、GPUクロックの上限2,200 MHz）で取りました。エンジンは、リリース（`b44c2f1`）、その1つ前（表示の行だけが違う）の版、または熱の待ちを入れる前の版です。熱の待ちはprompt chunkの走る時刻しか変えません。どの行がどれかは注に書きました。手順と基準値は[検証](docs/validation.ja.md)にあります。1.xの列は[1.x系のベンチマーク](../v1/docs/benchmarks.ja.md)から、そのNLLは[1.26.0の配布既定でのNLL採点セット](../v1/docs/benchmarks.ja.md#1260の配布既定でのnll採点セット2026-10-02)から取りました。
@@ -178,13 +178,13 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
   - decode検査は、TP=2がリリース、TP=3がその1つ前（表示の行だけが違う）の版です。
   - TP=3のprefillと1M tokenのpromptは、リリースの1つ前（表示の行だけが違う）の版です。
   - 他の行は、熱の待ちを入れる前の版です。
-- **熱。** 1M tokenのpromptの間、最も熱い機は92 °C前後にとどまり、数秒ずつ約80回待って、最高は92.8 °Cでした。待ちが無いと、同じpromptは6分半で94 °Cに達し、[熱の見張り](../host/README.ja.md#長い運転の間)がエンジンを止めました。prefillは機が熱くなるほど遅くもなります（[prefillとdecodeの速さ](docs/validation.ja.md#prefillとdecodeの速さ)）。長い要求の合間には機を冷やしてください。
+- **熱。** 1M tokenのpromptの間、最も熱い機は92 °C前後にとどまり、数秒ずつ約80回待って、最高は92.8 °Cでした。待ちが無いと、同じpromptは6分半で94 °Cに達し、[熱の見張り](../host/README.ja.md#長い運転の間)がエンジンを止めました。prefillは約7.5%違う2つの速さのどちらかで走り、どちらになるかは熱では説明できません（[prefillとdecodeの速さ](docs/validation.ja.md#prefillとdecodeの速さ)）。長い要求の合間には機を冷やしてください。
 - **tool-eval-bench**は、1.x系と同じ69シナリオと呼び方で回しました。両TPともTC-61だけ失敗しました。
 
 ## 制限
 
 - **一度に1系列。** エンジンのCUDAの経路はGLMの要求を一本ずつdecodeし、他は順番を待ちます。
-- **TP=2では画像がメモリを取ります。** 画像入力が有効だとtowerの分、他の会話の保持promptは既定の3 GiBのうち2.4 GiBになります。全rankで `VISION=0` にすると3 GiBに戻ります。1つの要求の複数の画像はまとめて1回でencodeされ、その特徴量を1枚ずつの場合と比べてはいません。
+- **TP=2では画像がメモリを取ります。** 画像入力が有効だとtowerの分、他の会話の保持promptは既定の3 GiBのうち2.4 GiBになります。全rankで `VISION=0` にすると3 GiBに戻ります。
 - **TP=3はDFlash2とEXL3を拒みます。** どちらも2 rankにしか分割できません。この系列はどちらも使いません：`serve.sh` は `--drafter none` を渡し、checkpointはNVFP4です。
 - **streamの応答。** draftがあると1 roundが思考から本文へまたがることがあり、1つのdeltaに `reasoning_content` と `content` の両方が乗ります。deltaごとに片方しか読まないクライアントは文を落とします。streamでない応答は欠けません。
 - **FP8 KVはBF16 KVに対して損失があります**（1.x系も同じ）。draftした応答はserialと同じままです。短い4本の文章では、二つのcacheのNLLの差は0.011以内でした（2026-10-02）。

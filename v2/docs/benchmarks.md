@@ -8,7 +8,7 @@ How the 2.x figures were taken: those of [measured on the release](../README.md#
 
 - **Hosts.** The reference hosts, MSI EdgeXpert (GB10): the pair over a direct link for TP=2, three hosts in a ring for TP=3, nothing else on their GPUs (1.x stopped).
 - **GPU clock** capped at 2,200 MHz by the boot unit of the [host tools](../../host/README.md) ([GPU clock cap](../../docs/hosts.md#gpu-clock-cap)). The telemetry logged 2,171-2,197 MHz under load.
-- **Engine.** The release image and the images one and two engine commits before it; [which engine](../README.md#measured-on-the-release) gives the commit of each row: the decode check on `b44c2f1` at TP=2 and `2d4fa9b` at TP=3, the TP=3 prefill and the 1M-token prompt on `2d4fa9b`, the other rows on `304109c`.
+- **Engine (2.0.0's figures).** The release image and the images one and two engine commits before it; [which engine](../README.md#measured-on-the-release) gives the commit of each row: the decode check on `b44c2f1` at TP=2 and `2d4fa9b` at TP=3, the TP=3 prefill and the 1M-token prompt on `2d4fa9b`, the other rows on `304109c`.
 - **Watchers.** The memory guard on every host and the thermal watch on rank 0's host.
 - **Clients.** Every request from rank 0 to the engine on loopback, one at a time, temperature 0 and reasoning effort low unless a check says otherwise. At the release the checks used 1.x's tools from the same checkout: the decode check, the NLL scorer (run inside the container, where `tokenizers` is installed) and the tool-argument gate on port 8897. 2.0.5 made `glm53_tf` copies of them with the same arguments, the commands of [validation](validation.md).
 
@@ -22,7 +22,7 @@ A cooling gate ran on every host at once before each group of measurements (the 
 | rank 1's | 53.2 °C | 936 s |
 | rank 2's (TP=3) | 60 °C | 600 s |
 
-The first two bands were calibrated on those hosts during 1.x's measurements; rank 2's host had no calibration and took `cool-gate`'s defaults. Cooling matters because prefill slows as a host heats, with the clock unchanged ([heat](../README.md#measured-on-the-release)).
+The first two bands were calibrated on those hosts during 1.x's measurements; rank 2's host had no calibration and took `cool-gate`'s defaults. The gates were run because prefill seemed to slow as a host heated; [validation](validation.md#prefill-and-decode-speed) has since found two speeds that heat does not explain.
 
 The heat wait was on at 92 °C / 88 °C in the runs on `2d4fa9b` and `b44c2f1` that the release figures come from, except the control with it off; `304109c` predates it.
 
@@ -37,7 +37,7 @@ Before anything was timed, a prefill of about 3,000 tokens warmed up the prompt 
 **Prefill.** One user message: a line `nonce <a fresh UUID>`, 3,200 fixed lines (`measurement line <i> of the fixed prefill prompt.`) and `Reply ok.`, 38,960 tokens with the chat template; `max_tokens` 1, temperature 0, effort low, `clear_thinking`. The rate is the prompt tokens over the request's wall time at the client. The fresh nonce at the start keeps any kept prompt from matching, since the engine has no endpoint to reset its kept prompts; each reply's `cached` was 0. The figure is the median of three:
 
 - TP=2 (`304109c`): three prompts back to back after one cooling gate; they stayed within 0.1% of each other.
-- TP=3 (`2d4fa9b`): one prompt after each cooling gate, three times with the heat wait on, then three times with it off for the control. Three prompts back to back without the gate slowed one after another ([heat](../README.md#measured-on-the-release)).
+- TP=3 (`2d4fa9b`): one prompt after each cooling gate, three times with the heat wait on, then three times with it off for the control. Three prompts back to back without the gate slowed one after another, which may have been the two speeds of [validation](validation.md#prefill-and-decode-speed).
 
 **Decode after a short prompt.** `Count upward from one, one number per line.`, streamed, 512 tokens with `ignore_eos`, temperature 0, effort low. The rate is the completion tokens after the first over the time after the first streamed token; the median of three. The prompt is the same every time, so the acceptance stays comparable between runs.
 

@@ -20,7 +20,7 @@
 ## What It Is
 
 - **Weights**: `nvidia/GLM-5.3-Flash-NVFP4` at revision `423acf37583782c51c142d145aef733d72943d93`, the same as 1.x, derived from [Z.ai's GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash). The routed experts and the dense MLP run as W4A16 from the checkpoint's NVFP4 blocks; attention, the shared experts and the head stay BF16. One exception, inside the engine: the MTP layer's routed experts are BF16 in the checkpoint and are quantized to NVFP4 for drafting only. Every drafted token is verified by the full model, so replies are unchanged.
-- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.4` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, and image input from upstream pull request #194, carried to three ranks. The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
+- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.4` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, image input from upstream pull request #194, carried to three ranks, and upstream pull request #421 (a new conversation no longer copies and drops the kept prompts first). The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
 - **Image**: [`docker/Dockerfile`](docker/Dockerfile), NVIDIA's PyTorch container 26.07 plus the measured package versions (transformers 5.18.0, xgrammar 0.2.8 for structured output, the Hugging Face hub client) and the engine.
 - **Launch**: shell scripts in [`scripts/`](scripts/) and one environment file per rank ([`examples/`](examples/) holds the reference hosts' files). [SETUP.md](SETUP.md) is the order.
 
@@ -95,7 +95,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 |---|---|---|---|
 | Rank file (`/work/rank.env`, sourced by `serve.sh`) | `MASTER` | none, required | rank 0's address on the link, the same on every rank |
 | | `NCCL_IB_HCA`, `NCCL_IB_GID_INDEX`, `NCCL_SOCKET_IFNAME` | the reference hosts' values | the RDMA devices on the links (both rails), the RoCE v2 GID index, the bootstrap interface |
-| | `NCCL_NET`, `NCCL_IB_DISABLE`, `NCCL_IB_ROCE_VERSION_NUM`, `NCCL_IB_ADDR_FAMILY`, `NCCL_SOCKET_FAMILY`, `NCCL_MIN_NCHANNELS`, `NCCL_MAX_NCHANNELS` | NCCL's IB transport over RoCE v2 and IPv4, four channels | named so that NCCL does not fall back to sockets unseen; four channels gave TP=2 decode +1% and more room at start ([decisions](docs/decisions.md#fabric)); TP=3 adds subnet-aware routing ([`tp3-rank0.env`](examples/tp3-rank0.env)) |
+| | `NCCL_NET`, `NCCL_IB_DISABLE`, `NCCL_IB_ROCE_VERSION_NUM`, `NCCL_IB_ADDR_FAMILY`, `NCCL_SOCKET_FAMILY`, `NCCL_MIN_NCHANNELS`, `NCCL_MAX_NCHANNELS` | NCCL's IB transport over RoCE v2 and IPv4, four channels | named so that NCCL does not fall back to sockets unseen; four channels gave TP=2 decode +1% and more room at start ([decisions](docs/decisions.md#fabric)); TP=3 adds subnet-aware routing and `NCCL_NET_PLUGIN=none`, NCCL's own IB transport ([`tp3-rank0.env`](examples/tp3-rank0.env)) |
 | | `VISION` | `1` in the examples (`0` when unset) | image input (`serve.sh` adds `--vision`); `0` turns it off; the same on every rank |
 | | `NCCL_DEBUG`, `NCCL_DEBUG_SUBSYS` | `INFO`, `INIT,NET` | NCCL logs each connection's transport once at start, which [SETUP §6](SETUP.md#6-start) reads |
 | | `MODEL_NAME`, `HOST`, `PORT` | `glm-tf`, `127.0.0.1`, `8095` | rank 0's model id and listener |
@@ -108,7 +108,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `SSH`, `CONTAINER`, `WORK` | `ssh -o ConnectTimeout=20`, `glm53-tf`, `$HOME/glm53-tf` | how to reach the hosts, the container, the host directory at `/work` |
 | `create_container.sh` | `IMAGE [WORK_DIR]`, `CONTAINER`, `HF_HUB` | `~/glm53-tf`, `glm53-tf`, `~/.cache/huggingface/hub` | the image, the work directory (rank file, extensions, logs), the container name, the Hugging Face cache mounted read-only at `/hub` |
 
-The rank file is sourced by `bash` with every variable exported, so any other `TF_GLM_*` or `NCCL_*` setting in it reaches the engine. Settings outside this table were not measured for 2.1.0.
+The rank file is sourced by `bash` with every variable exported, so any other `TF_GLM_*` or `NCCL_*` setting in it reaches the engine. Settings outside this table were not measured on this line.
 
 ## API
 
@@ -155,7 +155,7 @@ Why each 2.x setting was chosen, and what was tried and not adopted, is in [deci
 | 2.1.0 | TP=2 | TP=3 |
 |---|---|---|
 | Decode check count / prose / code (tok/s) | 41.67 / 27.02 / 35.38 | 52.37 / 37.92 / 48.41 (image input on) |
-| Prefill of 38,960 tokens (tok/s, two runs after the first) | 1,331.1 / 1,329.9 | — |
+| Prefill of 38,960 tokens (tok/s, the second and third of three; the first 1,221.5) | 1,331.1 / 1,329.9 | — |
 | Image checks (`VISION=1`): one image, a 4:3 image of 7,966 prompt tokens, two images in order, a single colour, an image in a tool result; a text question, a tool round trip; a video refused | all passed | all passed |
 
 **2.0.0.** Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [the NLL set on 1.26.0's defaults](../v1/docs/benchmarks.md#the-nll-set-on-1260s-distributed-defaults-2026-10-02).
@@ -178,13 +178,13 @@ Why each 2.x setting was chosen, and what was tried and not adopted, is in [deci
   - The decode check ran on the release at TP=2 and on the build one printed line before it at TP=3.
   - The TP=3 prefill and the 1M-token prompt ran on the build one printed line before the release.
   - The other rows ran on the build before the heat wait.
-- **Heat.** During the 1M-token prompt the hottest host held at about 92 °C, waited about 80 times for a few seconds each, and peaked at 92.8 °C. Without the wait the same prompt reached 94 °C after six and a half minutes, and the [thermal watch](../host/README.md#during-long-runs) stopped the engine. Prefill also slows as a host heats ([prefill and decode speed](docs/validation.md#prefill-and-decode-speed)). Cool the hosts between long requests.
+- **Heat.** During the 1M-token prompt the hottest host held at about 92 °C, waited about 80 times for a few seconds each, and peaked at 92.8 °C. Without the wait the same prompt reached 94 °C after six and a half minutes, and the [thermal watch](../host/README.md#during-long-runs) stopped the engine. Prefill runs at one of two speeds about 7.5% apart, and heat does not explain which ([prefill and decode speed](docs/validation.md#prefill-and-decode-speed)). Cool the hosts between long requests.
 - **tool-eval-bench** used the same 69 scenarios and invocation as 1.x's. Both TP sizes failed TC-61 only.
 
 ## Limits
 
 - **One sequence at a time.** The engine's CUDA path decodes one GLM request at a time; the others wait their turn.
-- **Images take memory at TP=2.** With image input on, the tower leaves 2.4 GiB of the default 3 GiB for other conversations' kept prompts; `VISION=0` on every rank gives the 3 GiB back. Several images in one request are encoded in one call; their features were not compared with one image at a time.
+- **Images take memory at TP=2.** With image input on, the tower leaves 2.4 GiB of the default 3 GiB for other conversations' kept prompts; `VISION=0` on every rank gives the 3 GiB back.
 - **TP=3 refuses DFlash2 and EXL3.** Both split only over two ranks. This line uses neither: `serve.sh` passes `--drafter none` and the checkpoint is NVFP4.
 - **Streamed replies.** With drafts, one round can cross from thinking into the answer, so one delta can carry both `reasoning_content` and `content`. A client that reads only one field per delta loses text; non-streamed replies are whole.
 - **FP8 KV is lossy** against BF16 KV, as in 1.x; drafted replies still equal serial ones. On four short texts the two caches gave NLL within 0.011 of each other (2026-10-02).

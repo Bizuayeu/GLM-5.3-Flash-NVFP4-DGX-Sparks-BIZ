@@ -8,7 +8,7 @@
 
 - **ホスト。** 参照機のMSI EdgeXpert（GB10）。TP=2は直結の対、TP=3はリングの3台で、GPUには他に何も載せていません（1.x系は停止）。
 - **GPUクロック**は[ホストのツール](../../host/README.ja.md)の起動時のunitで2,200 MHzを上限にしました（[GPUクロックの上限](../../docs/hosts.ja.md#gpuクロックの上限)）。負荷の下の記録は2,171〜2,197 MHzでした。
-- **エンジン。** リリースのimageと、エンジンのcommitで1つ前と2つ前のimage。[どのエンジンで測ったか](../README.ja.md#リリースでの測定値)が各行のcommitを示します：decode検査はTP=2が `b44c2f1`、TP=3が `2d4fa9b`、TP=3のprefillと1M tokenのpromptは `2d4fa9b`、他の行は `304109c` です。
+- **エンジン（2.0.0の数値）。** リリースのimageと、エンジンのcommitで1つ前と2つ前のimage。[どのエンジンで測ったか](../README.ja.md#リリースでの測定値)が各行のcommitを示します：decode検査はTP=2が `b44c2f1`、TP=3が `2d4fa9b`、TP=3のprefillと1M tokenのpromptは `2d4fa9b`、他の行は `304109c` です。
 - **見張り。** メモリの見張りを全ホストで、熱の見張りをrank 0のホストで動かしました。
 - **クライアント。** 要求はすべてrank 0からloopbackのエンジンへ一つずつ、検査が別に言わない限りtemperature 0、推論のeffortはlowです。リリースの時点では、同じcheckoutの1.x系の道具を使いました：decode検査、NLLの採点（`tokenizers` が入っているcontainerの中で実行）、port 8897のtool引数ゲートです。2.0.5で `glm53_tf` に同じ引数の写しができ、[検証](validation.ja.md)のコマンドはそれです。
 
@@ -22,7 +22,7 @@
 | rank 1のホスト | 53.2 °C | 936 s |
 | rank 2のホスト（TP=3） | 60 °C | 600 s |
 
-最初の二つの帯は1.x系の測定のときにそのホストで較正した値です。rank 2のホストには較正が無く、`cool-gate` の既定値を使いました。冷却が要るのは、ホストが熱くなるほどprefillが遅くなるからで、そのときクロックは変わりません（[熱](../README.ja.md#リリースでの測定値)）。
+最初の二つの帯は1.x系の測定のときにそのホストで較正した値です。rank 2のホストには較正が無く、`cool-gate` の既定値を使いました。gateを回したのは、ホストが熱くなるほどprefillが遅くなるように見えたからです。その後、[検証](validation.ja.md#prefillとdecodeの速さ)が熱では説明できない2つの速さを見つけています。
 
 リリースの値を取った `2d4fa9b` と `b44c2f1` の回では、熱の待ちを92 °C／88 °Cで入れていました（待ちを切った対照を除く）。`304109c` は熱の待ちより前です。
 
@@ -37,7 +37,7 @@
 **prefill。** 一つのuser message：`nonce <新しいUUID>` の1行、固定の3,200行（`measurement line <i> of the fixed prefill prompt.`）、`Reply ok.`。chat templateを含めて38,960 tokenです。`max_tokens` 1、temperature 0、effort low、`clear_thinking`。速さは、promptのtoken数をクライアントでの要求の経過時間で割ったものです。エンジンには保持promptを消すendpointが無いので、先頭の新しいnonceで保持promptが一致しないようにしました。どの応答も `cached` は0でした。値は3回の中央値です：
 
 - TP=2（`304109c`）：冷却gateを1回通した後に3つのpromptを続けて。互いの差は0.1%以内でした。
-- TP=3（`2d4fa9b`）：冷却gateの後に1つのpromptを、熱の待ちを入れて3回、続いて対照として待ちを切って3回。gateを挟まずに3つ続けると、1回ごとに遅くなりました（[熱](../README.ja.md#リリースでの測定値)）。
+- TP=3（`2d4fa9b`）：冷却gateの後に1つのpromptを、熱の待ちを入れて3回、続いて対照として待ちを切って3回。gateを挟まずに3つ続けると、1回ごとに遅くなりました。[検証](validation.ja.md#prefillとdecodeの速さ)の2つの速さだった可能性があります。
 
 **短いpromptの後のdecode。** `Count upward from one, one number per line.` をstreamで、`ignore_eos` で512 token、temperature 0、effort low。速さは、最初の後のcompletionのtoken数を、最初にstreamで届いたtokenの後の時間で割ったもので、3回の中央値です。promptは毎回同じなので、受理長が回の間で比べられます。
 
