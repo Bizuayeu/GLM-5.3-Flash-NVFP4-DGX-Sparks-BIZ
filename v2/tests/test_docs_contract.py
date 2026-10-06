@@ -162,7 +162,7 @@ class PortTests(unittest.TestCase):
     def test_the_checks_target_rank_zero(self):
         port = owned(r"PORT:-([^}]+)", "scripts/serve.sh")
         name = owned(r"MODEL_NAME:-([^}]+)", "scripts/serve.sh")
-        for tool in ("decode_check", "bench"):
+        for tool in ("decode_check", "bench", "long_input"):
             path = f"glm53_tf/{tool}.py"
             base = owned(r'BASE = os\.environ\.get\("BASE", "([^"]+)"\)', path)
             model = owned(r'MODEL = os\.environ\.get\("MODEL", "([^"]+)"\)', path)

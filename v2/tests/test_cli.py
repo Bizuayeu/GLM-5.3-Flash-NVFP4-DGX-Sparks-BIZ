@@ -23,6 +23,7 @@ HELP = [
     ("decode-divergence", "TOKENS_OUT"),
     ("score-nll", "--tokenizer"),
     ("bench", "--kinds"),
+    ("long-input", "--passphrases"),
 ]
 
 

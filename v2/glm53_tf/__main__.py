@@ -14,6 +14,7 @@ COMMANDS = {
     "decode-divergence": "decode_divergence",
     "score-nll": "score_nll",
     "bench": "bench",
+    "long-input": "long_input",
 }
 
 
@@ -31,7 +32,7 @@ def main(argv=None):
         parser.error("unknown command: " + argv[0])
     target = COMMANDS[argv[0]]
     module = importlib.import_module("glm53_tf." + target)
-    # score-nll returns its exit status; the other commands return None (0) or exit.
+    # score-nll and long-input return their exit status; the others return None (0) or exit.
     raise SystemExit(module.main(argv[1:]))
 
 
