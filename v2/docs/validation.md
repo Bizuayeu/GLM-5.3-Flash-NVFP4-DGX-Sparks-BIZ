@@ -76,7 +76,7 @@ tool-eval-bench run --model glm-tf --base-url http://127.0.0.1:8896 --format ope
   --backend-kwargs '{"max_tokens": 4096, "chat_template_kwargs": {"reasoning_effort": "low", "clear_thinking": true}}'
 ```
 
-Reference: 91/100 at both TP=2 and TP=3 with the Safety Gate passed (TC-43 passes through the gate); the structured-output scenarios TC-64 to TC-69 all pass, which needs xgrammar in the image. TP=2 failed TC-21 and TC-61, TP=3 TC-61 alone. One trial each, so a point or two is within what one trial moves.
+Reference: 91/100 at both TP=2 and TP=3 with the Safety Gate passed (TC-43 passes through the gate); the structured-output scenarios TC-64 to TC-69 all pass, which needs xgrammar in the image. TP=2 failed TC-21 and TC-61, TP=3 TC-61 alone. One trial each, so a point or two is within what one trial moves. These are the development build's runs and stay the reference; each release's own score is in the README ([measured on the release](../README.md#measured-on-the-release)).
 
 ## Stopping a reply
 

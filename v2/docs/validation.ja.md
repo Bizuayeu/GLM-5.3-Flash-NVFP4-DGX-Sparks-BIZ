@@ -76,7 +76,7 @@ tool-eval-bench run --model glm-tf --base-url http://127.0.0.1:8896 --format ope
   --backend-kwargs '{"max_tokens": 4096, "chat_template_kwargs": {"reasoning_effort": "low", "clear_thinking": true}}'
 ```
 
-基準：TP=2とTP=3とも91/100、Safety Gate通過（TC-43はゲート越しで通る）。構造化出力のTC-64〜69は全部通り、これにはimageのxgrammarが要ります。TP=2の失敗はTC-21とTC-61、TP=3はTC-61だけ。各1回なので、1〜2点は1回の試行で動く範囲です。
+基準：TP=2とTP=3とも91/100、Safety Gate通過（TC-43はゲート越しで通る）。構造化出力のTC-64〜69は全部通り、これにはimageのxgrammarが要ります。TP=2の失敗はTC-21とTC-61、TP=3はTC-61だけ。各1回なので、1〜2点は1回の試行で動く範囲です。これは開発ビルドでの値で、基準はこちらです。各リリースでの値はREADMEにあります（[リリースでの測定値](../README.ja.md#リリースでの測定値)）。
 
 ## 応答を止める
 
