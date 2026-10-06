@@ -36,6 +36,7 @@ either half of a mismatched pair fails at load.
 
 Place them: copy both files to a directory under `state/` on each host, keeping the
 names. Give each `source` the absolute path of its copy on that host in the profile
-TOML.
+TOML; the [AXL example](../examples/server.axl.example.toml) uses `state/overlays/` of the
+checkout `/srv/glm53/source`.
 
 License: Apache-2.0, as the vLLM sources they are derived from.

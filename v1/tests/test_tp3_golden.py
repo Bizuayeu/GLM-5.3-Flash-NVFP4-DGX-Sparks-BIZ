@@ -10,6 +10,9 @@ GLM53_SHM_SPIN_SECONDS and its two read-only mounts on every rank and moves both
 byte for byte.
 1.28.0 (2026-10-04): the package moved into v1/ and state/ stayed at the checkout root; ``normalized``
 maps both to the placeholders the golden was written with, and the golden is unchanged.
+1.29.14 (2026-10-06): the AXL example's two overlay sources moved from source/overlays/ to
+source/state/overlays/, where overlays/README.md says to copy them. That changes the two mount
+paths and moves the fingerprint and startup label of ``ring_axl`` and ``ring_axl_no_spin``; nothing else.
 """
 
 import copy

@@ -16,6 +16,9 @@ it from the defaults). The ``*_no_spin`` entries drop the key again and equal th
 ``defaults`` and ``axl`` byte for byte: a profile without the key launches as before.
 1.28.0 (2026-10-04): the package moved into v1/ and state/ stayed at the checkout root; ``normalized``
 maps both to the placeholders the golden was written with, and the golden is unchanged.
+1.29.14 (2026-10-06): the AXL example's two overlay sources moved from source/overlays/ to
+source/state/overlays/, where overlays/README.md says to copy them. That changes the two mount
+paths and moves the fingerprint and startup label of ``axl`` and ``axl_no_spin``; nothing else.
 """
 
 import copy

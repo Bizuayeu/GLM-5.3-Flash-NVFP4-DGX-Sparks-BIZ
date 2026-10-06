@@ -85,9 +85,9 @@ class AxlExampleTests(unittest.TestCase):
                                     "-v",
                                     "/srv/glm53/weights/GLM-5.3-Flash-NVFP4-l-split"
                                     ":/derived:ro",
-                                    "/srv/glm53/source/overlays/kda-quant-split.py"
+                                    "/srv/glm53/source/state/overlays/kda-quant-split.py"
                                     f":{VLLM_MODELS}/kda.py:ro",
-                                    "/srv/glm53/source/overlays/mla-quant-split.py"
+                                    "/srv/glm53/source/state/overlays/mla-quant-split.py"
                                     f":{VLLM_MODELS}/model.py:ro",
                                 ]
                             ),
