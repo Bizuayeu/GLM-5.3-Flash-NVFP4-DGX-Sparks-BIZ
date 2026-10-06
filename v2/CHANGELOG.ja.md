@@ -6,6 +6,19 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.1.8 — 2026-10-06
+
+### Documentation
+
+- [検証](docs/validation.ja.md#画像入力)に画像の検査を、その合格の条件（どれにも正しく答え、動画を400で拒む）とともに置きました。READMEの行は検査を並べる代わりにそこを指します。検証は受理長を残し、各リリースの速さはリンクで示します。
+- READMEの状態は、受け入れたimageを変更履歴の節で示し、書き漏らしていた今のimage（2.1.4）を挙げます。制約は「複数の画像を1回でencodeする」と書かなくなり（2.1.1から1枚ごとに呼びます）、メモリの注記は配信の既定を指します。熱の注記と[ベンチマークの方法](docs/benchmarks.ja.md)は、ホストが熱くなるほどprefillが遅くなるとは書かなくなりました。約7.5%違う2つの速さは熱では説明できません（[検証](docs/validation.ja.md#prefillとdecodeの速さ)）。2.1.0のprefillの行は1回目（1,221.5 tok/s）も示します。エンジンの説明に#421を、設定の表にTP=3のrankのファイルの `NCCL_NET_PLUGIN=none` を足しました。
+
+### Tests
+
+- ページのbuild・inspect・containerの作成のコマンドにあるimageのtagはDockerfileのものと同じで、READMEの状態とリリースの測定値はそのimageの版を挙げることを確かめます。メモリの見張りの下限は `hostwatch.sh` から引用していることを確かめます。
+
+imageは変わらず、2.1.4のままです。
+
 ## 2.1.7 — 2026-10-06
 
 ### Documentation

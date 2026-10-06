@@ -4,6 +4,19 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.1.8 — 2026-10-06
+
+### Documentation
+
+- [Validation](docs/validation.md#image-input) has the image checks, with their criterion (each answered correctly, a video refused with 400); the README's row links them instead of listing them. Validation keeps the acceptance lengths and links each release's speeds.
+- The README's Status names the accepted images through their changelog sections and the current one, 2.1.4's, which it had left out. Limits no longer says several images are encoded in one call (each has its own call since 2.1.1), and its memory note links the serving defaults. The heat note and the [benchmark method](docs/benchmarks.md) no longer say prefill slows as a host heats: two speeds about 7.5% apart are not explained by heat ([validation](docs/validation.md#prefill-and-decode-speed)). The 2.1.0 prefill row names its first run (1,221.5 tok/s). The engine description names #421; the settings table names the TP=3 rank files' `NCCL_NET_PLUGIN=none`.
+
+### Tests
+
+- The image tag in the pages' build, inspect and create-container commands is the Dockerfile's, and the README's Status and release measurements name that image's version. The memory guard's floor is quoted from `hostwatch.sh`.
+
+The image is unchanged; it stays 2.1.4's.
+
 ## 2.1.7 — 2026-10-06
 
 ### Documentation
