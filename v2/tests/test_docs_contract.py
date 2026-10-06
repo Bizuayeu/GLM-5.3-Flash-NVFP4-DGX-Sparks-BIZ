@@ -185,6 +185,30 @@ class ImageTests(unittest.TestCase):
         for suffix in PAIRS:
             self.assertIn(f"`{base}`", read(f"SETUP{suffix}.md"), suffix)
 
+    def test_the_commands_build_and_run_the_dockerfiles_tag(self):
+        # The Dockerfile's usage line owns the tag; each page's commands repeat it.
+        tag = owned(r"-t (glm53-tf:\S+) \.", "docker/Dockerfile")
+        for suffix in PAIRS:
+            for name in ("README", "SETUP", "docs/operations"):
+                commands = re.findall(
+                    r"(?:-t|inspect .*|create_container\.sh) (glm53-tf:\S+)",
+                    read(f"{name}{suffix}.md"),
+                )
+                with self.subTest(page=name + suffix):
+                    self.assertTrue(commands)
+                    self.assertEqual(set(commands), {tag})
+
+
+class MemoryGuardTests(unittest.TestCase):
+    """The pages quote the memory guard's floor."""
+
+    def test_the_floor(self):
+        floor = owned(r'"\$available" -lt (\d+) \]', "scripts/hostwatch.sh")
+        for suffix in PAIRS:
+            for name in ("README", "docs/operations"):
+                with self.subTest(page=name + suffix):
+                    self.assertIn(f"{floor} GiB", read(f"{name}{suffix}.md"))
+
 
 class LockTests(unittest.TestCase):
     """The pages that write the pinned revision out write the locked one."""
