@@ -13,6 +13,7 @@ from tools.check_publication import (
     headline_problems,
     line2_problems,
     map_problems,
+    pair_problems,
     plan_link_problems,
     problems,
     recipe_problems,
@@ -243,6 +244,32 @@ class DocumentMapTests(unittest.TestCase):
             ),
             ["document missing from docs/README.md: docs/b.md"],
         )
+
+
+class PairTests(unittest.TestCase):
+    ENGLISH = "# A\n\n## B\n\n| x | y |\n|---|---|\n\n```sh\nrun\n```\n"
+
+    def test_a_pair_with_the_same_shape_passes(self):
+        japanese = "# あ\n\n## い\n\n| x | y |\n|---|---|\n\n```sh\nrun\n```\n"
+        documents = {"a.md": self.ENGLISH, "a.ja.md": japanese, "b.md": "# only\n"}
+        self.assertEqual(pair_problems(documents), [])
+
+    def test_headings_table_rows_and_fences_are_compared(self):
+        for japanese in (
+            "# あ\n\n### い\n\n| x | y |\n|---|---|\n\n```sh\nrun\n```\n",
+            "# あ\n\n## い\n\n| x | y |\n\n```sh\nrun\n```\n",
+            "# あ\n\n## い\n\n| x | y |\n|---|---|\n",
+        ):
+            with self.subTest(japanese=japanese):
+                self.assertEqual(
+                    pair_problems({"a.md": self.ENGLISH, "a.ja.md": japanese}),
+                    ["English/Japanese pair differs in shape: a.md, a.ja.md"],
+                )
+
+    def test_a_heading_inside_a_fence_is_not_a_heading(self):
+        english = "# A\n\n```sh\n# a comment\n```\n"
+        japanese = "# あ\n\n```sh\nrun\n```\n"
+        self.assertEqual(pair_problems({"a.md": english, "a.ja.md": japanese}), [])
 
 
 class ArchitectureTests(unittest.TestCase):

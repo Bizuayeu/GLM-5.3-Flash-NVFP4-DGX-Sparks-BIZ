@@ -262,6 +262,34 @@ def anchor_problems(documents):
     return problems
 
 
+def shape(text):
+    """Heading levels, table rows and fences of a Markdown text: what a translation keeps."""
+    levels, rows, fences, fenced = [], 0, 0, False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fences += 1
+            fenced = not fenced
+        elif not fenced:
+            heading = re.match(r"(#{1,6}) ", line)
+            if heading:
+                levels.append(len(heading.group(1)))
+            rows += line.startswith("|")
+    return levels, rows, fences
+
+
+def pair_problems(documents):
+    """Each *.ja.md has the shape of its English page, so a section added to one is in both."""
+    problems = []
+    for name in sorted(documents):
+        english = name.removesuffix(".ja.md") + ".md"
+        if name.endswith(".ja.md") and english in documents:
+            if shape(documents[english]) != shape(documents[name]):
+                problems.append(
+                    f"English/Japanese pair differs in shape: {english}, {name}"
+                )
+    return problems
+
+
 def public_files(root, export_tree=False):
     if export_tree:
         return {
@@ -481,9 +509,9 @@ def problems(root, files, plans=False):
     """Every issue of the repository at ``root`` whose public files are ``files``."""
     found = audit(root, files)
     documents = {name for name in files if name.endswith(".md")}
-    found += anchor_problems(
-        {name: (root / name).read_text(encoding="utf-8") for name in documents}
-    )
+    texts = {name: (root / name).read_text(encoding="utf-8") for name in documents}
+    found += anchor_problems(texts)
+    found += pair_problems(texts)
     for map_name in MAPS:
         # The repository's own map, under the same rule as 1.x's in v1/docs/.
         if map_name in files:
