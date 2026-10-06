@@ -30,7 +30,7 @@
 | 系列 | 文書一覧または文書 | EN | JA |
 |---|---|---|---|
 | 1.x系（vLLM） | 文書一覧：README、セットアップ手順書、Changelog、1.x系の全文書と事実ごとの正典 | [EN](../v1/docs/README.md) | [JA](../v1/docs/README.ja.md) |
-| 2.xのREADME | 要約、何であるか、必要な環境、はじめ方、配信の既定値、設定、API、1.x系との違い、リリースの測定値、制約、構成、TensorFoldの他のレシピ、Next Action | [EN](../v2/README.md) | [JA](../v2/README.ja.md) |
+| 2.xのREADME | 2.x系の概要：何を配信するか、どう始めるか、既定値と測定値、制約と、何が変われば見直すか | [EN](../v2/README.md) | [JA](../v2/README.ja.md) |
 | 2.xのセットアップ手順書 | ホストから受け入れ・停止までの順序 | [EN](../v2/SETUP.md) | [JA](../v2/SETUP.ja.md) |
 | 2.xの検証 | 2.xの起動を受け入れる基準値 | [EN](../v2/docs/validation.md) | [JA](../v2/docs/validation.ja.md) |
 | 2.xの運用 | 起動の結果、止まったrank、エンジンが残る停止、socketに落ちたNCCL、新しいcontainerやimage、電源が落ちたホスト、ホストを1.x系へ渡す | [EN](../v2/docs/operations.md) | [JA](../v2/docs/operations.ja.md) |

@@ -33,7 +33,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | Replies of up to 32,768 tokens when a request names no limit | 2026-10-03 | — | — |
 | Prefill chunk of 4,096 rows | rejected 2026-10-02 | 1,076.1 tok/s against 1,169.9 with 2,048 rows on the same build, and a window of about 405K instead of about 490K; the bits were the same | — |
 | One sequence at a time | 2026-10-02 | The engine's CUDA path decodes one GLM request at a time | Upstream merges #243 |
-| No image input in 2.0.0 | 2026-10-04 | The engine refuses images for GLM on CUDA | Read upstream pull request #194 first ([Next Action](../README.md#next-action)) |
+| No image input in 2.0.0 | 2026-10-04 | The engine refuses images for GLM on CUDA | Reopened in 2.1.0 with #194 (the next row) |
 | Image input from upstream pull request #194, carried to three ranks, on by default (`VISION=1` in the example rank files) | 2026-10-05 | #194 encodes on rank 0 and sends the features, which three ranks needed only its gather widened for. The 2.1.0 acceptance read one image, a 4:3 image of 7,966 prompt tokens, two in order, a single colour and an image in a tool result at both TP sizes, and the token ids without images stayed 2.0.0's with it on. The window stays; at TP=2 the 1.05 GiB tower leaves 2.4 GiB of the 3 GiB for kept prompts, which was taken for images by default | Upstream merges #194; the kept prompts' 2.4 GiB proves short for long conversations at TP=2 |
 
 ## Drafts
@@ -68,7 +68,7 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 
 | Decision | Date | Measured effect | Reopens when |
 |---|---|---|---|
-| A prefill waits between chunks at 92 °C until 88 °C, every rank together | 2026-10-04 | Without it, a 1M-token prompt at TP=3 reached the thermal watch's 94 °C after six and a half minutes; with it the prompt completed ([heat](../README.md#measured-on-the-release)). The per-chunk exchange of the hottest reading cost about 0.2% of a 38,960-token prefill. 92 °C sits 2 °C under the stop (near the top a host rose 0.5-1 °C a minute; a chunk takes seconds); 88 °C sits under the 88.8-89.6 °C a 1M prefill held before the faster prefill work, and `serve.sh` keeps it provisional | Upstream answers issue #339; the bands are the rank file's to change |
+| A prefill waits between chunks at 92 °C until 88 °C, every rank together | 2026-10-04 | Without it, a 1M-token prompt at TP=3 reached the thermal watch's 94 °C after six and a half minutes; with it the prompt completed ([heat](../README.md#measured-on-the-release)). The per-chunk exchange of the hottest reading cost about 0.2% of a 38,960-token prefill. 92 °C sits 2 °C under the stop (near the top a host rose 0.5-1 °C a minute; a chunk takes seconds); 88 °C sits under the 88.8-89.6 °C a 1M prefill held before the faster prefill work | Upstream answers issue #339; the bands are the rank file's to change |
 | How the wait is made | 2026-10-04 | One word gathered on its own before each chunk, not added to the existing exchange, whose result the host does not read; the ACPI zones only, as the thermal watch and the cooling gate read (the GPU ran about 9 °C cooler in every record); no limit on a wait, so a hot room holds the request and the thermal watch stays the last guard; off unless both bands are set, so upstream's default does not change | — |
 
 ## Engine commits not named elsewhere

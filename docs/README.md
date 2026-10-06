@@ -30,7 +30,7 @@ This map lists the repository's own pages, the pages every serving line shares a
 | Line | Document map or pages | EN | JA |
 |---|---|---|---|
 | 1.x (vLLM) | Document map: README, setup runbook, changelog and every 1.x document, with the owner of each fact | [EN](../v1/docs/README.md) | [JA](../v1/docs/README.ja.md) |
-| 2.x README | Summary, what it is, requirements, quick start, serving defaults, configuration, API, differences from 1.x, release measurements, limits, layout, other recipes on TensorFold, Next Action | [EN](../v2/README.md) | [JA](../v2/README.ja.md) |
+| 2.x README | The 2.x line's overview: what it serves, how to start it, its defaults and measurements, its limits and what would change it | [EN](../v2/README.md) | [JA](../v2/README.ja.md) |
 | 2.x setup runbook | Ordered steps from hosts to acceptance and stop | [EN](../v2/SETUP.md) | [JA](../v2/SETUP.ja.md) |
 | 2.x validation | The reference values a 2.x launch is accepted against | [EN](../v2/docs/validation.md) | [JA](../v2/docs/validation.ja.md) |
 | 2.x operations | Start outcomes, a rank that stops, a stop that leaves an engine, NCCL over sockets, a new container or image, a host that powered off, handing the hosts to 1.x | [EN](../v2/docs/operations.md) | [JA](../v2/docs/operations.ja.md) |
