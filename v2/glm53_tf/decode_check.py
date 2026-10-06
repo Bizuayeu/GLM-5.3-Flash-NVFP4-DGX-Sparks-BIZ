@@ -3,14 +3,12 @@
 Run on rank 0 against the loopback API, once per task type (PROMPT_KIND=count|prose|code), SAMPLES times at
 temperature 0. Each sample prints one JSON line with the speed, the hash of the completion text and the hash of
 its token ids (`return_token_ids`; TensorFold returns them in the reply's `tensorfold` block); the summary
-carries the MTP acceptance length over the run, 1 + accepted / draft rounds: from vLLM's `/metrics` counters,
-or on TensorFold from each reply's `tensorfold` block (`rounds`, `accepted`; `acceptance_from` says so, and
-`acceptance_null` why a TensorFold run has none). TOKENS_OUT, a path, receives the completion text and token
-ids of every sample, so two launches can be compared at their first diverging token with `python -m glm53_tf decode-divergence`.
-On vLLM the prompt stays below one prefix-cache block, so the prefix cache is not involved. TensorFold keeps
-whole prompts and has no request field or endpoint that drops them, so before each sample TF_GLM_CACHE_ENTRIES
-short distinct requests push the kept prompts out (`evicted_before_each`); each row's `cached` shows the
-result. Within a launch the samples agree, and across launches the hashes are compared with the previous launch
+carries the MTP acceptance length over the run, 1 + accepted / draft rounds, from each reply's `tensorfold`
+block (`rounds`, `accepted`; `acceptance_from` says so, and `acceptance_null` why a run has none).
+TOKENS_OUT, a path, receives the completion text and token ids of every sample, so two launches can be
+compared at their first diverging token with `python -m glm53_tf decode-divergence`. TensorFold keeps whole
+prompts and has no request field or endpoint that drops them, so before each sample TF_GLM_CACHE_ENTRIES short
+distinct requests push the kept prompts out (`evicted_before_each`); each row's `cached` shows the result. Within a launch the samples agree, and across launches the hashes are compared with the previous launch
 of the same profile (docs/validation.md, "Decode check").
 
     PROMPT_KIND=prose SAMPLES=3 TOKENS_OUT=../records/<run>/tokens-prose.json python -m glm53_tf decode-check
@@ -26,7 +24,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import statistics
 import time
 import urllib.request
@@ -46,17 +43,11 @@ TASKS = {
     "cache with TTL expiry, a thread-safe API, docstrings, type hints and unit tests.",
 }
 TEMPLATE = {"reasoning_effort": "low", "clear_thinking": True}
-COUNTERS = {
-    "vllm:spec_decode_num_drafts_total": "num_drafts",
-    "vllm:spec_decode_num_draft_tokens_total": "num_draft_tokens",
-    "vllm:spec_decode_num_accepted_tokens_total": "num_accepted_tokens",
-    "vllm:generation_tokens_total": "generation_tokens",
-}
 
 
 def auth():
     """The server's API key, when TENSORFOLD_API_KEY is set where the check runs (a server
-    started with one refuses requests without it, /metrics too unless --metrics-open)."""
+    started with one refuses requests without it)."""
     key = os.environ.get("TENSORFOLD_API_KEY")
     return {"Authorization": f"Bearer {key}"} if key else {}
 
@@ -68,17 +59,6 @@ def post(path, body, timeout=900):
         {"Content-Type": "application/json", **auth()},
     )
     return urllib.request.urlopen(req, timeout=timeout)
-
-
-def spec_counters():
-    req = urllib.request.Request(BASE + "/metrics", headers=auth())
-    text = urllib.request.urlopen(req, timeout=10).read().decode()
-    out = {}
-    for line in text.splitlines():
-        match = re.match(r"([a-z_:]+)(?:\{[^}]*\})? ([0-9.e+-]+)$", line)
-        if match and match[1] in COUNTERS:
-            out[COUNTERS[match[1]]] = out.get(COUNTERS[match[1]], 0.0) + float(match[2])
-    return out, any(line.startswith("tensorfold:") for line in text.splitlines())
 
 
 def evict():
@@ -167,18 +147,10 @@ def decode(prompt):
     return row, {"text": "".join(pieces), "token_ids": ids}, spec
 
 
-def acceptance(before, after, blocks):
-    """The acceptance length and any keys it adds to the summary.
-
-    vLLM: the counter deltas over the run. TensorFold, whose `/metrics` has no draft rounds: the sum of the
-    replies' `tensorfold` blocks, exact per request. Without drafts both give null.
-    """
-    if not any(blocks):
-        drafts = after.get("num_drafts", 0) - before.get("num_drafts", 0)
-        accepted = after.get("num_accepted_tokens", 0) - before.get(
-            "num_accepted_tokens", 0
-        )
-        return (round(1 + accepted / drafts, 3) if drafts else None), {}
+def acceptance(blocks):
+    """The acceptance length and the keys it adds to the summary: the sum of the replies'
+    `tensorfold` blocks, exact per request (the engine's `/metrics` has no draft rounds).
+    Without drafts, or with a reply that has no block, it is null with the reason."""
     extra = {"acceptance_from": "tensorfold reply blocks"}
     if not all(b and "rounds" in b and "accepted" in b for b in blocks):
         return None, dict(extra, acceptance_null="a reply without rounds/accepted")
@@ -193,19 +165,16 @@ def main(argv=None):
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     ).parse_args(argv)
     prompt = prompt_text()
-    before, tensorfold = spec_counters()
     rows = []
     fulls = []
     blocks = []
     for _ in range(SAMPLES):
-        if tensorfold:
-            evict()
+        evict()
         row, full, spec = decode(prompt)
         rows.append(row)
         fulls.append(full)
         blocks.append(spec)
         print(json.dumps(row), flush=True)
-    after, _ = spec_counters()
     if os.environ.get("TOKENS_OUT"):
         with open(os.environ["TOKENS_OUT"], "w", encoding="utf-8") as f:
             json.dump(
@@ -214,9 +183,8 @@ def main(argv=None):
                 ensure_ascii=False,
             )
     speeds = [r["tok_per_s"] for r in rows]
-    length, extra = acceptance(before, after, blocks)
-    if tensorfold:
-        extra["evicted_before_each"] = TF_GLM_CACHE_ENTRIES
+    length, extra = acceptance(blocks)
+    extra["evicted_before_each"] = TF_GLM_CACHE_ENTRIES
     print(
         json.dumps(
             {
@@ -231,8 +199,6 @@ def main(argv=None):
                     **extra,
                 },
                 "all": speeds,
-                "spec_before": before,
-                "spec_after": after,
                 "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             }
         ),

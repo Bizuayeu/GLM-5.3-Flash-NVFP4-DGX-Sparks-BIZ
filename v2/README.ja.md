@@ -118,7 +118,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 - **思考**：検査が送る形の `chat_template_kwargs.reasoning_effort` と `clear_thinking`。streamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあります（[制限](#制限)）。
 - **`"draft": false`**：要求のbodyに入れると1 roundに1 tokenずつdecodeします。draftした応答が一致すべきserialの基準です。
 - **応答の `tensorfold` block**：`accepted` と `rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`heat_wait_s`。
-- **`/health`**（decodeの `rounds` など）と **`/metrics`**。decode検査はこれでエンジンを見分けます。
+- **`/health`**（decodeの `rounds` など）と **`/metrics`**。
 - **停止**：クライアントの切断やstop文字列で、全rankのdecodeが1 round以内に終わります。
 - **画像**（`VISION=1`）：data URLの `image_url` を、userのメッセージとtoolの結果で受けます。動画は400で拒みます。
 

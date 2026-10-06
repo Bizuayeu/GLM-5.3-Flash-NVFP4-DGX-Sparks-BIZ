@@ -118,7 +118,7 @@ Rank 0 serves the engine's HTTP API. What the acceptance exercised:
 - **Thinking**: `chat_template_kwargs.reasoning_effort` and `clear_thinking`, as the checks send them. A streamed delta can carry both `reasoning_content` and `content` ([limits](#limits)).
 - **`"draft": false`** in the request body decodes one token a round, the serial reference that drafted replies must equal.
 - **The reply's `tensorfold` block**: `accepted` and `rounds` (MTP acceptance), `cached` (prompt tokens resumed from a kept prompt) and `heat_wait_s`.
-- **`/health`** (the decode `rounds`, among others) and **`/metrics`**, which the decode check reads to tell the engines apart.
+- **`/health`** (the decode `rounds`, among others) and **`/metrics`**.
 - **Stopping**: a client disconnect or a stop string ends the decode on every rank within a round.
 - **Images** (`VISION=1`): `image_url` parts as data URLs, in user messages and in tool results; a video part is refused with 400.
 
