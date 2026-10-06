@@ -23,6 +23,9 @@ This page owns the TP=2 benchmark method, the MTP-off baseline, the full-model r
 | [1.22.0](#measurements-on-1220) | 2026-09-29 | tool-eval-bench on the model API and through the tool-argument gate |
 | [1.24.0](#measurements-on-1240) | 2026-09-29, 2026-10-01 | Three hosts at TP=3: both profiles, NLL position by position, 500K and 1M input, the prefill cap |
 | [1.25.0](#measurements-on-1250) | 2026-10-02 | The shared-memory reader spin on the reference pair (P29) |
+| [1.29.0](#measurements-on-1290) | 2026-10-04 | Keeping the last block of a prefix-cache hit |
+| [1.29.8](#measurements-on-1298) | 2026-10-05 | The decode check reading whole deltas, both profiles |
+| [1.29.9](#measurements-on-1299) | 2026-10-06 | The decode check with the vision rope that spans a slim image's grid, both profiles |
 
 Runs outside the release sections:
 
@@ -693,7 +696,7 @@ The earlier image (1.8.0, one launch that night) computed in a third state. The 
 | 3 launches of the two-sequence AXL profile with `runtime.inductor_deterministic` (2026-09-25) | 3 / 0 / 0, the same completions | 46.05–46.27 / 27.95–28.44 / 38.39–38.80 |
 | 3 launches of the distributed defaults with the same key (2026-09-25) | the same completions in all three | 32.80–32.84 / 20.76–20.82 / 27.53–27.64 (the defaults' published 32.01 / 20.67 / 26.68) |
 
-Pinning only the Inductor config of the indexer's key norm reproduced state 2 (8 on rank 0, 1 on rank 1) and state 1 (8 on both) on demand; with the key both ranks served that kernel at `XBLOCK` 8 with a single candidate, and warmup's long rung took 52.1–52.7 s (`records/20260924-inductor-autotune-asymmetry/`, `records/20260925-defaults-deterministic/`). The cause and the fix are in [validation](repeatability.md); the steps of the search (the probe methods, the Probe4 and Probe5 launches, the deep traces) are in the [changelog](../CHANGELOG.md) of 1.10.0 to 1.12.2.
+Pinning only the Inductor config of the indexer's key norm reproduced state 2 (8 on rank 0, 1 on rank 1) and state 1 (8 on both) on demand; with the key both ranks served that kernel at `XBLOCK` 8 with a single candidate, and warmup's long rung took 52.1–52.7 s (`records/20260924-inductor-autotune-asymmetry/`, `records/20260925-defaults-deterministic/`). The cause and the fix are in [repeatability](repeatability.md); the steps of the search (the probe methods, the Probe4 and Probe5 launches, the deep traces) are in the [changelog](../CHANGELOG.md) of 1.10.0 to 1.12.2.
 
 ## Measurements on 1.10.2
 

@@ -75,7 +75,7 @@ Each optional key below keeps the launch unchanged when absent unless stated oth
 
 ### Repeatability switches
 
-Three switches make identical requests repeat bit for bit and every launch compute in the same numerical state; all three are on in every template. How each source of difference was found and measured is in [validation](repeatability.md).
+Three switches make identical requests repeat bit for bit and every launch compute in the same numerical state; all three are on in every template. How each source of difference was found and measured is in [repeatability](repeatability.md).
 
 `runtime.canonical_moe_order` (template `true`; absent = the image's default, on in images built from 1.6.0) sets `GLM53_CANONICAL_MOE_ORDER` on every rank. With `true` the reference image sorts each expert's slots by token id before the Marlin MoE kernel. New launches need `GLM53_MOE_ORDER_API=2` (images built from 1.7.0); marker 1 is accepted only for a running pair kept as a switch's recovery target ([launch checks](operations.md#full-model-launch-checks)). `false` is the comparison arm and needs no image support. Expert parallelism is left untouched. It is on by default because a reproducible baseline is what a later A/B is read against.
 

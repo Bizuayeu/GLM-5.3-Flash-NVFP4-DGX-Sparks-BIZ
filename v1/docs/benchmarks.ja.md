@@ -23,6 +23,9 @@
 | [1.22.0](#1220での測定) | 2026-09-29 | モデルAPIとtool引数ゲートを通したtool-eval-bench |
 | [1.24.0](#1240での測定) | 2026-09-29、2026-10-01 | 3台のTP=3：両profile、位置ごとのNLL、500Kと1Mの入力、prefillの上限 |
 | [1.25.0](#1250での測定) | 2026-10-02 | 参照対での共有メモリの読み手のspin（P29） |
+| [1.29.0](#1290での測定) | 2026-10-04 | prefix cacheの一致の最後のblockを残す |
+| [1.29.8](#1298での測定) | 2026-10-05 | deltaを丸ごと読むdecode検査、両profile |
+| [1.29.9](#1299での測定) | 2026-10-06 | 細長い画像の格子を覆うvision ropeでのdecode検査、両profile |
 
 リリースの節の外にある実行：
 
@@ -693,7 +696,7 @@ KDAの状態checkpoint（dense retention）がKV予算の大半を占め、100K�
 | `runtime.inductor_deterministic` 付きの同時2系列AXL profileの3起動（2026-09-25） | 3／0／0、同じcompletion | 46.05〜46.27／27.95〜28.44／38.39〜38.80 |
 | 同じkey付きの配布既定の3起動（2026-09-25） | 3起動とも同じcompletion | 32.80〜32.84／20.76〜20.82／27.53〜27.64（配布既定の公表値は32.01／20.67／26.68） |
 
-indexerのkey正規化のInductor configだけを指定すると、状態2（rank 0が8、rank 1が1）と状態1（両方8）を狙って作れた。keyを付けると両rankがこのkernelを `XBLOCK` 8・候補一つで動かし、warmupのlong段は52.1〜52.7 sだった（`records/20260924-inductor-autotune-asymmetry/`、`records/20260925-defaults-deterministic/`）。原因と修正は[検証](repeatability.ja.md)に、探索の手順（probeのmethod、Probe4・Probe5の起動、深いtrace）は[変更履歴](../CHANGELOG.ja.md)の1.10.0〜1.12.2にある。
+indexerのkey正規化のInductor configだけを指定すると、状態2（rank 0が8、rank 1が1）と状態1（両方8）を狙って作れた。keyを付けると両rankがこのkernelを `XBLOCK` 8・候補一つで動かし、warmupのlong段は52.1〜52.7 sだった（`records/20260924-inductor-autotune-asymmetry/`、`records/20260925-defaults-deterministic/`）。原因と修正は[再現性](repeatability.ja.md)に、探索の手順（probeのmethod、Probe4・Probe5の起動、深いtrace）は[変更履歴](../CHANGELOG.ja.md)の1.10.0〜1.12.2にある。
 
 ## 1.10.2での測定
 

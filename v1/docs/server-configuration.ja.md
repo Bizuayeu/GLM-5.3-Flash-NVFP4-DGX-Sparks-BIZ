@@ -50,7 +50,7 @@
 
 ### CPU配置の任意指定
 
-CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのCPUリストを指定します（例：`"5-9,15-19"`）。
+CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのCPUリストを指定します（例：`"5-9,15-19"`）。そのrankの`--cpuset-cpus`に渡します。
 省略時はDockerの従来の配置を使います。
 高性能コアの番号はホストごとの構成と実測から決めてください。
 コア番号を別のホストへそのまま転用することはできません。
@@ -85,7 +85,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 
 ### 再現性のスイッチ
 
-三つのスイッチで、同一要求はbit一致で反復し、どの起動も同じ数値状態で計算します。三つともすべてのテンプレートで有効です。差の出どころをそれぞれどう見つけて測ったかは[検証](repeatability.ja.md)にあります。
+三つのスイッチで、同一要求はbit一致で反復し、どの起動も同じ数値状態で計算します。三つともすべてのテンプレートで有効です。差の出どころをそれぞれどう見つけて測ったかは[再現性](repeatability.ja.md)にあります。
 
 `runtime.canonical_moe_order`（テンプレートは `true`。未指定はimageの既定に従い、1.6.0から作ったimageでは有効）は、全rankに `GLM53_CANONICAL_MOE_ORDER` を渡します。`true` にすると、参照imageがMarlinのMoE kernelの前に各expertのスロットをtoken id順に並べます。新規の起動には `GLM53_MOE_ORDER_API=2`（1.7.0から作ったimage）が要ります。marker 1は、切替の復旧先として残す稼働中の対にだけ認めます（[起動検査](operations.ja.md#フルモデルの起動検査)）。`false` は比較用のarmで、imageの対応は要りません。expert parallelには手を入れません。既定で有効にしているのは、今後のA/Bを読む物差しとして、再現できる基準が要るためです。
 

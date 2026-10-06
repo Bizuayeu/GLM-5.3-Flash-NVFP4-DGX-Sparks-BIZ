@@ -60,7 +60,7 @@ The launcher keeps one runtime cache per node count (`state/tp3-runtime-cache` f
 
 ### After a switch: the decode check
 
-A new launch is checked, not assumed. Without `runtime.inductor_deterministic`, launches of the pair fell into one of three numerical states ([measurements on 1.9.0](benchmarks.md#six-launches-of-the-new-image-the-same-completions-five-times-different-once); cause and fix in [validation](repeatability.md)); the key removed that cause, and this routine is what would show a new one. After every switch, on rank 0, run `tools/decode_check.py` once per task type with `TOKENS_OUT` set, and save every rank's container log before the next switch discards it:
+A new launch is checked, not assumed. Without `runtime.inductor_deterministic`, launches of the pair fell into one of three numerical states ([measurements on 1.9.0](benchmarks.md#six-launches-of-the-new-image-the-same-completions-five-times-different-once); cause and fix in [repeatability](repeatability.md)); the key removed that cause, and this routine is what would show a new one. After every switch, on rank 0, run `tools/decode_check.py` once per task type with `TOKENS_OUT` set, and save every rank's container log before the next switch discards it:
 
 ```sh
 for kind in prose count code; do

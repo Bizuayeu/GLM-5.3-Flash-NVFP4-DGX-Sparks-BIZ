@@ -108,7 +108,7 @@ The pinned processor bounds an image by its token budget only, and the pinned vi
 | 114000×28 | 8,143 | 200, 4,090 prompt tokens | 200, 4,090 prompt tokens |
 | 200000×20 | 14,286 | HTTP 500 after 63 s; rank 0 logged `vectorized gather kernel index out of bounds` and the server stopped answering `/health` | 200, 7,161 prompt tokens (7,143 image tokens), `/health` 200 |
 
-1.29.9 carries the fix on the pinned source (`patch_vision_rope`): the table has `max_position_embeddings` rows (1,048,576, about 64 MiB in bf16 a GPU). The nine images of the 1.29.0 check above gave the same HTTP status, prompt tokens and replies on 1.29.8 and 1.29.9, and the decode check gave 1.29.8's token ids and completions on both profiles. One run each.
+1.29.9 carries the fix on the pinned source (`patch_vision_rope`): the table has `max_position_embeddings` rows (1,048,576, about 64 MiB per GPU in bf16). The nine images of the 1.29.0 check above gave the same HTTP status, prompt tokens and replies on 1.29.8 and 1.29.9, and the decode check gave 1.29.8's token ids and completions on both profiles. One run each.
 
 ### Three hosts at TP=3
 
