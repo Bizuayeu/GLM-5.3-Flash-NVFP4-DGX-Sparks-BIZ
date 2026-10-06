@@ -2,6 +2,14 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.11 — 2026-10-06
+
+### Documentation
+
+- [Next Action](README.md#next-action): [vLLM #58868](https://github.com/vllm-project/vllm/pull/58868) (open), upstream's fix for slow weight copies from the file mapping on GB10, becomes the trigger to consider dropping `patch_load_clone`, which works around the same cost.
+
+No file of the reference image changes; it stays 1.29.9's.
+
 ## 1.29.10 — 2026-10-06
 
 ### Documentation

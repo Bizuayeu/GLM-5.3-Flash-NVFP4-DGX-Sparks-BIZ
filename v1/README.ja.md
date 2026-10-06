@@ -1,6 +1,6 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
-**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.29.10」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
+**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.29.11」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
 
 **BIZ**は保守者の印で、リポジトリの意図を示す語です。意味することと意味しないことは[リポジトリのREADME](../README.ja.md#biz)にあります。
 
@@ -202,6 +202,7 @@ fixtureは元の幅・experts・選択したtensor bytesを保持しますが、
 - [vLLM #57128](https://github.com/vllm-project/vllm/pull/57128)（Mambaのprefix cacheの一致が投機の余白を無視する、[#53912](https://github.com/vllm-project/vllm/issues/53912)）がmergeされる → source固定patchとして移植する。配信profileは報告の条件（prefix caching、MTP k=3、Mamba cache mode `align`）に当たります。別の構成での現場報告に、ある要求の内容が別の要求の応答に現れたというものがありますが、ここでは観測していません。
 - [vLLM #54296](https://github.com/vllm-project/vllm/pull/54296) がmergeされ固定に入る → slot対応付けのガード（`patch_slot_mapping`）を外す。
 - [vLLM #50843](https://github.com/vllm-project/vllm/pull/50843) がmergeされ固定に入る → samplerの語彙の範囲のガード（`patch_sampler_nonfinite`）を外す。
+- [vLLM #58868](https://github.com/vllm-project/vllm/pull/58868)（GB10でsafetensorsのfile mappingから重みを直接GPUへ写すと遅い件、[#58726](https://github.com/vllm-project/vllm/issues/58726)。写す前にpageに触れる）がmergeされ固定に入る → 同じ費用を、各tensorを匿名メモリへcloneして避けている `patch_load_clone` を外すことを検討する。
 - [vLLM #59528](https://github.com/vllm-project/vllm/pull/59528)（kpoolのtailのslot mappingが、0の印の行（dummy run・graphのcapture・padding）からnull blockへ書く）がmergeされる → `patch_kpool_ring` の隣にsource-pinned patchとして移植する。
 - 検証：機体のCPUが実際に出している周波数。[knapcioのissue #7](https://github.com/knapcio/GLM-5.3-Flash-4x-DGX-Spark-TP4/issues/7)は、DGX OS 7.5・kernel 6.17のASUS GX10で、governorが `performance` でもGraceのcoreが最低の性能段で動いていたと報告し、7.0のkernelではdecodeが8〜10%速くなった。参照機は6.17.0-1032 → 許可した窓で、各機のX925の1 coreにbusy loopを置き、CPPCのfeedback counterを読む。最低で動いている機があれば、複数ノードのRoCEに `kho=off` が要る7.0のkernelと天秤にかける（[ホストカーネル](../docs/hosts.ja.md#ホストカーネルと複数ノードroce)）。両系列の数字がこれに左右される。
 - `mtp.disable_eagle_block_drop`（1.29.0からopt-in）：最後に一致したblockを残すと、TP=2の両profileで、cache済みの124,272 tokenの送り直しの最初のtokenまでが8.5 sから4.4 sになり、応答とdecode検査のcompletionは同じでした（[1.29.0での測定](docs/benchmarks.ja.md#1290での測定)）。vLLMがdraftの受理率について実験的と警告していることと、LPAとは両立しない（起動時に拒む）ことから、どのテンプレートにも入れないopt-inのままとする → vLLMがこの設定を既定にする、または実験的の警告を外す → LPAとの両立を確かめ、cacheが当たった要求でMTPの受理長を測り、テンプレートでの採用を考え直す。

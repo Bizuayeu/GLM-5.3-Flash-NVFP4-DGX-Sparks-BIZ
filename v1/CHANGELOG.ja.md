@@ -4,6 +4,14 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.29.11 — 2026-10-06
+
+### Documentation
+
+- [Next Action](README.ja.md#next-action)：GB10でfile mappingから重みを写すと遅い件への上流の修正 [vLLM #58868](https://github.com/vllm-project/vllm/pull/58868)（open）を、同じ費用を避けている `patch_load_clone` を外す検討のトリガーにしました。
+
+参照imageのファイルは変わらず、1.29.9のままです。
+
 ## 1.29.10 — 2026-10-06
 
 ### Documentation
