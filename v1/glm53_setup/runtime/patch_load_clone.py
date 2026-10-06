@@ -12,8 +12,9 @@ MiaAI-Lab's recipe (no code taken, AGPL-3.0); vLLM has no such change at the pin
 """
 
 # cc-defer: carries a local staging copy on the pinned loader; drop it (and the
-# Dockerfile RUN) when a vLLM pin loads file-backed tensors without the slow path,
-# or when the GB10 driver copies from file mappings at anonymous-memory speed.
+# Dockerfile RUN) when a vLLM pin loads file-backed tensors without the slow path
+# (vllm-project/vllm #58868, for issue #58726, once merged), or when the GB10 driver
+# copies from file mappings at anonymous-memory speed.
 
 from . import pinned_patch
 from .pinned_patch import replace_once

@@ -215,7 +215,7 @@ def addressing(nodes, rank):
     bootstrap ring and vLLM's broadcast queue connect every rank to each advertised
     address, and a /30 link-to-head address is not reachable from the third node
     without routes. The reference ring therefore sets host_address on every node, a /32
-    on its own interface with static routes over the direct links (docs/qsfp-network.md).
+    on its own interface with static routes over the direct links (../docs/qsfp-network.md).
 
     cc-defer: a ring profile without host_address is still accepted, though its fallback
     cannot reach the third node. Refuse it at validation when an operator launches one.
@@ -256,7 +256,7 @@ def fabric_env(site):
         # whose subnet reaches it (2.29.7 lacks the knob).
         # cc-defer: set without checking that the image's NCCL knows the knob;
         # preflight reads no NCCL version and the image carries no marker for it.
-        # Plan Stage 3 confirms it in the probe's NCCL log on the ring.
+        # Add a marker or a preflight check when the image's NCCL changes.
         env["NCCL_IB_SUBNET_AWARE_ROUTING"] = "1"
     return env
 

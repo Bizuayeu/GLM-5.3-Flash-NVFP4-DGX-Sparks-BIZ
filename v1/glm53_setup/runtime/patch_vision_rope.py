@@ -6,7 +6,7 @@ ratio. A slim image within the 8,000-token ceiling can have a grid side past 8,1
 example: 200000 x 20 px is accepted at 7,143 tokens with ``image_grid_thw = [1, 2, 14286]``), and
 ``cos[pos_ids]`` reads past the table: a device-side assert that takes the engine down. The table is
 sized from ``text_config.max_position_embeddings`` instead (1,048,576 rows for the checkpoint, about
-64 MiB in bf16 a GPU); for every grid that fit the old table the tower's output is bit-identical.
+64 MiB in bf16 per GPU); for every grid that fit the old table the tower's output is bit-identical.
 The same change stages the two host-to-device copies of ``rot_pos_emb`` and the eager ``forward``
 through pinned memory (``async_tensor_h2d``), which only matters under ``VLLM_GPU_SYNC_CHECK=error``
 (this setup does not set it) and is carried so that the file matches upstream. Upstream:

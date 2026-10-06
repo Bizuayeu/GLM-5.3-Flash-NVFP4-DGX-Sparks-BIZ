@@ -14,7 +14,8 @@ the image).
 """
 
 # cc-defer: carries an upstream fix that the pinned vLLM predates; drop it (and the
-# Dockerfile RUN) when the vLLM pin moves past 5688a4dd4a.
+# Dockerfile RUN) when the vLLM pin moves past 5688a4dd4a. patch_vision_rope's
+# SOURCE_SHA256 is this patch's output: re-pin it then, or drop both together.
 
 from . import pinned_patch
 from .pinned_patch import replace_once

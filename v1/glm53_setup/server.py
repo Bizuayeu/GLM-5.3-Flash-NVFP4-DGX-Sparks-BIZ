@@ -128,8 +128,9 @@ def runtime_mounts(profile):
         ]
     if settings.optional(profile, "runtime", "fa2_attention"):
         # cc-defer: mounts kept although preflight already requires the FA2 marker,
-        # recovery included (fa2_attention_support); drop them once the reference
-        # image carries this checkout's copies of the three files.
+        # recovery included (fa2_attention_support); drop them once every image a
+        # launch may use, the recovery target included, carries this checkout's
+        # copies of the three files.
         # The FA2 path and its dispatch are newer than the image, and so is the
         # fused unpack that takes its element count at run time: the image's
         # copy compiles one kernel per size, which FA2's varying row counts leak.

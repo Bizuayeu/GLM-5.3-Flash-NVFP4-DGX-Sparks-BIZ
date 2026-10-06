@@ -422,7 +422,7 @@ def check_node_count(profile):
         # apc_worker refuses TP outside {1, 2} on every request; LPA was measured at TP=2.
         (profile["lpa"]["enabled"], "LPA"),
         # A derived checkpoint is allowed: the overlays split heads by TP with
-        # num_heads % tp_size, which the padded 66 heads satisfy (plan Stage 6).
+        # num_heads % tp_size, which the padded 66 heads satisfy.
     ):
         if refused:
             raise ValueError(f"{name} launches only on two nodes")
@@ -550,9 +550,9 @@ KV_BYTES_WITHOUT_DERIVED = 3 * 2**30
 def check_kv_budget(profile):
     """More KV than the pinned weights leave room for needs the repacked checkpoint."""
     if node_count(profile) != 2:
-        # cc-defer: no bound beyond the profile's explicit, positive
-        # kv_cache_memory_bytes; the 3 GiB above is TP=2's weights. Plan Stage 4
-        # reads the TP=3 boot line and sets the TP=3 budget (and this check).
+        # The 3 GiB above is TP=2's weights. TP=3 takes no limit beyond the profile's
+        # explicit, positive kv_cache_memory_bytes (docs/server-configuration.md,
+        # examples/server.tp3.example.toml).
         return
     if profile["cache"]["kv_cache_memory_bytes"] > KV_BYTES_WITHOUT_DERIVED and (
         derived_checkpoint(profile) is None
@@ -952,7 +952,7 @@ def apply_long_prefill(args, profile):
     """Cap each request's prefill chunk per step; absent or 0 passes nothing.
 
     With chunked prefill a long prompt takes the whole step budget, so a request
-    decoding beside it waits for a full chunk every step (TP3 Stage 5 entry).
+    decoding beside it waits for a full chunk every step (docs/server-configuration.md).
     """
     threshold = optional(profile, "context", "long_prefill_token_threshold")
     if threshold:
