@@ -11,7 +11,7 @@
 ## 要約
 
 - **何であるか。** 固定したcheckpointを、固定したTensorFoldのcommitで一つのOpenAI互換endpointとして配信するための、build手順・起動の台本・受け入れ検査です。2台なら直結のConnectX-7リンクでTP=2、3台ならswitchなしのリングでTP=3です。公開している測定値はMSI EdgeXpert（MS-C931）で取りました。
-- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.1.4）はTP=2・画像入力の有効で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
+- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.2.0）はTP=2とTP=3・画像入力の有効で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
 - **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.4 .
-v2/scripts/create_container.sh glm53-tf:2.1.4
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.2.0 .
+v2/scripts/create_container.sh glm53-tf:2.2.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1。その後この機の値に直す
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -118,7 +118,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 - **`/v1/chat/completions`**：streamとそれ以外、toolと構造化出力（tool-eval-benchのTC-64〜TC-69。imageにxgrammarが要ります）を、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)越しに。
 - **思考**：検査が送る形の `chat_template_kwargs.reasoning_effort` と `clear_thinking`。streamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあります（[制限](#制限)）。
 - **`"draft": false`**：要求のbodyに入れると1 roundに1 tokenずつdecodeします。draftした応答が一致すべきserialの基準です。
-- **応答の `tensorfold` block**：`accepted` と `rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`heat_wait_s`。
+- **応答の `tensorfold` block**：`accepted` と `rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`heat_wait_s`、copy draftsの `copy_rounds`・`copy_drafted`・`copy_accepted`。
 - **`/health`**（decodeの `rounds` など）と **`/metrics`**。
 - **停止**：クライアントの切断やstop文字列で、全rankのdecodeが1 round以内に終わります。
 - **画像**（`VISION=1`）：data URLの `image_url` を、userのメッセージとtoolの結果で受けます。動画は400で拒みます。
@@ -141,6 +141,20 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 2.x系の各設定を選んだ理由と、試して採らなかったものは[決定](docs/decisions.ja.md)にあります。
 
 ## リリースでの測定値
+
+**2.2.0**（2026-10-06、エンジン `440e631`、image `glm53-tf:2.2.0`）。tokenを変えないdecodeの改善：copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない（[決定の記録](docs/decisions.ja.md#decode)）。両TPで画像入力を有効にして、decode検査は基準のtoken idと文字列を出し、画像の検査はすべて合格しました。countの受理長は上がり（copy drafts）、他は変わりません。
+
+| 2.2.0、画像入力の有効 | TP=2 | TP=3 |
+|---|---|---|
+| decode検査 count／prose／code（tok/s） | 43.69／27.42／35.80 | 58.52／38.11／48.70 |
+| MTPの受理長（同じタスク） | 3.961／2.098／3.180 | 4.024／2.222／3.234 |
+| `bench --kinds decode`（tok/s、3回の中央値） | 36.56 | 55.68 |
+| `bench --kinds edit`（tok/s、3回の中央値。A/BでのTP=2のcopy drafts有効／無効） | 57.43（A/B 57.6／43.0） | 76.29 |
+| 38,960 tokenのprefill（tok/s） | 1,285.3／1,290.6 | 1,607.1／1,668.8 |
+| 1,035,295 tokenの3か所の合言葉 | — | 3/3、最初のtokenまで1,154.3 s（うち熱の待ち64.1 s） |
+
+- **熱。** 1M tokenのpromptの終わり近くで、1台が1回だけ1秒、94.3 °Cを読みました。そのあたりではprompt chunk一つでchunkの合間の確認の後に約7 °C上がります。待ちで2秒後に78.5 °Cまで下がり、熱の見張り（94 °C以上が2回続いたら止める）は止めませんでした。待ちを除いたprefillは1,090 sで、2.0.0は1,095 s：熱の振る舞いはこの版の変更ではありません（[Next Action](#next-action)）。
+- **prefill。** TP=2の2本はA/Bの1,326〜1,332 tok/sより約3%低く、TP=3の1本目は2本目より約3.7%低い値でした。prefillの2つの速さは未解決のままです（[検証](docs/validation.ja.md#prefillとdecodeの速さ)）。
 
 **2.1.4**（2026-10-06、エンジン `a265436`、image `glm53-tf:2.1.4`）。長い会話の後に新しい会話が来ても、保持promptを写しては捨てることがなくなりました（TensorFoldのpull request #421）。TP=2・画像入力を有効にして、decode検査は2.1.1のtoken idと文字列を出し、画像の検査はすべて合格しました。11 turnで247,330 tokenの会話の後に新しい会話を送っても、`MemAvailable` はrank 0で11〜12 GiB、rank 1で12〜15 GiBのままでした。
 
@@ -243,6 +257,7 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 - 上流がPython版のエンジンの0.6.xをもう一度出す（凍結の前に0.6.6として試験中だったもの：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262〔#204向け〕、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系の版で追う。
 - 同時に2系列以上：上流は凍結とともにMiaAI-Labのpull request #243（2 rankで `--parallel N`）を閉じた → この系列が2.2.0の後に自前のリリースのbranchへ取り込み、1.x系と同じく公開したAXLの重みを2系列で測る。
 - 上流がGLMのlossyなKV cacheの問いを開き直す（issue #309と#401でFP8と4-bitのcacheを断った、2026-10-06）か、この系列がFP8 KVの無いエンジンへ移る → まずBF16 KVの窓を測る（2026-10-02にTP=2でBF16は344,820 token、FP8は約490K）。
+- 長いprefillの間にホストが94 °Cを2回続けて読むか、1秒より長く読む（2.2.0の1M tokenの受け入れでは、終わり近くで1回だけ94.3 °C。そこではchunk一つで確認の後に約7 °C上がる）→ 熱の待ちをchunkの合間だけでなくchunkの中でも確かめるか、帯を下げ、1M tokenのpromptを測り直す。
 
 ## ローカルデータと開発
 

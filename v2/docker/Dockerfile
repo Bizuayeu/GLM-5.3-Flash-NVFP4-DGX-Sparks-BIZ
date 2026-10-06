@@ -1,13 +1,13 @@
 # The 2.x serving image: TensorFold (the BIZ release of the engine, pinned by TENSORFOLD_REF) on NVIDIA's
 # PyTorch container. Build from the checkout root, where the licences are:
-#   docker build -f v2/docker/Dockerfile -t glm53-tf:2.1.4 .
+#   docker build -f v2/docker/Dockerfile -t glm53-tf:2.2.0 .
 # The engine compiles its CUDA extensions on the GPU host into TORCH_EXTENSIONS_DIR (scripts/build_ext.sh).
 # The base by digest, not by tag (a tag can move): NVIDIA's PyTorch container 26.07-py3 as 2.0.0 was accepted on it.
 ARG BASE_IMAGE=nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c
 FROM ${BASE_IMAGE}
 
 ARG TENSORFOLD_REPO=https://github.com/Bizuayeu/TensorFold.git
-# The one place the engine version is set: a full commit SHA of the fork's release branch (release/2.1.4).
+# The one place the engine version is set: a full commit SHA of the fork's release branch (release/2.2.0).
 ARG TENSORFOLD_REF=440e631345dd4a1a6762741a73522475df9782ad
 RUN echo "$TENSORFOLD_REF" | grep -Eqx '[0-9a-f]{40}' \
  || { echo "TENSORFOLD_REF must be a full commit SHA, not '$TENSORFOLD_REF'" >&2; exit 1; }

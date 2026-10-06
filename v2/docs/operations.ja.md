@@ -27,7 +27,7 @@
 
 メモリの見張りが配信中のエンジンを止めたことは参照機ではありません。参照機が下がった `MemAvailable` の最低値は[検証](validation.ja.md#メモリと温度)にあります。止め方そのものは、containerの中のrootのプロセスで確かめました。ホストの利用者の `pkill` はそれに「許可されていない操作」で失敗し、それでも0を返します。見張りが `docker exec` を通るのはこのためです。
 
-エンジン自身の熱の待ちが、長いprefillを熱の見張りの94 °Cより下に保ちます（[配信の既定](../README.ja.md#配信の既定)）。待ちに時間の上限はありません。一度始まると、全ホストが下の帯以下になるまで要求は待ち、その間は全rankが1分ごとに `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` を出します。この行は部屋が熱いことを示し、エンジンが止まっていることを示すものではありません。
+エンジン自身の熱の待ちが、長いprefillを熱の見張りの「94 °Cが2回続く」より下に保ちます（[配信の既定](../README.ja.md#配信の既定)）。1M tokenのpromptの終わり近くでは、chunkの合間の確認の後にchunk一つで約7 °C上がるので、1回だけ94 °Cに触れることがあります。待ちに時間の上限はありません。一度始まると、全ホストが下の帯以下になるまで要求は待ち、その間は全rankが1分ごとに `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` を出します。この行は部屋が熱いことを示し、エンジンが止まっていることを示すものではありません。
 
 ## エンジンが残る停止
 
@@ -51,7 +51,7 @@ rankどうしはTCPのsocketではなくRoCEで話す必要があります：
 
 ```sh
 docker rm -f glm53-tf                                  # containerは起動の合間は眠っているだけ
-v2/scripts/create_container.sh glm53-tf:2.1.4
+v2/scripts/create_container.sh glm53-tf:2.2.0
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 ```
 
@@ -61,7 +61,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 新しいimageは新しいエンジンのbuildです。日常の利用の前に受け入れ直します。
 
-1. 一台でbuildします（[手順書 §3](../SETUP.ja.md#3-image)）。先に全ホストで、使っているimageに二つ目のtagを付けて残します（記録と同じく `docker tag glm53-tf:2.1.4 glm53-tf:2.1.4-<engine>`）。戻るのがcontainer一つで済みます。
+1. 一台でbuildします（[手順書 §3](../SETUP.ja.md#3-image)）。先に全ホストで、使っているimageに二つ目のtagを付けて残します（記録と同じく `docker tag glm53-tf:2.2.0 glm53-tf:2.2.0-<engine>`）。戻るのがcontainer一つで済みます。
 2. 他のホストへ読み込み、全ホストのimageのIDを比べます。等しくなければなりません。`docker images` が示すIDはbuildの来歴も含み、buildしたcheckoutごとに変わります（[changelogの2.0.0](../CHANGELOG.ja.md)）。
 3. 止めてから、全ホストで新しいimageからcontainerを作り直し、`build_ext.sh` を実行します（[上](#containerを作り直す)）。参照機では、新しいエンジンのたびに7つのextensionを全部buildし直し、1台あたり約155〜160秒でした。
 4. 起動し、decode検査から[検証](validation.ja.md)を回します。新しいエンジンは基準のhashを出さなければなりません。出さなければ、それは説明すべき所見で、置き換える値ではありません。

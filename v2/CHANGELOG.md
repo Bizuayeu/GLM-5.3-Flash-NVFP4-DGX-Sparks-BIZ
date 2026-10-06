@@ -4,6 +4,35 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.2.0 — 2026-10-06
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.2.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `440e631345dd4a1a6762741a73522475df9782ad` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.1.4's engine and decode work that leaves the tokens unchanged ([decisions](docs/decisions.md#decode)):
+  - **Copy drafts** (`TF_GLM_COPY_DRAFTS`): when the reply's last tokens occurred earlier, the tokens that followed are drafted ahead of the MTP head and verified like any draft, after MiaAI-Lab's patches 0007 and the first half of 0032. An edit that returns a module whole ran +34% (43.0 → 57.6 tok/s at TP=2), counting +3.6%, other loads within ±0.3%.
+  - **KDA decode windows on the three-kernel chain** (`TF_GLM_KDA_DECODE_WIDE`), after MiaAI-Lab's patch 0016c: decode +0.6%.
+  - **Per-shape tiles for the BF16 decode matmuls** (`TF_GLM_B16_DECODE_TABLE`), with the K slices counted on fixed 64-wide tiles so that a tile cannot change the sum order: decode +0.9% at TP=2.
+  - **No unread copy of the DSA key and value rows** on the latent path: 192 MiB more per rank at TP=2.
+  - Each switch defaults to on, `0` turns it off with the same tokens, and a rank given another value is refused at start ([configuration](README.md#configuration)).
+
+### Added
+
+- `python -m glm53_tf bench --kinds edit`: a module returned whole with three named edits, the load where copy drafts work ([benchmark method](docs/benchmarks.md#prefill-and-decode-speed)).
+
+### Documentation
+
+- The README treats the engine as this line's own fork: upstream froze its Python engine (TensorFold issue #286) and answered every issue and pull request of this line on 2026-10-06 ([other recipes](README.md#other-recipes-on-tensorfold)). [Next Action](README.md#next-action) names the Zig port, a further 0.6.x, pull request #243 taken into the release branch, the lossy-cache question (#309, #401) and the heat bands.
+- [Validation](docs/validation.md) gives 2.2.0's acceptance lengths and the edit reply, and states the heat check as the thermal watch's rule (two readings in a row at or above 94 °C). The README's reply fields name the copy-draft counters.
+
+### Accepted
+
+On the reference hosts on 2026-10-06 with image input on, with the release candidate image (linux/arm64 `sha256:f2c992676bc399367fd4f23f9d60e8146a05d4e9bd6811ba1ea6e484322b18bd`, the same on the three hosts):
+
+- TP=2 and TP=3: the decode check gave the reference token ids and texts, with counting's acceptance length 3.961 and 4.024; the image checks passed; `bench --kinds edit` gave the same reply at both sizes.
+- TP=3: three passphrases at 1,035,295 tokens, 3 of 3, first token after 1,154.3 s with 64.1 s of heat waits. One host read 94.3 °C once for one second near the end; the thermal watch did not stop it, and the prefill without waits matched 2.0.0's.
+- The A/B behind each switch: ten launches at TP=2, each switch off alone between launches with all on, every launch with 2.1.4's token ids.
+- The engine's own tests: the brief set 1,410 passed; the tiny model's bit checks equal 2.1.4's.
+
 ## 2.1.9 — 2026-10-06
 
 ### Changed

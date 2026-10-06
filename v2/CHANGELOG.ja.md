@@ -6,6 +6,35 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.2.0 — 2026-10-06
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.2.0` の `440e631345dd4a1a6762741a73522475df9782ad`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.1.4のエンジンに、tokenを変えないdecodeの改善を足しました（[決定の記録](docs/decisions.ja.md#decode)）：
+  - **copy drafts**（`TF_GLM_COPY_DRAFTS`）：返答の末尾のtokenが前に出ていれば、続くtokenをMTPのheadより先にdraftにし、他のdraftと同じく検証します。MiaAI-Labのpatch 0007と0032の前半に倣いました。moduleを丸ごと返す編集は+34%（TP=2で43.0 → 57.6 tok/s）、countは+3.6%、他の負荷は±0.3%以内。
+  - **KDAのdecodeの窓を3 kernelの経路で**（`TF_GLM_KDA_DECODE_WIDE`）。MiaAI-Labのpatch 0016cに倣いました。decode +0.6%。
+  - **BF16のdecodeの行列積に形ごとのタイル**（`TF_GLM_B16_DECODE_TABLE`）。Kの切れ端を固定の64幅で数えるので、タイルは和の順を変えません。TP=2でdecode +0.9%。
+  - **latentの経路で読まれないDSAのkey・value行の複製を作らない**：TP=2でrankあたり192 MiB空きます。
+  - どの切り替えも既定は有効で、`0` で切ってもtokenは同じです。rankごとに違う値を渡すと起動を断ります（[設定](README.ja.md#設定)）。
+
+### Added
+
+- `python -m glm53_tf bench --kinds edit`：moduleを名前を挙げた3か所の編集付きで丸ごと返させる負荷。copy draftsが効く負荷です（[ベンチマークの方法](docs/benchmarks.ja.md)）。
+
+### Documentation
+
+- READMEはエンジンをこの系列のforkとして扱います。上流はPython版のエンジンを凍結し（TensorFoldのissue #286）、2026-10-06にこの系列のissueとpull requestのすべてに返事しました（[TensorFoldの他のレシピ](README.ja.md#tensorfoldの他のレシピ)）。[Next Action](README.ja.md#next-action)は、Zig版への移植、Python版の0.6.xの続き、pull request #243をリリースのbranchへ取り込むこと、lossyなcacheの問い（#309、#401）、熱の帯を挙げます。
+- [検証](docs/validation.ja.md)は2.2.0の受理長と編集の返答を載せ、熱の判定を熱の見張りの規則（94 °C以上が2回続く）で書きます。READMEの応答の欄にcopy draftsの数を足しました。
+
+### Accepted
+
+2026-10-06に参照機で、画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:f2c992676bc399367fd4f23f9d60e8146a05d4e9bd6811ba1ea6e484322b18bd`、3台で同じ）で：
+
+- TP=2とTP=3：decode検査は基準のtoken idと文字列を出し、countの受理長は3.961と4.024。画像の検査はすべて合格。`bench --kinds edit` は両TPで同じ返答。
+- TP=3：1,035,295 tokenの3か所の合言葉が3/3、最初のtokenまで1,154.3 s（うち熱の待ち64.1 s）。終わり近くで1台が1回だけ1秒、94.3 °Cを読みました。熱の見張りは止めず、待ちを除いたprefillは2.0.0と同じでした。
+- 各切り替えのA/B：TP=2で10回の起動。全部有効の起動のあいだに一つだけ切った起動を挟み、どの起動も2.1.4のtoken idを出しました。
+- エンジン自身の試験：briefの一式は1,410 passed、小さなモデルのビットの照合は2.1.4と同じです。
+
 ## 2.1.9 — 2026-10-06
 
 ### Changed

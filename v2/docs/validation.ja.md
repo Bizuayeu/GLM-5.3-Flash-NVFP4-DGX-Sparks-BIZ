@@ -27,7 +27,7 @@ done
 | prose | `e33450686f6b5624` | `3ee287174a7b9ae3` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
 | code | `0ffecb8187fd7084` | `f579ca05b8be8490` | `43edfcefb4bafdb8` | `91f20cec01a74182` |
 
-token idは、TP=2ではエンジンの8つの版、TP=3では10回の起動を通じて、1本・2本のrail、3通りのprefillの交換、TP=2のNCCLの4 channel、画像入力の有効（`VISION=1`）のどれでも変わりませんでした。2.1.0から、この検査は推論の終わりと本文の始まりを1つのdeltaで運ぶときに両方の欄を取ります。以前の版は片方だけを取っていたので、countとcodeは短い文字列を読んでいました（2.0.xのhash、TP=2の `93951874…`・`389d8fb9…`、TP=3の `be0f5d34…`・`ac0a26c6…` は同じtokenです）。TP=2とTP=3は設計上互いに違います（rank間の和の分け方が違う）。受理長はTP=2 3.821／2.098／3.180、TP=3 3.549／2.222／3.234。各リリースの速さは[リリースでの測定値](../README.ja.md#リリースでの測定値)にあります。
+token idは、TP=2ではエンジンの8つの版、TP=3では10回の起動を通じて、1本・2本のrail、3通りのprefillの交換、TP=2のNCCLの4 channel、画像入力の有効（`VISION=1`）のどれでも変わりませんでした。2.1.0から、この検査は推論の終わりと本文の始まりを1つのdeltaで運ぶときに両方の欄を取ります。以前の版は片方だけを取っていたので、countとcodeは短い文字列を読んでいました（2.0.xのhash、TP=2の `93951874…`・`389d8fb9…`、TP=3の `be0f5d34…`・`ac0a26c6…` は同じtokenです）。TP=2とTP=3は設計上互いに違います（rank間の和の分け方が違う）。受理長は2.2.0からTP=2 3.961／2.098／3.180、TP=3 4.024／2.222／3.234（copy draftsでcountが上がった。前は3.821と3.549）。`bench --kinds edit` は両TPで同じ返答を出します（sha256 `ecd7a283a48a0cc4`、copyのround 240）。返答が違えば受け入れを止めます。各リリースの速さは[リリースでの測定値](../README.ja.md#リリースでの測定値)にあります。
 
 ## 画像入力
 
@@ -86,4 +86,4 @@ tool-eval-bench run --model glm-tf --base-url http://127.0.0.1:8896 --format ope
 
 メモリの見張りのlog（`~/glm53-tf/logs/hostwatch-<label>.log`）に、実行中の各ホストの最低の `MemAvailable` が残ります。基準はTP=3の1Mの要求の最中でrank 0・1が29〜31 GiB、rank 2が35 GiB、TP=2はextensionを先にbuildしてrank 0で約9 GiBです。
 
-熱の待ちは、全rankが `[tensorfold] heat:` の行を出します（待ちの始まりと終わりに1行ずつ、続く間は1分に1行、全rankで同じ）。応答の `tensorfold` ブロックに `heat_wait_s` が載ります。長いpromptが、[熱の見張り](../../host/README.ja.md#長い運転の間)の上限の94 ℃にどのホストも達せずに終われば合格です。
+熱の待ちは、全rankが `[tensorfold] heat:` の行を出します（待ちの始まりと終わりに1行ずつ、続く間は1分に1行、全rankで同じ）。応答の `tensorfold` ブロックに `heat_wait_s` が載ります。長いpromptが、[熱の見張り](../../host/README.ja.md#長い運転の間)に止められずに（94 ℃以上が2回続かずに）終われば受け入れます。1M tokenのpromptの終わり近くでは、chunkの合間の確認の後にchunk一つで約7 ℃上がるので、1回だけ94 ℃に触れることがあります（2.2.0の受け入れで1台が1秒だけ94.3 ℃）。
