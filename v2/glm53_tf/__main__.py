@@ -13,6 +13,7 @@ COMMANDS = {
     "decode-check": "decode_check",
     "decode-divergence": "decode_divergence",
     "score-nll": "score_nll",
+    "bench": "bench",
 }
 
 

@@ -159,17 +159,15 @@ class PortTests(unittest.TestCase):
             setup = read(f"SETUP{suffix}.md")
             self.assertIn(f"tool-gate --port {port} --upstream {upstream}", setup)
 
-    def test_the_decode_check_targets_rank_zero(self):
-        base = owned(
-            r'BASE = os\.environ\.get\("BASE", "([^"]+)"\)', "glm53_tf/decode_check.py"
-        )
-        model = owned(
-            r'MODEL = os\.environ\.get\("MODEL", "([^"]+)"\)',
-            "glm53_tf/decode_check.py",
-        )
+    def test_the_checks_target_rank_zero(self):
         port = owned(r"PORT:-([^}]+)", "scripts/serve.sh")
-        self.assertEqual(base, f"http://127.0.0.1:{port}")
-        self.assertEqual(model, owned(r"MODEL_NAME:-([^}]+)", "scripts/serve.sh"))
+        name = owned(r"MODEL_NAME:-([^}]+)", "scripts/serve.sh")
+        for tool in ("decode_check", "bench"):
+            path = f"glm53_tf/{tool}.py"
+            base = owned(r'BASE = os\.environ\.get\("BASE", "([^"]+)"\)', path)
+            model = owned(r'MODEL = os\.environ\.get\("MODEL", "([^"]+)"\)', path)
+            self.assertEqual(base, f"http://127.0.0.1:{port}", tool)
+            self.assertEqual(model, name, tool)
 
 
 class ImageTests(unittest.TestCase):

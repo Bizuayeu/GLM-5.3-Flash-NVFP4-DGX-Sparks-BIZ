@@ -22,6 +22,7 @@ HELP = [
     ("decode-check", "PROMPT_KIND"),
     ("decode-divergence", "TOKENS_OUT"),
     ("score-nll", "--tokenizer"),
+    ("bench", "--kinds"),
 ]
 
 
