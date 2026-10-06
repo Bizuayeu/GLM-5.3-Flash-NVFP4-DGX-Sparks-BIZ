@@ -98,13 +98,7 @@ OPTIONAL_KEYS = {
     "server.resources": frozenset({"stall_seconds"}),
     "server.generation": frozenset({"warmup", "warmup_long_tokens"}),
     "server.nodes[]": frozenset(
-        {
-            "additional_rails",
-            "cpuset_cpus",
-            "host_address",
-            "host_interface",
-            "host_interface_wifi_test",
-        }
+        {"additional_rails", "cpuset_cpus", "host_address", "host_interface"}
     ),
 }
 
@@ -168,6 +162,13 @@ def check_schema(profile):
             "runtime.mla_decode_cpb was retired in 1.16.0 and removed in 1.18.0; "
             "delete the key from the profile"
         )
+    nodes = profile.get("nodes") if isinstance(profile, dict) else None
+    for rank, node in enumerate(nodes if isinstance(nodes, list) else ()):
+        if isinstance(node, dict) and "host_interface_wifi_test" in node:
+            raise ValueError(
+                f"nodes[{rank}].host_interface_wifi_test was removed in 1.30.0; "
+                "delete the key from the profile (a Wi-Fi host_interface is refused)"
+            )
     with (LINE / "examples/server.example.toml").open("rb") as stream:
         schema = tomllib.load(stream)
 

@@ -133,7 +133,7 @@ CPU配置を固定する場合は、各rankの`nodes[].cpuset_cpus`にDockerのC
 - derived checkpoint（公開した任意設定）を受けます。そのoverlayは埋めた66 headをTPで分けます。PP2・EP・LPAは2ノードのままです（[起動契約](launch-safety.ja.md#3ノード)）
 - derived checkpointなしのKVを3 GiBまでとする2ノードの制限を適用しません
 
-各ノードは単一レールの項目の代わりに、他のノード1台につき `links` を1項目書きます（`peer`・`hca`・`interface`・`local_ip`・`peer_ip`・`gid_index`）。ランチャーはリングが閉じていること、各 /30 の両端が食い違わないこと、ノードごとにGID indexが一つであること（[理由](../../docs/nccl-validation.ja.md#gid-indexが動く)）を確かめ、リンクのHCAをすべて `NCCL_IB_HCA` に並べます。全ノードに `host_address`（他のランクが届く固定の /32）と `host_interface`（それを載せるinterface）を書いてください。Gloo・TCPStore・NCCL bootstrapがこれを使います（[QSFPネットワーク](../../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。書かなければ、各rankはheadとの直結リンクのhead側でheadに会い、headとのリンクの自分側を広告しますが、3台目からは経路なしにそこへ届きません。ランチャーは省略を受け付けます。Wi-Fiの `host_interface` は、そのノードが `host_interface_wifi_test = true` も書かない限り拒否します。これは**試験用の設定**で、これらのsocketだけを管理用Wi-Fiに載せ、データは直結リンクのままです。
+各ノードは単一レールの項目の代わりに、他のノード1台につき `links` を1項目書きます（`peer`・`hca`・`interface`・`local_ip`・`peer_ip`・`gid_index`）。ランチャーはリングが閉じていること、各 /30 の両端が食い違わないこと、ノードごとにGID indexが一つであること（[理由](../../docs/nccl-validation.ja.md#gid-indexが動く)）を確かめ、リンクのHCAをすべて `NCCL_IB_HCA` に並べます。全ノードに `host_address`（他のランクが届く固定の /32）と `host_interface`（それを載せるinterface）を書いてください。Gloo・TCPStore・NCCL bootstrapがこれを使います（[QSFPネットワーク](../../docs/qsfp-network.ja.md#8-3台をリングにつなぐ)）。書かなければ、各rankはheadとの直結リンクのhead側でheadに会い、headとのリンクの自分側を広告しますが、3台目からは経路なしにそこへ届きません。ランチャーは省略を受け付けます。Wi-Fiの `host_interface` は拒否します。これらのsocketに管理用Wi-Fiを使わせる試験用の設定 `nodes[].host_interface_wifi_test` は取り除きました。keyを持つprofileは、keyを消すよう求めるメッセージとともに拒まれます。
 
 起動順、rank数の変わる切替の拒否、ホストごとのruntime cacheは[起動契約](launch-safety.ja.md#3ノード)にあります。
 

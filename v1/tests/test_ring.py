@@ -294,49 +294,35 @@ class RingValidationTests(unittest.TestCase):
         two["nodes"][1].update(host_address="10.40.0.2", host_interface="glmhost")
         self.refused(two, "host_address belongs to nodes with links")
 
-    def test_a_management_wifi_host_address_is_an_explicit_test_setting(self):
+    def test_a_management_wifi_host_address_is_refused(self):
         # Ring data goes over the links' HCAs and host_interface carries only the
-        # sockets; the first TP=3 boot ran them on the management Wi-Fi.
-        # Allowed only when the node says so; the links stay refused.
-        def wifi(opt_in):
-            profile = ring()
-            for rank, address in enumerate(
-                ("192.168.68.56", "192.168.68.59", "192.168.68.57")
-            ):
-                profile["nodes"][rank].update(
-                    host_address=address, host_interface="wlP9s9"
-                )
-                if opt_in:
-                    profile["nodes"][rank]["host_interface_wifi_test"] = True
-            return profile
-
-        self.refused(wifi(False), "Wi-Fi")
-        profile = wifi(True)
-        config.validate(profile)
-        env = config.environment(profile, 2)
-        self.assertEqual(env["NCCL_SOCKET_IFNAME"], "=wlP9s9")
-        self.assertEqual(env["GLOO_SOCKET_IFNAME"], "wlP9s9")
-        self.assertEqual(env["VLLM_HOST_IP"], "192.168.68.57")
-        self.assertEqual(env["NCCL_IB_HCA"], "=roce1:1,roce0:1")
-        # One node without the key refuses the profile.
-        profile = wifi(True)
-        del profile["nodes"][1]["host_interface_wifi_test"]
-        self.refused(profile, "Wi-Fi")
-        # The key is true or absent, and only beside a host_interface.
-        profile = wifi(True)
-        profile["nodes"][0]["host_interface_wifi_test"] = "yes"
-        self.refused(profile, "host_interface_wifi_test")
-        profile = ring()
-        profile["nodes"][0]["host_interface_wifi_test"] = True
-        self.refused(profile, "host_interface_wifi_test")
-        two = config.load(DEFAULTS)
-        two["nodes"][1]["host_interface_wifi_test"] = True
-        self.refused(two, "nodes with links")
-        # The site check refuses a Wi-Fi socket interface without the key.
-        site = config.site(wifi(True), 2)
-        del site["host_interface_wifi_test"]
+        # sockets, which stay off the management Wi-Fi as well.
+        profile = with_host_addresses(ring())
+        for node in profile["nodes"]:
+            node["host_interface"] = "wlP9s9"
+        self.refused(profile, r"^nodes\[0\]\.host_interface cannot be Wi-Fi$")
+        site = config.site(with_host_addresses(ring()), 2)
+        site["interface"] = "wlP9s9"
         with self.assertRaisesRegex(ValueError, "Wi-Fi"):
             fabric.validate_site(site)
+
+    def test_a_profile_that_still_carries_host_interface_wifi_test_is_refused(self):
+        # Removed in 1.30.0. The sentence comes before the schema's
+        # "Unknown/missing settings", whatever the value and on two nodes too.
+        message = (
+            r"^nodes\[1\]\.host_interface_wifi_test was removed in 1\.30\.0; delete "
+            r"the key from the profile \(a Wi-Fi host_interface is refused\)$"
+        )
+        for value in (True, False, 1, 0, "true", None):
+            with self.subTest(value=value):
+                profile = with_host_addresses(ring())
+                profile["nodes"][1]["host_interface_wifi_test"] = value
+                self.refused(profile, message)
+                two = config.load(DEFAULTS)
+                two["runtime"]["reference_image"] = IMAGE
+                two["runtime"]["lpa_image"] = IMAGE
+                two["nodes"][1]["host_interface_wifi_test"] = value
+                self.refused(two, message)
 
     def test_fewer_than_two_nodes_are_refused(self):
         profile = config.load(DEFAULTS)

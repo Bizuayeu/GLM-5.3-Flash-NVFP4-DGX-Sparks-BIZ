@@ -134,6 +134,12 @@ class CheckOrderTests(unittest.TestCase):
 class CheckMessageTests(unittest.TestCase):
     CASES = [
         ("check_schema", ("runtime", "mla_decode_cpb"), False, "removed in 1.18.0"),
+        (
+            "check_schema",
+            ("nodes", 0, "host_interface_wifi_test"),
+            True,
+            "removed in 1.30.0",
+        ),
         ("check_optional_shapes", ("runtime", "vision"), "x", "runtime.vision"),
         ("check_optional_shapes", ("runtime", "nccl_channels"), 0, "nccl_channels"),
         ("check_pinned_identity", ("schema_version",), 2, "schema_version"),
@@ -155,7 +161,7 @@ class CheckMessageTests(unittest.TestCase):
         # An optional fifth element sets what the rule needs besides the edit.
         by_name = {check.__name__: check for check in config.VALIDATORS}
         for name, path, value, fragment, *preset in self.CASES:
-            with self.subTest(check=name, key=".".join(path)):
+            with self.subTest(check=name, key=".".join(map(str, path))):
                 bad = profile()
                 for (section, key), setting in (preset[0] if preset else {}).items():
                     bad[section][key] = setting
