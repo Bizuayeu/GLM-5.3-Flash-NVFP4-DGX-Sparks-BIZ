@@ -44,7 +44,7 @@ class ReuseTests(unittest.TestCase):
                 )
 
 
-@unittest.skipUnless(importlib.util.find_spec("torch"), "Torch required")
+@unittest.skipUnless(importlib.util.find_spec("torch"), "torch required")
 class IndexerTensorTests(unittest.TestCase):
     def test_unique_pool_selection_and_incomplete_tail_boundaries(self):
         import torch

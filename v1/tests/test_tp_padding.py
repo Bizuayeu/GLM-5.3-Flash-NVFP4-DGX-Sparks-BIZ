@@ -42,7 +42,7 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(tp_padding.padded_heads(64, 1), 64)
         self.assertEqual(tp_padding.padded_heads(64, 3), 66)
         self.assertEqual(tp_padding.padded_moe_width(2048, 1), 2048)
-        # 2112 = 3 x 704 and 704 = 11 x 64 (Stage 0 P1).
+        # 2112 = 3 x 704 and 704 = 11 x 64.
         self.assertEqual(tp_padding.padded_moe_width(2048, 3), 2112)
         self.assertEqual(tp_padding.padded_moe_width(1000, 1), 1000)
         self.assertEqual(tp_padding.vocab_padding_size(64, 1), 64)

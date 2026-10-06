@@ -7,12 +7,12 @@ import unittest
     "CUDA/Triton required",
 )
 class ReindexGpuTests(unittest.TestCase):
-    @unittest.skipUnless(importlib.util.find_spec("vllm"), "Pinned vLLM required")
+    @unittest.skipUnless(importlib.util.find_spec("vllm"), "pinned vLLM image required")
     def test_shared_noncontiguous_pool_matches_native_with_empty_prefix(self):
         import torch
 
         if not torch.cuda.is_available():
-            self.skipTest("CUDA required")
+            self.skipTest("CUDA device required")
         from vllm.utils.deep_gemm import fp8_fp4_mqa_logits
 
         from glm53_setup.validation.indexer_shared_pool import shared_pool_scores
@@ -43,7 +43,7 @@ class ReindexGpuTests(unittest.TestCase):
         import torch
 
         if not torch.cuda.is_available():
-            self.skipTest("CUDA required")
+            self.skipTest("CUDA device required")
         from glm53_setup.validation.indexer_reindex import candidate_scores_cuda
 
         torch.manual_seed(73)

@@ -23,7 +23,7 @@ class CandidateOrderPolicyTests(unittest.TestCase):
                 candidate_order_enabled()
 
 
-@unittest.skipUnless(importlib.util.find_spec("torch"), "Torch required")
+@unittest.skipUnless(importlib.util.find_spec("torch"), "torch required")
 class CandidateOrderTensorTests(unittest.TestCase):
     def test_all_permutations_preserve_membership_padding_and_input(self):
         import torch

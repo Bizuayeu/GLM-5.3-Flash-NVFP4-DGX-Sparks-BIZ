@@ -57,7 +57,7 @@ class ExperimentSpecTests(unittest.TestCase):
         try:
             import torch
         except ImportError:
-            self.skipTest("Torch environment required")
+            self.skipTest("torch required")
         experiment = AttentionInputExperiment.__new__(AttentionInputExperiment)
         experiment.torch = torch
         experiment.spec = ExperimentSpec("predict", 0, 12, tail=2, approximate_start=4)
@@ -74,7 +74,7 @@ class ExperimentSpecTests(unittest.TestCase):
         try:
             import torch
         except ImportError:
-            self.skipTest("Torch environment required")
+            self.skipTest("torch required")
         for dim_first in (False, True):
             experiment = AttentionInputExperiment.__new__(AttentionInputExperiment)
             experiment.torch = torch

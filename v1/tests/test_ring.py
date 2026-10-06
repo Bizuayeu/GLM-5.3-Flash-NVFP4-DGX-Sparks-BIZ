@@ -1,4 +1,4 @@
-"""Three or more nodes on a switchless QSFP ring: schema, addressing and launch (TP=3 plan, Stage 2)."""
+"""Three or more nodes on a switchless QSFP ring: schema, addressing and launch."""
 
 import contextlib
 import copy
@@ -178,7 +178,7 @@ class RingExampleTests(unittest.TestCase):
         checks = config.image_capability_checks(profile, {"Config": {"Env": env}})
         self.assertTrue(checks["tp_padding_support"])
         self.assertTrue(checks["reference_attention"])
-        # 22 heads per rank: the SM120 decode kernel refuses them (plan Stage 0 P2),
+        # 22 heads per rank: the SM120 decode kernel refuses them,
         # the reference path takes any count, and preflight always requires it.
         self.assertNotEqual(HEADS % 3, 0)
         without = [m for m in env if m != "GLM53_TP_PAD_API=1"]
@@ -296,8 +296,8 @@ class RingValidationTests(unittest.TestCase):
 
     def test_a_management_wifi_host_address_is_an_explicit_test_setting(self):
         # Ring data goes over the links' HCAs and host_interface carries only the
-        # sockets; the first TP=3 boot ran them on the management Wi-Fi (plan
-        # Stage 4). Allowed only when the node says so; the links stay refused.
+        # sockets; the first TP=3 boot ran them on the management Wi-Fi.
+        # Allowed only when the node says so; the links stay refused.
         def wifi(opt_in):
             profile = ring()
             for rank, address in enumerate(
@@ -386,7 +386,7 @@ class RingExclusionTests(unittest.TestCase):
                 config.validate(profile)
 
     def test_a_derived_checkpoint_launches_on_three_nodes(self):
-        # Stage 6 (2026-10-01): the overlays split heads by TP with assert num_heads % tp_size,
+        # The overlays split heads by TP with assert num_heads % tp_size,
         # which holds at the padded 66 heads; the derived config is padded by the same knob.
         profile = ring()
         profile["runtime"]["derived_checkpoint"] = {

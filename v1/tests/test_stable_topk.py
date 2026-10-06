@@ -75,7 +75,7 @@ class PatchTests(unittest.TestCase):
             patch_indexer_topk.patch_text(patch_indexer_topk.patch_text(SOURCE))
 
 
-@unittest.skipUnless(HAS_CUDA, "needs torch with a CUDA device")
+@unittest.skipUnless(HAS_CUDA, "CUDA device required")
 class DecodeTests(unittest.TestCase):
     def select(self, values, lengths, k=512, width=4096):
         from glm53_setup.runtime.stable_topk import stable_topk
@@ -116,7 +116,7 @@ class DecodeTests(unittest.TestCase):
         self.assertTrue(bool((output[0, 100:] == -1).all()))
 
 
-@unittest.skipUnless(HAS_CUDA, "needs torch with a CUDA device")
+@unittest.skipUnless(HAS_CUDA, "CUDA device required")
 class PrefillTests(unittest.TestCase):
     def run_prefill(self, logits, starts, ends, k=512):
         import vllm._C_stable_libtorch  # noqa: F401

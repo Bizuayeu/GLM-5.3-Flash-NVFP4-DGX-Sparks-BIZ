@@ -12,7 +12,7 @@ class QueryChunkContractTests(unittest.TestCase):
                     sparse_nope_reference(None, None, None, 1.0, query_chunk=value)
 
 
-@unittest.skipUnless(importlib.util.find_spec("torch"), "Torch required")
+@unittest.skipUnless(importlib.util.find_spec("torch"), "torch required")
 class QueryChunkMathTests(unittest.TestCase):
     def test_batched_queries_preserve_masks_and_tail(self):
         import torch

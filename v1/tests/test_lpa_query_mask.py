@@ -20,7 +20,7 @@ class QueryScopeTests(unittest.TestCase):
         self.assertEqual(mask("q", "cache", "ids", 1), "normal")
 
 
-@unittest.skipUnless(importlib.util.find_spec("torch"), "Torch environment required")
+@unittest.skipUnless(importlib.util.find_spec("torch"), "torch required")
 class QuerySelectionTests(unittest.TestCase):
     def test_recomputed_exact_prefix_and_exact_tail_keep_all_candidates(self):
         import torch

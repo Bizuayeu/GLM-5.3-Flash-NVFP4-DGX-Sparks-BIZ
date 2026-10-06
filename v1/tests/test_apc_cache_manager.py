@@ -12,7 +12,7 @@ def digest(value):
     return hashlib.sha256(repr(value).encode()).digest()
 
 
-@unittest.skipUnless(importlib.util.find_spec("vllm"), "Pinned vLLM image required")
+@unittest.skipUnless(importlib.util.find_spec("vllm"), "pinned vLLM image required")
 class RealCacheManagerTests(unittest.TestCase):
     def setUp(self):
         import torch

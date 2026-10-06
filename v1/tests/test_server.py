@@ -855,7 +855,7 @@ class ServerConfigTests(unittest.TestCase):
 
     def test_speculative_depths_one_to_five_are_accepted(self):
         # k=2, 4 and 5 are launchable for the depth sweep; the measured choice
-        # stays in the template (RELEASE 1.6.0 Stage 2).
+        # stays in the template (1.6.0).
         for depth in (1, 2, 3, 4, 5):
             p = copy.deepcopy(self.profile)
             p["mtp"]["enabled"] = True

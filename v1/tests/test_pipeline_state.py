@@ -87,7 +87,7 @@ class PipelineScopeTests(unittest.TestCase):
         validate_pipeline(config)  # Existing TP control is unchanged.
 
 
-@unittest.skipUnless(importlib.util.find_spec("torch"), "Torch required")
+@unittest.skipUnless(importlib.util.find_spec("torch"), "torch required")
 class PipelineBufferTests(unittest.TestCase):
     def test_layout_preserves_fp32_mixes_separately_from_bf16_hidden(self):
         import torch

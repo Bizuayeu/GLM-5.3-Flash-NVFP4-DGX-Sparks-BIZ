@@ -4,7 +4,7 @@ import importlib.util
 import unittest
 
 
-@unittest.skipUnless(importlib.util.find_spec("vllm"), "Pinned vLLM image required")
+@unittest.skipUnless(importlib.util.find_spec("vllm"), "pinned vLLM image required")
 class NativeAuthTests(unittest.TestCase):
     def test_guarded_and_control_paths_in_fixed_runtime(self):
         from starlette.responses import JSONResponse

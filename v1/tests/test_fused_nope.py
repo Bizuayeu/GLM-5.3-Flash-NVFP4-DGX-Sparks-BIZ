@@ -17,7 +17,7 @@ class FusedNopeTests(unittest.TestCase):
         import torch
 
         if not torch.cuda.is_available():
-            self.skipTest("CUDA required")
+            self.skipTest("CUDA device required")
         if implementation == "simt":
             from glm53_setup.validation.fused_nope import fused_nope_attention
         else:

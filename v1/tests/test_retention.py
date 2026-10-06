@@ -37,7 +37,7 @@ class RetentionConfigTests(unittest.TestCase):
             server_config.validate(profile)
 
 
-@unittest.skipUnless(importlib.util.find_spec("vllm"), "Pinned vLLM image required")
+@unittest.skipUnless(importlib.util.find_spec("vllm"), "pinned vLLM image required")
 class NativeRetentionTests(unittest.TestCase):
     def test_checkpoint_interval_restores_mamba_boundaries_without_thinning_full_attention(
         self,
