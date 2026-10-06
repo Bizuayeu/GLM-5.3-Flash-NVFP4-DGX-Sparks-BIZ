@@ -1,8 +1,8 @@
 # GLM server profile for three nodes, TP=3 over a QSFP ring / 3台（QSFPリング直結）TP=3向けのGLM起動設定（3ノードに同じ内容を配置）
-# The distributed defaults on a three-host ring (measured on the reference ring, docs/qsfp-network.md); the defaults are examples/server.example.toml;
-# this file differs from it in the nodes (three, each listing its direct links) and the KV note below.
+# The distributed defaults on a three-host ring (measured on the reference ring, ../docs/qsfp-network.md); the defaults are examples/server.example.toml;
+# its values differ from it only in the nodes (three, each listing its direct links); the comments are written for three hosts.
 # The heads, MoE width and vocabulary are zero-padded at load time (GLM53_TP_PAD_MULTIPLE, set by the launcher).
-# 3台リングでの配布既定（参照機のリングで測定、docs/qsfp-network.ja.md）。配布既定は examples/server.example.toml で、違いはノード（3台、各自の直結リンク）とKVの注記だけ。
+# 3台リングでの配布既定（参照機のリングで測定、../docs/qsfp-network.ja.md）。配布既定は examples/server.example.toml で、値の違いはノード（3台、各自の直結リンク）だけ。コメントは3台向けに書いている。
 # ヘッド・MoE幅・語彙は読み込み時に0詰めする（GLM53_TP_PAD_MULTIPLE、ランチャーが設定）。
 # Copy to state/server.toml. Paths are relative to THIS FILE, or absolute.
 # state/server.toml にコピー。相対パスはこのファイルの位置が基準。
@@ -37,7 +37,7 @@ fa2_attention = true # NoPE attention calls of more than six query rows through 
 # Optional allocator override. Omit to preserve image/runtime defaults; "" clears it.
 # cuda_allocator_conf = "expandable_segments:True"
 nccl_channels = 8 # NCCL_MIN/MAX_NCHANNELS on both ranks; omitted = NCCL chooses (64 on the reference pair)
-# 8 returned about 3 GiB per rank against 64 with no prefill loss (docs/nccl-validation.md#channel-count).
+# 8 returned about 3 GiB per rank against 64 with no prefill loss (../docs/nccl-validation.md#channel-count).
 # 両rankのNCCLチャネル数（MIN=MAX）。未指定はNCCL任せ（参照機では64）。8で各rank約3 GiB戻り、prefillは落ちない。
 # 起動元の環境変数を使う場合は server freeze で一度解決し、同じ --launch を両rankへ。
 shm_spin_seconds = 0.002 # Shared-memory broadcast readers spin 2 ms before they sleep, not vLLM's 1 s
@@ -192,7 +192,7 @@ stall_seconds = 600 # Rank 0 only: stop when requests are running but no /metric
 # the head's end of their direct link and advertises its own end of its link to the head (the head: its link to
 # rank 1). A rank's link-to-head address is not reachable from the third node without routes, so set
 # host_address on every node: one stable /32 per host on its own interface (host_interface), with static routes
-# to the other two over the direct links. The reference ring runs this way (docs/qsfp-network.md).
+# to the other two over the direct links. The reference ring runs this way (../docs/qsfp-network.md).
 # 広告アドレス：host_addressがなければ各rankはheadとの直結リンクのhead側へ接続し、自分側を広告する（headはrank 1とのリンク）。
 # 3台目からは経路なしに届かないので、全ノードに host_address を書く（専用インタフェース上の/32と直結リンク越しの静的経路）。参照機のリングはこの形。
 #
