@@ -215,6 +215,75 @@ class TelemetryTests(unittest.TestCase):
                 [f"{recent.isoformat()}.jsonl"],
             )
 
+    def test_counters_read_microseconds_and_not_available_as_null(self):
+        with tempfile.TemporaryDirectory() as log_dir:
+            telemetry = load("gb10-telemetry", log_dir)
+        counters = telemetry.counters(["55157801736", "0", "[N/A]", "N/A", "0"])
+        self.assertEqual(
+            counters,
+            {
+                "sw_power_cap": 55157801736,
+                "sync_boost": 0,
+                "sw_thermal_slowdown": None,
+                "hw_thermal_slowdown": None,
+                "hw_power_brake_slowdown": 0,
+            },
+        )
+
+    def test_a_record_keeps_its_fields_and_appends_the_counters(self):
+        # A line of nvidia-smi's at nounits (records/20261006-prefill-modes, edgexpert01),
+        # and a line of the old five fields, which is skipped.
+        lines = [
+            "53, 10.14, 2190, 0, 0x0000000000000004, 55157801736, 0, 0, 0, 0\n",
+            "53, 10.14, 2190, 0, 0x0000000000000000\n",
+        ]
+
+        class Smi:
+            stdout = lines
+
+            def wait(self):
+                return 0
+
+        # The logger keeps its day's file open; Windows cannot remove an open file.
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as log_dir:
+            telemetry = load("gb10-telemetry", log_dir)
+            with (
+                patch.object(
+                    telemetry.subprocess, "Popen", return_value=Smi()
+                ) as popen,
+                patch.object(telemetry, "acpi_c", return_value=[50.0]),
+                patch.object(telemetry, "mem_available_gib", return_value=100.0),
+                patch.object(telemetry.os, "getloadavg", create=True) as load1,
+                self.assertRaises(SystemExit),
+            ):
+                load1.return_value = (0.5, 0.0, 0.0)
+                telemetry.main()
+            query = popen.call_args[0][0][1]
+            records = [
+                json.loads(line)
+                for path in Path(log_dir).glob("*.jsonl")
+                for line in path.read_text(encoding="utf-8").splitlines()
+            ]
+        self.assertIn("clocks_event_reasons_counters.sw_power_cap", query)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(
+            list(records[0]),
+            [
+                "epoch",
+                "acpi_c",
+                "gpu_c",
+                "power_w",
+                "clock_mhz",
+                "util_pct",
+                "event_reasons",
+                "load1",
+                "mem_available_gib",
+                "event_counters_us",
+            ],
+        )
+        self.assertEqual(records[0]["event_reasons"], "0x0000000000000004")
+        self.assertEqual(records[0]["event_counters_us"]["sw_power_cap"], 55157801736)
+
 
 class InstallTests(unittest.TestCase):
     def setUp(self):

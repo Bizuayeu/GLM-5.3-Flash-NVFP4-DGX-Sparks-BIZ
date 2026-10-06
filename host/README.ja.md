@@ -30,8 +30,9 @@ Pythonのツールは標準ライブラリだけを使います。`cool-gate` �
 | `event_reasons` | `nvidia-smi` が表示する `clocks_event_reasons.active` |
 | `load1` | 1分のload average |
 | `mem_available_gib` | `MemAvailable`（GiB） |
+| `event_counters_us` | 累積の `clocks_event_reasons_counters.*`（µs）：`sw_power_cap`・`sync_boost`・`sw_thermal_slowdown`・`hw_thermal_slowdown`・`hw_power_brake_slowdown`。`nvidia-smi` が読めないカウンタは `null` |
 
-下の2つのツールは、`acpi_c` のうち `null` でない最高値で熱を判断します。参照機の `nvidia-persistenced` は `--no-persistence-mode` で動くので、記録係が走らせ続ける `nvidia-smi` がGPUのクライアントとしても張り付きます。上限が効いているかは、負荷時の `clock_mhz` に表れます。
+下の2つのツールは、`acpi_c` のうち `null` でない最高値で熱を判断します。参照機の `nvidia-persistenced` は `--no-persistence-mode` で動くので、記録係が走らせ続ける `nvidia-smi` がGPUのクライアントとしても張り付きます。上限が効いているかは、負荷時の `clock_mhz` に表れます。カウンタを記録するのは、GB10では電力上限とメモリのクロックがN/Aと読め、標本と標本の間に入って抜けるSWの電力上限はカウンタにしか表れないためです。2026-10-06には、参照機の `sw_power_cap` はエンジンが動いていない間（208〜305 MHz、約5.5 W）にだけ増え、prefillの間には一度も増えませんでした。
 
 ## 据え付け
 

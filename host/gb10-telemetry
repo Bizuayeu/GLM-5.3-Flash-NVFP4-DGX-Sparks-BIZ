@@ -3,8 +3,9 @@
 
 A GB10 hard power-off leaves no log (the page cache and journald lose the last
 tens of seconds), so this writes and fsyncs each sample: ACPI zone temperatures,
-the GPU temperature, power, graphics clock, utilization and clock event reasons
-from one long-running nvidia-smi, the load average and MemAvailable.
+the GPU temperature, power, graphics clock, utilization, clock event reasons
+and their cumulative counters from one long-running nvidia-smi, the load average
+and MemAvailable.
 One file per UTC day in /var/log/gb10-telemetry, or in GB10_TELEMETRY_DIR when set.
 """
 
@@ -17,8 +18,24 @@ import time
 
 OUT = os.environ.get("GB10_TELEMETRY_DIR", "/var/log/gb10-telemetry")
 KEEP_DAYS = 14  # cc-defer: provisional retention; revisit when the disk or the investigations need another length
-FIELDS = (
-    "temperature.gpu,power.draw,clocks.gr,utilization.gpu,clocks_event_reasons.active"
+# GB10 reads N/A for the power limit and the memory clock, and an SW power cap that
+# comes and goes between samples shows only in these cumulative counters (us).
+COUNTERS = (
+    "sw_power_cap",
+    "sync_boost",
+    "sw_thermal_slowdown",
+    "hw_thermal_slowdown",
+    "hw_power_brake_slowdown",
+)
+FIELDS = ",".join(
+    [
+        "temperature.gpu",
+        "power.draw",
+        "clocks.gr",
+        "utilization.gpu",
+        "clocks_event_reasons.active",
+    ]
+    + ["clocks_event_reasons_counters." + name for name in COUNTERS]
 )
 ZONES = sorted(
     glob.glob("/sys/class/thermal/thermal_zone*/temp"),
@@ -31,6 +48,17 @@ def number(text):
         return float(text)
     except ValueError:
         return None
+
+
+def counters(texts):
+    """The counters' values in COUNTERS order as integers; N/A or [N/A] gives None."""
+    values = {}
+    for name, text in zip(COUNTERS, texts, strict=True):
+        try:
+            values[name] = int(text)
+        except ValueError:
+            values[name] = None
+    return values
 
 
 def mem_available_gib():
@@ -79,7 +107,7 @@ def main():
     day, stream = None, None
     for line in smi.stdout:
         parts = [x.strip() for x in line.split(",")]
-        if len(parts) != 5:
+        if len(parts) != 5 + len(COUNTERS):
             continue
         now = time.time()
         today = datetime.datetime.fromtimestamp(now, datetime.UTC).date()
@@ -100,6 +128,7 @@ def main():
             "event_reasons": parts[4],
             "load1": os.getloadavg()[0],
             "mem_available_gib": mem_available_gib(),
+            "event_counters_us": counters(parts[5:]),
         }
         stream.write(json.dumps(record) + "\n")
         stream.flush()

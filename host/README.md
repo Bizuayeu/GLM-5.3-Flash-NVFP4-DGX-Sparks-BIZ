@@ -30,8 +30,9 @@ The Python tools use only the standard library. `cool-gate` and `thermal-watch` 
 | `event_reasons` | `clocks_event_reasons.active` as `nvidia-smi` prints it |
 | `load1` | 1-minute load average |
 | `mem_available_gib` | `MemAvailable` (GiB) |
+| `event_counters_us` | cumulative `clocks_event_reasons_counters.*` (µs): `sw_power_cap`, `sync_boost`, `sw_thermal_slowdown`, `hw_thermal_slowdown`, `hw_power_brake_slowdown`; `null` for a counter `nvidia-smi` cannot read |
 
-The tools below judge heat by the hottest non-null value of `acpi_c`. On the reference hosts `nvidia-persistenced` runs with `--no-persistence-mode`, so the logger's long-running `nvidia-smi` also keeps a client attached to the GPU. Whether the cap holds shows in `clock_mhz` under load.
+The tools below judge heat by the hottest non-null value of `acpi_c`. On the reference hosts `nvidia-persistenced` runs with `--no-persistence-mode`, so the logger's long-running `nvidia-smi` also keeps a client attached to the GPU. Whether the cap holds shows in `clock_mhz` under load. The counters are recorded because GB10 reads N/A for the power limit and the memory clock, and an SW power cap that comes and goes between two samples shows only in the counter: on 2026-10-06 the reference hosts' `sw_power_cap` grew only while no engine ran (208-305 MHz, about 5.5 W), never during prefills.
 
 ## Install
 
