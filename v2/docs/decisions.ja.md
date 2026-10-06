@@ -71,6 +71,17 @@
 | prefillはchunkの合間に92 °Cで待ち、88 °Cまで、全rankそろって | 2026-10-04 | 待ちが無いと、TP=3の1M tokenのpromptは6分半で熱の見張りの94 °Cに達した。待ちがあるとpromptは最後まで走った（[熱](../README.ja.md#リリースでの測定値)）。chunkごとに最高温度を交換する費用は38,960 tokenのprefillの約0.2%。92 °Cは停止の2 °C下（頂上付近の上がり方は1分に0.5〜1 °C、chunkは数秒）。88 °Cはprefillが速くなる前の1Mのprefillが保った88.8〜89.6 °Cの下 | 上流がissue #339に答える。帯はrankのファイルで変えられる |
 | 待ちの作り | 2026-10-04 | 各chunkの前に1語を単独でgatherする（既存の交換には相乗りしない。その結果はhostが読まない）。熱の見張りと冷却gateと同じくACPIのzoneだけを読む（どの記録でもGPUは約9 °C低い）。待ちに上限を置かない（熱い部屋は要求を止め、熱の見張りが最後の守りのまま）。両方の帯を設定しない限り切れている（上流の既定は変わらない） | — |
 
+## decode
+
+2026-10-06にTP=2で、一つのbuildを10回起動する一つの窓で測りました。全部有効の起動のあいだに、切り替えを一つだけ切った起動を挟んでいます。どの起動もdecode検査のtoken idは2.1.4と同じで、編集の返答も同じでした。数字は、その切り替えを切った2回と、両隣の全部有効の2回の平均の差です。
+
+| 決定 | 日付 | 測った効果 | 見直すとき |
+|---|---|---|---|
+| copy drafts（`TF_GLM_COPY_DRAFTS`）：返答の末尾8 token（返答の中では16）が前のpromptか返答に出ていれば、続くtokenを1 roundに5つまでdraftにし、外れた直後は減らす。検証は他のdraftと同じ。MiaAI-Labのpatch 0007と0032の前半に倣う | 2026-10-06 | `bench --kinds edit`（moduleを名前を挙げた3か所の編集付きで丸ごと返す）43.0 → 57.6 tok/s（+34%、251 roundのうち240がcopy）。decode検査のcountは+3.6%（受理長3.821 → 3.961）。prose・code・`bench` のdecode・prefillは±0.3%以内 | 外れの多い負荷で返答が遅くなる：外れた直後のdraftの数（今は3、他の値と比べていない）を測る |
+| KDAのdecodeの窓を3 kernelの経路で（`TF_GLM_KDA_DECODE_WIDE`）。64行以上のprompt chunkは前からこの経路。MiaAI-Labのpatch 0016cに倣う | 2026-10-06 | decode +0.6%（`bench`）、decode検査+0.5%、prefillは変わらず。1 GPUでは経路そのものが1行で27%、8行で58%速い。1〜8行で融合kernelと同じビット（graphの有無とも） | — |
+| BF16のdecodeの行列積に形ごとのタイル（`TF_GLM_B16_DECODE_TABLE`）：12の形は掃き取りで選んだタイル、他は64×4×3。Kの切れ端は固定の64幅で数えるので、タイルは和の順を決めない | 2026-10-06 | decode +0.9%（`bench`）、decode検査+0.9%、prefillは変わらず。TP=3では掃き取りの形を足しても1 stepの0.1〜0.2%。起動できた32のタイルすべてが、decodeの26の形・1〜16行で今のビットを出した | 別のGPUかエンジンのbuild：掃き取り直す（エンジンの `tools/bench_glm_b16_decode.py`） |
+| latentの経路はDSAのkv_bをheadごとの写し一つだけで持つ。key・valueの行は `TF_GLM_LATENT=0` のときだけ作る | 2026-10-06 | TP=2でrankあたり192 MiB空く（TP=3は126〜132 MiB）。rank 0の起動の見積もり101.53 → 101.35 GiB | — |
+
 ## 他で名前を挙げていないエンジンのcommit
 
 リリースのbranchは、上流v0.6.5に[変更履歴](../CHANGELOG.ja.md)がまとめて挙げるcommitを足したものです。次は、試験とrecipeの文面を除き、そこで名前を挙げていないものです：
@@ -87,6 +98,7 @@
 - `9c78e43`・`aba0f21`・`4a41c21`・`d21c834`：2.1.0が上流のpull request #194（その7本、`4fcfb10` から `f9ee1d9`）に足したもの。1枚の画像をcheckpointの上限8,000の視覚tokenまで、rank 0の画像の作業域をtowerの実測から、3 rankの全rankへの画像の特徴量、hostとGPUがメモリを共有するGPUでの `--vision-offload` の拒否。
 - `eaf06cc`・`1a3fb17`（2.1.1）：要求の画像を1枚ごとにtowerで呼びます。他の画像と1回の呼び出しでencodeすると特徴量が変わったためです。
 - `e735c14`・`a265436`（2.1.4）：TensorFoldのpull request #421（m-naoki-m）を上流のmergeより先に取り込み。`_take_over` は残す保持promptを決めてから写します（issue #420）。上流の試験2本の作り物のsnapshotに `drafter_rows` を足しました。
+- `81bd22f`〜`440e631`（2.2.0）：上のdecodeの4項目と試験、タイルの掃き取りの道具、BF16のタイルの切り替えをrankの起動時の照合に入れたもの。
 
 ## 1.x系の施策で2.x系では未評価のもの
 

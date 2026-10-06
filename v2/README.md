@@ -20,7 +20,7 @@
 ## What It Is
 
 - **Weights**: `nvidia/GLM-5.3-Flash-NVFP4` at revision `423acf37583782c51c142d145aef733d72943d93`, the same as 1.x, derived from [Z.ai's GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash). The routed experts and the dense MLP run as W4A16 from the checkpoint's NVFP4 blocks; attention, the shared experts and the head stay BF16. One exception, inside the engine: the MTP layer's routed experts are BF16 in the checkpoint and are quantized to NVFP4 for drafting only. Every drafted token is verified by the full model, so replies are unchanged.
-- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.1.4` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, image input from upstream pull request #194, carried to three ranks, and upstream pull request #421 (a new conversation no longer copies and drops the kept prompts first). The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
+- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.2.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, image input from upstream pull request #194, carried to three ranks, upstream pull request #421 (a new conversation no longer copies and drops the kept prompts first), and decode work that leaves the tokens unchanged: copy drafts, KDA decode windows on the three-kernel chain, per-shape tiles for the BF16 decode matmuls, and no unread copy of the DSA key and value rows ([decisions](docs/decisions.md)). The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
 - **Image**: [`docker/Dockerfile`](docker/Dockerfile), NVIDIA's PyTorch container 26.07 plus the measured package versions (transformers 5.18.0, xgrammar 0.2.8 for structured output, the Hugging Face hub client) and the engine.
 - **Launch**: shell scripts in [`scripts/`](scripts/) and one environment file per rank ([`examples/`](examples/) holds the reference hosts' files). [SETUP.md](SETUP.md) is the order.
 
@@ -103,6 +103,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `TF_GLM_HEAT_HIGH`, `TF_GLM_HEAT_LOW` | `92`, `88` (°C) | the prefill heat wait; the same on every rank, empty for none |
 | | `TF_GLM_CACHE_GIB` | `3` (the engine's) | the most memory per rank for other conversations' kept prompts, out of what the window leaves; the same on every rank |
 | | `TF_GLM_CACHE_ENTRIES` | `8` (the engine's) | kept prompts of other conversations; the decode check must be told another value ([decode check](docs/validation.md#decode-check)) |
+| | `TF_GLM_COPY_DRAFTS`, `TF_GLM_KDA_DECODE_WIDE`, `TF_GLM_B16_DECODE_TABLE` | `1` (the engine's) | copy drafts, the KDA decode chain and the BF16 decode tiles ([decisions](docs/decisions.md)); `0` turns one off, with the same tokens either way; the same on every rank, or the start is refused |
 | `serve.sh` arguments | after `TP RANK RANK_ENV` | none | passed to `tensorfold serve` after the defaults, so they win (`--context 500000`) |
 | Cluster file (`cluster.sh`) | `TP`, `HOSTS`, `CHECKOUT` | none, required | the TP size, SSH names in rank order, this repository's root on every host (1.x's `--checkout` names its `v1/` instead) |
 | | `SSH`, `CONTAINER`, `WORK` | `ssh -o ConnectTimeout=20`, `glm53-tf`, `$HOME/glm53-tf` | how to reach the hosts, the container, the host directory at `/work` |
@@ -224,26 +225,24 @@ Public recipes that serve GLM-5.3-Flash on TensorFold. This table owns their lin
 
 | Recipe | License | What this line took from it |
 |---|---|---|
-| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0 (MIT up to 0.5.0) | The engine. The release branch is upstream v0.6.5 plus its own commits, offered back as upstream issues #308, #309, #310 and #339 and pull request #333 |
-| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | The FP8 latent KV follows its patch 0038, rewritten on v0.6.x and credited in the engine's notices (upstream issue #309). The TP=3 shares use the same rule as its patch 0066 (cut at unit boundaries, the remainder to the lower ranks). Its upstream pull request #301 (a stopped request ends on every rank) is in the release as it is. It serves its own EXL3 checkpoint with DFlash2 drafts, up to eight requests at once and image and video input |
+| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0 (MIT up to 0.5.0) | The engine. The release branch is upstream v0.6.5 plus its own commits. Upstream froze its Python engine (issue #286) and answered each of this line's issues and pull requests on 2026-10-06: none lands on 0.6.x; the Zig engine, where new work goes, will follow the designs of #308, #310, #339, #333 and #396-#399 once GLM is ported there, and declines the lossy FP8 cache (#309, #401) |
+| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | The FP8 latent KV follows its patch 0038, rewritten on v0.6.x and credited in the engine's notices (upstream issue #309). Copy drafts follow its patches 0007 and the first half of 0032, and the KDA decode windows its 0016c, credited the same way. The TP=3 shares use the same rule as its patch 0066 (cut at unit boundaries, the remainder to the lower ranks). Its upstream pull request #301 (a stopped request ends on every rank) is in the release as it is. It serves its own EXL3 checkpoint with DFlash2 drafts, up to eight requests at once and image and video input |
 | [jakejharris/jspark3 v2.0.1](https://github.com/jakejharris/jspark3/releases/tag/v2.0.1) | Apache-2.0 (recipe); MIT (its engine, a fork of TensorFold 0.3.6.2) | Nothing. Three hosts at TP=3 on its own TensorFold fork with 4-bit MLX-format weights split across the hosts, DFlash2 drafts by default with `--drafter none` as its commercial path, a session cache on disk, measured with RigMark |
 
 ## Disclaimer
 
 - **BIZ is an intent, not a promise** ([repository README](../README.md#biz)).
 - **The acceptance is the reference hosts'.** A launch elsewhere, or on another image ID, is accepted by running [validation](docs/validation.md) there.
-- **The engine is a fork until upstream takes its commits.** The issues and pull requests above are open upstream; the release branch carries them meanwhile.
+- **The engine is this line's own fork.** Upstream froze its Python engine (issue #286, 2026-10-06), so the release branch keeps its own commits for good; [other recipes](#other-recipes-on-tensorfold) says what upstream answered.
 
 ## Next Action
 
 Each item is a trigger and what this line then does.
 
-- Upstream merges pull request [#320](https://github.com/ashhart/TensorFold/pull/320) (both ranks stop a GLM reply when its caller asks, in review for 0.6.6 as of 2026-10-04) or #301 → take upstream's stop in place of the release branch's #301, rebase onto that release, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
-- Upstream takes the work of issues #308, #309, #310, #339 or pull request #333 (none is on upstream's list for 0.6.6 as of 2026-10-04) → rebase the release branch onto that upstream release, drop what upstream now carries, accept the image again and move `TENSORFOLD_REF` in a 2.x release.
-- Upstream releases 0.6.6 (under test as of 2026-10-04: unoffered `<tool_call>` markup leaking into the reply text, #285 with #256; `--loop-guard` against a token repeated without end, #210 and #262 for #204; the open-file limit raised at start, #294) → read it against the release branch and follow it in a 2.x release.
-- Upstream pull request [#243](https://github.com/ashhart/TensorFold/pull/243) (`--parallel N` on two ranks) merges → take up more than one sequence at a time.
-- Upstream merges pull request [#194](https://github.com/ashhart/TensorFold/pull/194) (GLM-5.3-Flash image input on CUDA over two ranks), which the release branch carries with three ranks added → take upstream's in its place and accept the image input again.
-- The published AXL weights on 2.x: on hold after 2.0.0; 2.x serves the pinned weights only.
+- Upstream TensorFold serves GLM-5.3-Flash on CUDA from its Zig engine (as of 2026-10-06 the Python engine is frozen, issue #286, and Zig CUDA serves no model yet; upstream said it would follow this line's designs from issues #308, #310 and #339 and pull requests #333 and #396-#399 there) → read it against the release branch and decide whether 2.x moves to it.
+- Upstream releases another 0.6.x of the Python engine (0.6.6 was under test before the freeze: unoffered `<tool_call>` markup leaking into the reply text, #285 with #256; `--loop-guard` against a token repeated without end, #210 and #262 for #204; the open-file limit raised at start, #294) → read it against the release branch and follow it in a 2.x release.
+- More than one sequence at a time: upstream closed MiaAI-Lab's pull request #243 (`--parallel N` on two ranks) with the freeze → this line takes it into its own release branch after 2.2.0, then measures the published AXL weights at two sequences, as 1.x did.
+- Upstream reopens the lossy KV cache question for GLM (it declined FP8 and 4-bit caches in issues #309 and #401, 2026-10-06), or this line moves to an engine without FP8 KV → measure BF16 KV's window first (TP=2 held 344,820 tokens against about 490K with FP8 on 2026-10-02).
 
 ## Local Data and Contribution
 

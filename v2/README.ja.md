@@ -20,7 +20,7 @@
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.1.4` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（新しい会話が保持promptを先に写して捨てなくなる）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.2.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、tokenを変えないdecodeの改善（copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない。[決定の記録](docs/decisions.ja.md)）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -103,6 +103,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | | `TF_GLM_HEAT_HIGH`・`TF_GLM_HEAT_LOW` | `92`・`88`（°C） | prefillの熱の待ち。全rankで同じ値、空にすると待たない |
 | | `TF_GLM_CACHE_GIB` | `3`（エンジンの既定） | 窓の残りのうち、他の会話の保持promptに使うrankごとのメモリの上限。全rankで同じ値 |
 | | `TF_GLM_CACHE_ENTRIES` | `8`（エンジンの既定） | 他の会話の保持promptの本数。別の値にしたらdecode検査にも同じ値を渡します（[decode検査](docs/validation.ja.md#decode検査)） |
+| | `TF_GLM_COPY_DRAFTS`、`TF_GLM_KDA_DECODE_WIDE`、`TF_GLM_B16_DECODE_TABLE` | `1`（エンジンの既定） | copy drafts、KDAのdecodeの経路、BF16のdecodeのタイル（[決定の記録](docs/decisions.ja.md)）。`0` でそれぞれを切ります。どちらでもtokenは同じです。全rankで同じ値にします（違えば起動を断ります） |
 | `serve.sh` の引数 | `TP RANK RANK_ENV` の後 | なし | 既定の後ろで `tensorfold serve` に渡るので、こちらが勝ちます（`--context 500000`） |
 | clusterのファイル（`cluster.sh`） | `TP`・`HOSTS`・`CHECKOUT` | なし（必須） | TPの大きさ、rank順のSSH名、各機上のこのリポジトリのルート（1.x系の `--checkout` はその `v1/` を指す） |
 | | `SSH`・`CONTAINER`・`WORK` | `ssh -o ConnectTimeout=20`・`glm53-tf`・`$HOME/glm53-tf` | 機への入り方、container、`/work` に見せる機のdirectory |
@@ -224,26 +225,24 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 
 | レシピ | ライセンス | この系列が取り込んだもの |
 |---|---|---|
-| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0（0.5.0まではMIT） | エンジンそのもの。リリースのbranchは上流v0.6.5に自前のcommitを足したもので、それらは上流のissue #308・#309・#310・#339とpull request #333として返しています |
-| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | FP8 latent KVはそのpatch 0038に倣い、v0.6.x上で書き直して、エンジンの表示にクレジットしています（上流のissue #309）。TP=3の分け方はpatch 0066と同じ規則です（単位の境界で切り、余りを若いrankへ）。上流のpull request #301（止めた要求が全rankで終わる）はそのままリリースに入っています。自前のEXL3 checkpointをDFlash2のdraftで、同時に最大8要求、画像と動画の入力つきで配信しています |
+| [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0（0.5.0まではMIT） | エンジンそのもの。リリースのbranchは上流v0.6.5に自前のcommitを足したものです。上流はPython版のエンジンを凍結し（issue #286）、2026-10-06にこの系列のissueとpull requestのすべてに返事しました：0.6.xには入らない。新しい作業の行き先のZig版は、GLMを移したときに#308・#310・#339・#333・#396〜#399の設計に倣い、lossyなFP8のcacheは採らない（#309、#401） |
+| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | FP8 latent KVはそのpatch 0038に倣い、v0.6.x上で書き直して、エンジンの表示にクレジットしています（上流のissue #309）。copy draftsはそのpatch 0007と0032の前半に、KDAのdecodeの窓は0016cに倣い、同じくクレジットしています。TP=3の分け方はpatch 0066と同じ規則です（単位の境界で切り、余りを若いrankへ）。上流のpull request #301（止めた要求が全rankで終わる）はそのままリリースに入っています。自前のEXL3 checkpointをDFlash2のdraftで、同時に最大8要求、画像と動画の入力つきで配信しています |
 | [jakejharris/jspark3 v2.0.1](https://github.com/jakejharris/jspark3/releases/tag/v2.0.1) | Apache-2.0（レシピ）、MIT（そのエンジン＝TensorFold 0.3.6.2のfork） | 何も取り込んでいません。自前のTensorFoldのforkで、4-bitのMLX形式の重みを3台に分けてTP=3で配信します。既定はDFlash2のdraftで、商用には `--drafter none` の経路を示しています。会話の状態をdiskに保存するcacheを持ち、RigMarkで測っています |
 
 ## 免責事項
 
 - **BIZは意図であり、約束ではありません**（[リポジトリのREADME](../README.ja.md#biz)）。
 - **受け入れは参照機のものです。** 他の機や別のimage IDでの起動は、そこで[検証](docs/validation.ja.md)を回して受け入れます。
-- **上流が取り込むまで、エンジンはforkです。** 上のissueとpull requestは上流でまだopenで、その間はリリースのbranchが持ちます。
+- **エンジンはこの系列のforkです。** 上流はPython版のエンジンを凍結しました（issue #286、2026-10-06）。リリースのbranchは自前のcommitを持ち続けます。上流の返事は[TensorFoldの他のレシピ](#tensorfoldの他のレシピ)にあります。
 
 ## Next Action
 
 各項目は、きっかけと、そのときこの系列がすることです。
 
-- 上流がpull request [#320](https://github.com/ashhart/TensorFold/pull/320)（呼び手が止めたらGLMの応答を両rankで止める。2026-10-04時点で0.6.6の審査中）か#301をmergeする → リリースのbranchの#301を上流の停止に置き換え、そのリリースに載せ直し、imageを受け入れ直して、2.x系のリリースで `TENSORFOLD_REF` を動かす。
-- 上流がissue #308・#309・#310・#339やpull request #333の中身を取り込む（2026-10-04時点で0.6.6の一覧にはどれも無い）→ リリースのbranchをその上流のリリースに載せ直し、上流が持つようになったものを外し、imageを受け入れ直して、2.x系のリリースで `TENSORFOLD_REF` を動かす。
-- 上流が0.6.6を出す（2026-10-04時点で試験中：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262（#204向け）、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系のリリースで追う。
-- 上流のpull request [#243](https://github.com/ashhart/TensorFold/pull/243)（2 rankで `--parallel N`）がmergeされる → 同時に2系列以上を扱う作業に入る。
-- 上流がpull request [#194](https://github.com/ashhart/TensorFold/pull/194)（GLM-5.3-FlashのCUDAの2 rankでの画像入力）をmergeする（リリースのbranchは3 rankを足して持つ） → 上流のものに置き換え、画像入力を受け入れ直す。
-- 公開したAXLの重みを2.x系で使うこと：2.0.0の後まで保留。2.x系は固定した重みだけを配信します。
+- 上流のTensorFoldが、Zig版のエンジンでGLM-5.3-FlashをCUDAで配信する（2026-10-06時点でPython版は凍結〔issue #286〕、Zig版のCUDAはまだどのモデルも配信していない。上流は、そこでこの系列のissue #308・#310・#339とpull request #333・#396〜#399の設計に倣うと返事した）→ リリースのbranchと突き合わせて読み、2.x系がそちらへ移るかを決める。
+- 上流がPython版のエンジンの0.6.xをもう一度出す（凍結の前に0.6.6として試験中だったもの：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262〔#204向け〕、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系の版で追う。
+- 同時に2系列以上：上流は凍結とともにMiaAI-Labのpull request #243（2 rankで `--parallel N`）を閉じた → この系列が2.2.0の後に自前のリリースのbranchへ取り込み、1.x系と同じく公開したAXLの重みを2系列で測る。
+- 上流がGLMのlossyなKV cacheの問いを開き直す（issue #309と#401でFP8と4-bitのcacheを断った、2026-10-06）か、この系列がFP8 KVの無いエンジンへ移る → まずBF16 KVの窓を測る（2026-10-02にTP=2でBF16は344,820 token、FP8は約490K）。
 
 ## ローカルデータと開発
 

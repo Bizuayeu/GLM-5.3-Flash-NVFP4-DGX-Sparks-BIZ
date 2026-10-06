@@ -71,6 +71,17 @@ What was tried for the 2.x line, what was adopted or rejected, when, with the me
 | A prefill waits between chunks at 92 °C until 88 °C, every rank together | 2026-10-04 | Without it, a 1M-token prompt at TP=3 reached the thermal watch's 94 °C after six and a half minutes; with it the prompt completed ([heat](../README.md#measured-on-the-release)). The per-chunk exchange of the hottest reading cost about 0.2% of a 38,960-token prefill. 92 °C sits 2 °C under the stop (near the top a host rose 0.5-1 °C a minute; a chunk takes seconds); 88 °C sits under the 88.8-89.6 °C a 1M prefill held before the faster prefill work | Upstream answers issue #339; the bands are the rank file's to change |
 | How the wait is made | 2026-10-04 | One word gathered on its own before each chunk, not added to the existing exchange, whose result the host does not read; the ACPI zones only, as the thermal watch and the cooling gate read (the GPU ran about 9 °C cooler in every record); no limit on a wait, so a hot room holds the request and the thermal watch stays the last guard; off unless both bands are set, so upstream's default does not change | — |
 
+## Decode
+
+Measured at TP=2 on 2026-10-06 in one window of ten launches of one build, each switch turned off alone between launches with all on; every launch gave 2.1.4's decode-check token ids and the same edit reply. Each figure is the mean of the two launches with all on beside it against the two with that switch off.
+
+| Decision | Date | Measured effect | Reopens when |
+|---|---|---|---|
+| Copy drafts (`TF_GLM_COPY_DRAFTS`): when the last 8 tokens of the reply occurred earlier in the prompt or reply (16 inside the reply), the tokens that followed are drafted, up to 5 a round, fewer right after a miss; verified like any draft. After MiaAI-Lab's patches 0007 and the first half of 0032 | 2026-10-06 | `bench --kinds edit` (a module returned whole with three named edits) 43.0 → 57.6 tok/s (+34%, 240 of 251 rounds copied); the decode check's counting +3.6% (acceptance 3.821 → 3.961); prose, code, `bench` decode and prefill within ±0.3% | A miss-heavy load slows replies: then measure fewer drafts after a miss (3 now, not measured against other values) |
+| KDA decode windows on the three-kernel chain (`TF_GLM_KDA_DECODE_WIDE`), as prompt chunks of 64 rows or more already ran. After MiaAI-Lab's patch 0016c | 2026-10-06 | Decode +0.6% (`bench`), decode check +0.5%, prefill unchanged. On one GPU the chain itself is 27% faster at one row and 58% at eight. The same bits as the fused kernel at 1 to 8 rows, with and without graphs | — |
+| Per-shape tiles for the BF16 decode matmuls (`TF_GLM_B16_DECODE_TABLE`): 12 shapes on a swept tile, the rest on 64×4×3; the K slices count fixed 64-wide tiles, so the tile no longer sets the sum order | 2026-10-06 | Decode +0.9% (`bench`), decode check +0.9%, prefill unchanged; at TP=3 the swept shapes add up to 0.1-0.2% of a step. All 32 launchable tiles gave today's bits on all 26 decode shapes at 1 to 16 rows | Another GPU or engine build: sweep again (`tools/bench_glm_b16_decode.py` in the engine) |
+| The latent path holds DSA's kv_b once, as its per-head copy; the key and value rows are built only with `TF_GLM_LATENT=0` | 2026-10-06 | 192 MiB more per rank at TP=2 (126-132 MiB at TP=3); rank 0's startup estimate 101.53 → 101.35 GiB | — |
+
 ## Engine commits not named elsewhere
 
 The release branch is upstream v0.6.5 plus the commits that the [changelog](../CHANGELOG.md) groups. These are the ones it does not name, tests and recipe text aside:
@@ -87,6 +98,7 @@ The release branch is upstream v0.6.5 plus the commits that the [changelog](../C
 - `9c78e43`, `aba0f21`, `4a41c21`, `d21c834`: what 2.1.0 adds to upstream pull request #194 (its seven commits, `4fcfb10` to `f9ee1d9`): one image up to the checkpoint's 8,000 visual tokens, rank 0's image workspace from a measurement of the tower, the image features on every rank of three, and `--vision-offload` refused on a GPU that shares the host's memory.
 - `eaf06cc`, `1a3fb17` (2.1.1): each image of a request is its own call of the image tower, since an image encoded in one call with others got different features.
 - `e735c14`, `a265436` (2.1.4): TensorFold pull request #421 (m-naoki-m), taken before upstream merges it: `_take_over` decides which kept prompts stay before copying any (issue #420); the fake snapshots of two upstream tests carry `drafter_rows`.
+- `81bd22f` to `440e631` (2.2.0): the four decode items above with their tests, the tile sweep tool, and the switch of the BF16 tiles joining the ranks' startup agreement.
 
 ## Measures from 1.x not yet evaluated on 2.x
 
