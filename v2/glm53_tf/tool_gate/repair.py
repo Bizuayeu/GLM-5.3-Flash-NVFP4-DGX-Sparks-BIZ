@@ -15,8 +15,8 @@ REASONS = {
     "empty": "required argument '{argument}' is empty",
     "not_object": "the arguments are not a JSON object",
 }
-# Saying only that a call was rejected left the model reporting a failed run (TC-43 on 2026-09-29,
-# records/20260929-tool-gate/REPORT.md). The reply also says what to do next.
+# Saying only that a call was rejected left the model reporting a failed run (TC-43 on 2026-09-29).
+# The reply also says what to do next.
 INVALID = (
     "Error: not executed: {reasons}. The call did not run. If you do not know the value of a"
     " required argument, do not call {tool} again without it; ask the user for it instead."

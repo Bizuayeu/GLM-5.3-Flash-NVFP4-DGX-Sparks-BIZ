@@ -525,7 +525,7 @@ def check_graph_scope(profile):
     """What the decode Graph path has been qualified to cover."""
     if decode_graphs(profile) and profile["context"]["max_num_seqs"] != 1:
         # cc-defer: one sequence only (MTP k=3 and prefix caching were qualified on
-        # the MTP fixture, records/20260918-stage1-graph); extend to batching after
+        # the MTP fixture); extend to batching after
         # a fixture with max_num_seqs > 1 shows the same eager/graph identity.
         raise ValueError("Graph experiments require one sequence")
 

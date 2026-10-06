@@ -3,8 +3,8 @@
 vLLM 385dce36's default (lazy) iterator yields ``safe_open(...).get_tensor(name)``, a tensor backed
 by the checkpoint file's memory mapping, and the loader copies it to the GPU from there. On GB10 with
 a CUDA context, that host-to-device copy from a file-backed mapping runs at about 0.16 GiB/s; the
-same tensor cloned into anonymous memory first moves at about 1.55 GiB/s (edgexpert03, image
-0eede6e0, 3 GiB of one shard per run, two runs each; records/20260926-release-1190). Rank 0 of the
+same tensor cloned into anonymous memory first moves at about 1.55 GiB/s (one GB10, image
+0eede6e0, 3 GiB of one shard per run, two runs each, measured for 1.19.0). Rank 0 of the
 reference pair spent 532 s in ``Loading weights`` on 1.18.0. The clone holds one tensor at a time,
 unlike vLLM's ``eager`` strategy, which keeps a whole shard twice (22.81 GiB peak for an 11.15 GiB
 shard, measured the same day) and ran rank 1 out of memory. Upstream: the same idea appears in

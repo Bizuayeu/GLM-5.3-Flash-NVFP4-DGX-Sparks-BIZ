@@ -25,7 +25,7 @@ LONG_LINE = "warmup line {index}.\n"
 # serving. Counting to 80 is checkable exactly and long enough that the MTP
 # check judges from this rung alone, whatever other rungs a profile runs: on the
 # 1.19.0 pair it took 168 tokens and drafted 126 at effort low, 207 and 162 at
-# max (records/20260928-upstream-review/obs268), so 256 answers either way.
+# max, so 256 answers either way.
 CANARY_COUNT = 80
 CANARY_TOKENS = 256
 # Zero accepted drafts only counts over at least this many drafted tokens, as
@@ -66,8 +66,8 @@ def compiled_kernels(logs):
 def png_data_url(width=672, height=336, rgb=(255, 140, 0)):
     """A solid-colour PNG built with the standard library; no image dependency.
 
-    The default is the size of the synthetic image the 200K vision checks sent
-    (records/20260915-vision-200k), which the processor accepted as 288 tokens.
+    The default is the size of the synthetic image the 200K vision checks sent,
+    which the processor accepted as 288 tokens.
     """
 
     def chunk(kind, payload):
