@@ -2,6 +2,14 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.29.13 — 2026-10-06
+
+### Documentation
+
+- The README's table of scopes said the 45-layer TP=2 profile was "loaded; basic API text/tools checked", though its Status and [SETUP step 6](SETUP.md#6-qualify-the-full-model) accept TP=2 for routine use from 2026-09-22; the row now says so, as the TP=3 row does. The scope is SETUP's and does not change.
+
+No file of the reference image changes; it stays 1.29.9's.
+
 ## 1.29.12 — 2026-10-06
 
 ### Documentation

@@ -1,6 +1,6 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
-**Short name: NVFP4 BIZ** (cite as "NVFP4 BIZ 1.29.12"). It names this serving stack, which serves NVIDIA's pinned checkpoint as distributed. The published option's weights are **NVFP4 BIZ AXL** (AXL: the attention projections and `lm_head` in W4A16; on Hugging Face as [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16), whose repository name describes the contents). The repository names stay as they are.
+**Short name: NVFP4 BIZ** (cite as "NVFP4 BIZ 1.29.13"). It names this serving stack, which serves NVIDIA's pinned checkpoint as distributed. The published option's weights are **NVFP4 BIZ AXL** (AXL: the attention projections and `lm_head` in W4A16; on Hugging Face as [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16), whose repository name describes the contents). The repository names stay as they are.
 
 **BIZ** is the maintainer's mark and states the repository's intent; what it means and does not mean is in the [repository README](../README.md#biz).
 
@@ -122,7 +122,7 @@ Each row states the status and the document that owns the evidence; the narrativ
 | Fixture | Four-layer, single-GB10 fixture with Marlin W4A16 | Generation and state comparisons passed; [validation](docs/validation.md) |
 | Fixture | Batch-invariant mode with the pinned SM120 sparse MLA backend | Unsupported |
 | Full model | Two- and three-rank NCCL collectives on the pinned base | Tested patterns passed over RoCE, the pair and the three-host ring; [conditions and limits](../docs/nccl-validation.md) |
-| Full model | 45-layer TP=2 reference profile | Loaded; basic API text/tools checked; [benchmarks](docs/benchmarks.md) |
+| Full model | 45-layer TP=2 reference profile | Accepted for routine use within the scope in [SETUP step 6](SETUP.md#6-qualify-the-full-model); [benchmarks](docs/benchmarks.md) |
 | Full model | TP=3 on three hosts in a switchless QSFP ring | Accepted for routine use within the scope in [SETUP step 6](SETUP.md#6-qualify-the-full-model); [measurements on 1.24.0](docs/benchmarks.md#measurements-on-1240) |
 | Full model | Identical requests at temperature 0 | With `max_num_seqs = 1`, repeat bit for bit within a launch and across launches, through the [repeatability switches](docs/server-configuration.md#repeatability-switches) that every template turns on; every launch after a switch is still checked (weight digest, decode check, kernel hashes). Not claimed while more than one sequence is in flight ([concurrency scope](docs/validation.md#concurrency-scope)); [how each cause was found](docs/repeatability.md) |
 | Full model | Image input (vision) at 256K | One synthetic image answered correctly, text/tool regressions passed, video rejected; on 1.19.0 both profiles passed the seven regression checks and read large images and several images in order; from 1.29.0 both profiles answer images up to the model's limit; direct attachment in harness user interfaces not checked; [measurements and limits](docs/vision.md) |

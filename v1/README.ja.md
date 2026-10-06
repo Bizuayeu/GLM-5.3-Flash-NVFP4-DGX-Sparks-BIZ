@@ -1,6 +1,6 @@
 # GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ
 
-**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.29.12」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
+**略称：NVFP4 BIZ**（引用は「NVFP4 BIZ 1.29.13」の形）。この配信スタックの呼び名で、NVIDIAの固定checkpointを配布のまま配信します。公開している任意設定の重みは **NVFP4 BIZ AXL**（AXL：attention projectionと `lm_head` をW4A16にしたもの。Hugging Faceの [Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) で、リポジトリ名は中身の記述）。リポジトリ名はどちらもそのままです。
 
 **BIZ**は保守者の印で、リポジトリの意図を示す語です。意味することと意味しないことは[リポジトリのREADME](../README.ja.md#biz)にあります。
 
@@ -122,7 +122,7 @@ MTPのdecodeの速さは、文がどれだけ予測しやすいかで決まり�
 | fixture | Marlin W4A16による4層・GPU 1台のfixture | 生成・状態比較を通過。[検証範囲](docs/validation.ja.md) |
 | fixture | 固定SM120 sparse MLAでのbatch-invariant mode | 非対応 |
 | 全モデル | 固定ベースによる2 rank・3 rankのNCCL collective | 対と3台のリングで、RoCE経路の試験パターン合格。[実測条件と制約](../docs/nccl-validation.ja.md) |
-| 全モデル | 45層TP=2の参照profile | ロード・基礎APIのテキスト／ツールを確認。[ベンチマーク](docs/benchmarks.ja.md) |
+| 全モデル | 45層TP=2の参照profile | [SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で通常運用として受け入れ済み。[ベンチマーク](docs/benchmarks.ja.md) |
 | 全モデル | スイッチなしのQSFPリングでつないだ3台のTP=3 | [SETUP手順6](SETUP.ja.md#6-フルモデルの検証)の範囲で通常運用として受け入れ済み。[1.24.0での測定](docs/benchmarks.ja.md#1240での測定) |
 | 全モデル | temperature 0での同一要求 | `max_num_seqs = 1` の配信では、同じ起動の中でbit一致で反復し、起動を跨いでも同じ（どのテンプレートでもonの[再現性のスイッチ](docs/server-configuration.ja.md#再現性のスイッチ)による）。切替後の起動は今も毎回確かめる（重みのdigest、decode検査、kernel hash）。同時2系列以上が処理中の間は反復を主張しない（[同時実行の範囲](docs/validation.ja.md#同時実行の範囲)）。[それぞれの原因を見つけた経緯](docs/repeatability.ja.md) |
 | 全モデル | 256Kでの画像入力（Vision） | 合成画像1枚に正答、テキスト・ツールの回帰は合格、動画は拒否。1.19.0では両profileで回帰7項が合格し、大きな画像と複数の画像にも順番どおり正答。1.29.0からは両profileでモデルの上限までの画像に答える。ハーネス画面への直接添付は未確認。[実測と限界](docs/vision.ja.md) |
