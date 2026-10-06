@@ -50,5 +50,26 @@ class SharedCheckpointTests(unittest.TestCase):
                 self.assertEqual(len(digests), 1)
 
 
+class CopiedModuleTests(unittest.TestCase):
+    """2.x carries its own copies of 1.x modules (each line stands alone). These are
+    unchanged but for the package name; one that has to differ leaves this list."""
+
+    SAME = (
+        "download.py",
+        "io.py",
+        "verify_download.py",
+        "tool_gate/__init__.py",
+        "tool_gate/check.py",
+        "tool_gate/repair.py",
+    )
+
+    def test_the_copies_differ_only_in_the_package_name(self):
+        for name in self.SAME:
+            with self.subTest(name=name):
+                v1 = (REPO / "v1/glm53_setup" / name).read_text(encoding="utf-8")
+                v2 = (REPO / "v2/glm53_tf" / name).read_text(encoding="utf-8")
+                self.assertEqual(v1.replace("glm53_setup", "glm53_tf"), v2)
+
+
 if __name__ == "__main__":
     unittest.main()
