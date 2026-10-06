@@ -11,7 +11,7 @@
 ## Summary
 
 - **What it is.** Build steps, launch scripts and acceptance checks that serve the pinned checkpoint through a pinned TensorFold commit as one OpenAI-compatible endpoint: two hosts at TP=2 over a direct ConnectX-7 link, or three at TP=3 in a switchless ring. The published measurements come from MSI EdgeXpert (MS-C931) systems.
-- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). 2.1.0, the engine moved onto upstream v0.6.5 with image input, was accepted on 2026-10-05: at both TP sizes the decode check gave 2.0.0's token ids and acceptance lengths, the NLL set at TP=2 equalled 2.0.0's at full precision, and image input passed its checks at both. 2.1.1, which encodes each image in its own call of the tower, was accepted the same day at TP=2 with image input on: 2.1.0's token ids and texts, and the image checks passed ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
+- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). Each later image was accepted against the same reference values, at the TP sizes and with the checks its [changelog](CHANGELOG.md) section names; the current one, 2.1.4's, at TP=2 with image input on ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
 - **Repeatable by contract.** Drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on how the prompt is chunked. These are the engine's contract, where 1.x buys repeatability with switches on vLLM ([differences from 1.x](#differences-from-1x)).
 - **Precision.** W4A16 for the routed experts and the dense MLP, BF16 elsewhere, FP8 KV. NVIDIA's model card measured its checkpoint under another recipe on other hardware, so its accuracy table does not describe this serving; [validation](docs/validation.md) gives the numbers that do.
 - **Licensing.** Apache-2.0 code and engine, MIT weights that the operator downloads, nothing non-commercial in the serving path ([licensing at a glance](../README.md#licensing-at-a-glance)).
@@ -156,7 +156,7 @@ Why each 2.x setting was chosen, and what was tried and not adopted, is in [deci
 |---|---|---|
 | Decode check count / prose / code (tok/s) | 41.67 / 27.02 / 35.38 | 52.37 / 37.92 / 48.41 (image input on) |
 | Prefill of 38,960 tokens (tok/s, the second and third of three; the first 1,221.5) | 1,331.1 / 1,329.9 | — |
-| Image checks (`VISION=1`): one image, a 4:3 image of 7,966 prompt tokens, two images in order, a single colour, an image in a tool result; a text question, a tool round trip; a video refused | all passed | all passed |
+| [Image checks](docs/validation.md#image-input) (`VISION=1`) | all passed | all passed |
 
 **2.0.0.** Taken on 2026-10-04 on the reference hosts (MSI EdgeXpert, GPU clock capped at 2,200 MHz). The engine was the release (`b44c2f1`), the build one printed line before it, or a build before the heat wait, which only changes when prompt chunks run; the notes say which. The [validation page](docs/validation.md) has the commands and reference values. The 1.x column is from [1.x's benchmarks](../v1/docs/benchmarks.md), its NLL from [the NLL set on 1.26.0's defaults](../v1/docs/benchmarks.md#the-nll-set-on-1260s-distributed-defaults-2026-10-02).
 
@@ -184,7 +184,7 @@ Why each 2.x setting was chosen, and what was tried and not adopted, is in [deci
 ## Limits
 
 - **One sequence at a time.** The engine's CUDA path decodes one GLM request at a time; the others wait their turn.
-- **Images take memory at TP=2.** With image input on, the tower leaves 2.4 GiB of the default 3 GiB for other conversations' kept prompts; `VISION=0` on every rank gives the 3 GiB back.
+- **Images take memory at TP=2.** With image input on, the tower takes part of the memory for other conversations' kept prompts ([serving defaults](#serving-defaults)); `VISION=0` on every rank gives the 3 GiB back.
 - **TP=3 refuses DFlash2 and EXL3.** Both split only over two ranks. This line uses neither: `serve.sh` passes `--drafter none` and the checkpoint is NVFP4.
 - **Streamed replies.** With drafts, one round can cross from thinking into the answer, so one delta can carry both `reasoning_content` and `content`. A client that reads only one field per delta loses text; non-streamed replies are whole.
 - **FP8 KV is lossy** against BF16 KV, as in 1.x; drafted replies still equal serial ones. On four short texts the two caches gave NLL within 0.011 of each other (2026-10-02).

@@ -27,7 +27,11 @@ Before each sample it sends `TF_GLM_CACHE_ENTRIES` (default 8, the engine's) sho
 | prose | `e33450686f6b5624` | `3ee287174a7b9ae3` | `8901c751b210f13c` | `0a3bb372ba424ae0` |
 | code | `0ffecb8187fd7084` | `f579ca05b8be8490` | `43edfcefb4bafdb8` | `91f20cec01a74182` |
 
-The token ids held across eight engine builds at TP=2 and ten launches at TP=3, with one or two rails, the three prefill exchanges, four NCCL channels at TP=2 and image input on (`VISION=1`). From 2.1.0 the check keeps both fields of a delta that carries the end of the reasoning and the start of the content; earlier versions kept one, so counting and code read shorter texts (2.0.x's hashes `93951874…`, `389d8fb9…` at TP=2 and `be0f5d34…`, `ac0a26c6…` at TP=3 are the same tokens). TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Reference speeds on 2.1.0: TP=2 41.67 / 27.02 / 35.38 tok/s, TP=3 52.37 / 37.92 / 48.41; acceptance length 3.821 / 2.098 / 3.180 at TP=2 and 3.549 / 2.222 / 3.234 at TP=3.
+The token ids held across eight engine builds at TP=2 and ten launches at TP=3, with one or two rails, the three prefill exchanges, four NCCL channels at TP=2 and image input on (`VISION=1`). From 2.1.0 the check keeps both fields of a delta that carries the end of the reasoning and the start of the content; earlier versions kept one, so counting and code read shorter texts (2.0.x's hashes `93951874…`, `389d8fb9…` at TP=2 and `be0f5d34…`, `ac0a26c6…` at TP=3 are the same tokens). TP=2 and TP=3 differ from each other by design (the ranks split the sums differently). Acceptance length: 3.821 / 2.098 / 3.180 at TP=2 and 3.549 / 2.222 / 3.234 at TP=3. Each release's speeds are in [measured on the release](../README.md#measured-on-the-release).
+
+## Image input
+
+With image input on (`VISION=1` on every rank): one image, a 4:3 image of 7,966 prompt tokens, two images in order, a single colour and an image in a tool result, then a text question and a tool round trip. **Accepted when** each is answered correctly and a video part is refused with 400.
 
 ## Drafted equals serial
 
