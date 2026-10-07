@@ -12,13 +12,30 @@ LINE = Path(__file__).resolve().parents[1]
 ROOT = LINE.parent
 STATE = ROOT / "state"
 LOCK_PATH = LINE / "config/model.lock.json"
+# The published option's weights (NVFP4 BIZ AXL), which download and verify-download
+# fetch with --checkpoint axl; serving them is the rank file's CHECKPOINT (README.md).
+AXL_LOCK_PATH = LINE / "config/axl.lock.json"
+CHECKPOINTS = ("pinned", "axl")
 
 
-def load_lock():
-    lock = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
+def load_lock(path=None):
+    lock = json.loads((path or LOCK_PATH).read_text(encoding="utf-8"))
     if not re.fullmatch(r"[0-9a-f]{40}", lock["revision"]):
         raise ValueError("Model revision must be a full commit hash")
     return lock
+
+
+def checkpoint(name, state):
+    """A checkpoint's model, revision and state folder under ``state``: the pinned one
+    keeps ``state`` itself, AXL ``state/axl``, so one's download status never
+    overwrites the other's."""
+    if name == "pinned":
+        lock = load_lock()
+        return lock["model"], lock["revision"], state
+    if name == "axl":
+        lock = load_lock(AXL_LOCK_PATH)
+        return lock["model"], lock["revision"], state / name
+    raise ValueError("unknown checkpoint: " + name)
 
 
 def version():

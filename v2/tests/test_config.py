@@ -40,6 +40,25 @@ class CheckoutLayoutTests(unittest.TestCase):
         self.assertEqual(config.LOCK_PATH, LINE / "config/model.lock.json")
 
 
+class CheckpointTests(unittest.TestCase):
+    def test_the_pinned_checkpoint_keeps_state_itself(self):
+        state = Path("state")
+        self.assertEqual(
+            config.checkpoint("pinned", state),
+            (config.MODEL, config.REVISION, state),
+        )
+
+    def test_axl_is_its_own_full_revision_in_its_own_state_folder(self):
+        model, revision, state = config.checkpoint("axl", Path("state"))
+        self.assertEqual(model, "Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16")
+        self.assertRegex(revision, r"^[0-9a-f]{40}$")
+        self.assertEqual(state, Path("state/axl"))
+
+    def test_an_unknown_checkpoint_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "unknown checkpoint"):
+            config.checkpoint("other", Path("state"))
+
+
 class ServeScriptTests(unittest.TestCase):
     def test_serve_sh_serves_the_locked_checkpoint(self):
         serve = (LINE / "scripts/serve.sh").read_text(encoding="utf-8")

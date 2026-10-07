@@ -1,4 +1,5 @@
-"""Download the pinned NVIDIA GLM checkpoint into the shared Hugging Face cache."""
+"""Download a locked GLM checkpoint into the shared Hugging Face cache: NVIDIA's pinned one,
+or with --checkpoint axl the published option's (config/axl.lock.json)."""
 
 import argparse
 import json
@@ -8,45 +9,46 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import LINE, MODEL, REVISION, STATE
+from .config import CHECKPOINTS, LINE, STATE, checkpoint
 from .io import write_json
 
-# Under STATE; the checksum run (verify_download) and, in 1.x, the server preflight
-# read what this writes there.
+# In the checkpoint's state folder (config.checkpoint); the checksum run
+# (verify_download) reads what this writes there.
 STATUS_FILE = "download-status.json"
 
 
-def download():
+def download(name="pinned"):
     os.environ.setdefault("HF_XET_NUM_CONCURRENT_RANGE_GETS", "4")
     os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "120")
     from huggingface_hub import HfApi, snapshot_download
 
-    STATE.mkdir(parents=True, exist_ok=True)
+    model, revision, state = checkpoint(name, STATE)
+    state.mkdir(parents=True, exist_ok=True)
     status = {
-        "model": MODEL,
-        "revision": REVISION,
+        "model": model,
+        "revision": revision,
         "status": "downloading",
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
 
     def save():
-        write_json(STATE / STATUS_FILE, status)
+        write_json(state / STATUS_FILE, status)
 
     save()
     try:
-        info = HfApi().model_info(MODEL, revision=REVISION, files_metadata=True)
-        if info.sha != REVISION:
+        info = HfApi().model_info(model, revision=revision, files_metadata=True)
+        if info.sha != revision:
             raise RuntimeError("Unexpected model revision")
         files = [{"path": item.rfilename, "bytes": item.size} for item in info.siblings]
-        (STATE / "model-manifest.json").write_text(
-            json.dumps({"model": MODEL, "revision": REVISION, "files": files}, indent=2)
+        (state / "model-manifest.json").write_text(
+            json.dumps({"model": model, "revision": revision, "files": files}, indent=2)
             + "\n"
         )
         status["total_bytes"] = sum(item["bytes"] or 0 for item in files)
         save()
-        print("Downloading:", MODEL, REVISION, status["total_bytes"], flush=True)
+        print("Downloading:", model, revision, status["total_bytes"], flush=True)
         # Bound simultaneous shard downloads on unified-memory hosts.
-        snapshot = Path(snapshot_download(MODEL, revision=REVISION, max_workers=2))
+        snapshot = Path(snapshot_download(model, revision=revision, max_workers=2))
         for item in files:
             file = snapshot / item["path"]
             if (
@@ -81,15 +83,24 @@ def download():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--background", action="store_true")
+    parser.add_argument("--checkpoint", choices=CHECKPOINTS, default="pinned")
     args = parser.parse_args(argv)
+    state = checkpoint(args.checkpoint, STATE)[2]
     if args.background:
         if os.name != "posix":
             parser.error("Background jobs require Linux; use foreground mode here")
-        STATE.mkdir(parents=True, exist_ok=True)
+        state.mkdir(parents=True, exist_ok=True)
         env = os.environ.copy()
-        with (STATE / "download.log").open("a", encoding="utf-8") as log:
+        with (state / "download.log").open("a", encoding="utf-8") as log:
             process = subprocess.Popen(
-                [sys.executable, "-m", "glm53_tf", "download"],
+                [
+                    sys.executable,
+                    "-m",
+                    "glm53_tf",
+                    "download",
+                    "--checkpoint",
+                    args.checkpoint,
+                ],
                 cwd=LINE,
                 env=env,
                 stdin=subprocess.DEVNULL,
@@ -101,11 +112,11 @@ def main(argv=None):
     else:
         from filelock import FileLock, Timeout
 
-        STATE.mkdir(parents=True, exist_ok=True)
+        state.mkdir(parents=True, exist_ok=True)
         try:
-            with FileLock(STATE / "download.lock", timeout=0):
-                (STATE / "download.pid").write_text(str(os.getpid()) + "\n")
-                download()
+            with FileLock(state / "download.lock", timeout=0):
+                (state / "download.pid").write_text(str(os.getpid()) + "\n")
+                download(args.checkpoint)
         except Timeout:
             raise SystemExit(
                 "A download already owns this workspace; inspect its state"

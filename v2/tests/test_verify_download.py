@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from glm53_tf import verify_download
+from glm53_tf import config, verify_download
 from glm53_tf.config import MODEL, REVISION
 from glm53_tf.download import STATUS_FILE
 
@@ -97,6 +97,19 @@ class VerifyDownloadTests(unittest.TestCase):
                 self.assertEqual(command[:4], ["hf", "cache", "verify", MODEL])
                 self.assertIn("--fail-on-missing-files", command)
                 self.assertIn("--fail-on-extra-files", command)
+
+    def test_axl_reads_its_own_folder_and_verifies_its_own_revision(self):
+        model, revision, folder = config.checkpoint("axl", self.state)
+        folder.mkdir()
+        record = {"model": model, "revision": revision, "status": "complete"}
+        (folder / STATUS_FILE).write_text(json.dumps(record))
+        self.download("complete", revision="other")  # the pinned download is not read
+        code, saved, run, _ = self.run_main("--checkpoint", "axl")
+        self.assertEqual(
+            (code, saved["status"], saved["model"]), (0, "complete", model)
+        )
+        command = run.call_args.args[0]
+        self.assertEqual(command[3:6], [model, "--revision", revision])
 
     def test_output_is_required(self):
         with (

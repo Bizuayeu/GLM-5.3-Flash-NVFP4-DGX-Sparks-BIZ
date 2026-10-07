@@ -1,4 +1,5 @@
-"""Wait for the existing downloader, then verify the pinned HF cache checksums."""
+"""Wait for the existing downloader, then verify a locked checkpoint's HF cache checksums
+(the pinned one, or with --checkpoint axl the published option's)."""
 
 import argparse
 import json
@@ -7,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import MODEL, REVISION, STATE
+from .config import CHECKPOINTS, STATE, checkpoint
 from .download import STATUS_FILE
 from .io import write_json
 
@@ -17,7 +18,9 @@ def main(argv=None):
     parser.add_argument("--hf", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--wait", action="store_true")
+    parser.add_argument("--checkpoint", choices=CHECKPOINTS, default="pinned")
     args = parser.parse_args(argv)
+    model, revision, state = checkpoint(args.checkpoint, STATE)
     args.output.mkdir(parents=True, exist_ok=True)
     status_file = args.output / "checksum-status.json"
 
@@ -26,8 +29,8 @@ def main(argv=None):
             status_file,
             {
                 "status": status,
-                "model": MODEL,
-                "revision": REVISION,
+                "model": model,
+                "revision": revision,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
                 **extra,
             },
@@ -35,8 +38,8 @@ def main(argv=None):
 
     save("waiting_for_download")
     while True:
-        status = json.loads((STATE / STATUS_FILE).read_text())
-        if status["model"] != MODEL or status["revision"] != REVISION:
+        status = json.loads((state / STATUS_FILE).read_text())
+        if status["model"] != model or status["revision"] != revision:
             save("failed", reason="revision mismatch")
             raise SystemExit(1)
         if status["status"] == "complete":
@@ -52,9 +55,9 @@ def main(argv=None):
         str(args.hf),
         "cache",
         "verify",
-        MODEL,
+        model,
         "--revision",
-        REVISION,
+        revision,
         "--fail-on-missing-files",
         "--fail-on-extra-files",
         "--json",

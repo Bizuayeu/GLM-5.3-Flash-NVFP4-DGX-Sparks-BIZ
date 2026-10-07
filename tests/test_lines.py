@@ -54,10 +54,9 @@ class CopiedModuleTests(unittest.TestCase):
     """2.x carries its own copies of 1.x modules (each line stands alone). These are
     unchanged but for the package name; one that has to differ leaves this list."""
 
+    # download.py and verify_download.py left it in 2.4.0: 2.x also fetches AXL.
     SAME = (
-        "download.py",
         "io.py",
-        "verify_download.py",
         "tool_gate/__init__.py",
         "tool_gate/check.py",
         "tool_gate/repair.py",
