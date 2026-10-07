@@ -21,11 +21,11 @@ from .check import violations
 from .repair import applies, gate, retry_request
 
 CHAT_PATH = "/v1/chat/completions"
-# cc-defer: provisional ceiling (a 262,144-token prompt with a few images stays far below it);
-# raise it when a real request is refused with 413.
+# A 1,035,454-token request with one declared tool is 4.1 MB (2.3.0's acceptance at TP=3); 64 MiB leaves
+# room for images. Raise it when a real request is refused with 413.
 MAX_BODY = 64 * 2**20
-# cc-defer: provisional; the HLE client used 1,200 s for 16,384 tokens, and a repair doubles a
-# request. Revisit when a client reports a gate timeout.
+# Per upstream call: that request answered after 1,494 s (404 s of it heat waits), and a repair's second
+# call resumed the kept prompt in 3.5 s. Raise it when a client reports a gate timeout.
 DEFAULT_TIMEOUT = 2400
 HOP = {
     "connection",

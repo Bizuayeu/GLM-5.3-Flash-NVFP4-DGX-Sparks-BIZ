@@ -4,6 +4,34 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.3.0 — 2026-10-07
+
+### Changed
+
+- **The prefill heat wait also looks one chunk ahead** (`TF_GLM_HEAT_CEILING`, 93 °C by default; the bands stay at 92 °C and 88 °C). Before a chunk the ranks wait while the hottest zone plus the last chunk's rise would pass 93 °C, and the wait ends only when it would not. Near the end of a 1M-token prompt one chunk adds about 7 °C after the check between chunks, so 2.2.0's acceptance read 94.3 °C once; with the look-ahead the hottest host peaked at 92.6 °C. The 1M-token prompt at TP=3 waits longer: its first token came after 1,440.6 s against 1,154.3 s, 350.3 s of it heat waits; the prefill without waits is unchanged ([decisions](docs/decisions.md#heat)). Every rank takes the same value, or the start is refused; empty turns the look-ahead off.
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.3.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `7410d1d76b4403a209dd2a5617fa85afe1ed1e32` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.2.0's engine with the heat look-ahead and the same tokens. The GLM recipe's NVFP4 section comes from a run on the real weights and loads the visual tower with `--vision`; the third-party notices give `SCORE_RB` as this tree sets it; comments name measurements instead of local record paths; the FP8 row pad, the BF16 split-K partials and the prompt overlap's piece limit are each named once; tests check the formats and settings without a GPU. Copy drafts keep 3 drafts after a miss, measured against 1 and 5 ([decisions](docs/decisions.md#decode)).
+
+### Fixed
+
+- `THIRD_PARTY_NOTICES.md` points the HLE row at `v1/config/hle.lock.json`, where the lock moved with the v1/v2 split.
+
+### Documentation
+
+- The tool-argument gate's body ceiling (64 MiB) and timeout (2,400 s a call) are measured on 2.x: a 1,035,454-token request with one declared tool is 4.1 MB and answered through the gate after 1,494 s at TP=3; a repair's second call resumed the kept prompt in 3.5 s.
+- [Validation](docs/validation.md) and [operations](docs/operations.md) give the reason for the look-ahead; [Next Action](README.md#next-action) names a heat check within a chunk as the next step.
+
+### Accepted
+
+On the reference hosts on 2026-10-07 with image input on, with the release candidate image (linux/arm64 `sha256:c6700600e28029995f9fad5271f9395d21d703f2d640372d825e50250f6b8fd9`, the same on the three hosts):
+
+- TP=2 and TP=3: the decode check gave the reference token ids and texts, with counting's acceptance length 3.961 and 4.024; `bench --kinds edit` gave 2.2.0's reply at both sizes; the image checks passed; the NLL set gave the reference values (TP=2 2.5474 / 2.9257 / 1.3184 / 0.6250, TP=3 2.5313 / 2.9001 / 1.3101 / 0.6237).
+- TP=3: three passphrases at 1,035,295 tokens, 3 of 3, first token after 1,440.6 s with 350.3 s of heat waits; the hottest ACPI zone peaked at 92.6 °C and no host read 94 °C.
+- The tool gate at 1M tokens, as above.
+- The engine's own tests: the brief set 1,427 passed; the tiny model's bit checks equal 2.2.0's.
+
 ## 2.2.0 — 2026-10-06
 
 ### Engine

@@ -69,6 +69,7 @@
 | 決定 | 日付 | 測った効果 | 開き直す条件 |
 |---|---|---|---|
 | prefillはchunkの合間に92 °Cで待ち、88 °Cまで、全rankそろって | 2026-10-04 | 待ちが無いと、TP=3の1M tokenのpromptは6分半で熱の見張りの94 °Cに達した。待ちがあるとpromptは最後まで走った（[熱](../README.ja.md#リリースでの測定値)）。chunkごとに最高温度を交換する費用は38,960 tokenのprefillの約0.2%。92 °Cは停止の2 °C下（頂上付近の上がり方は1分に0.5〜1 °C、chunkは数秒）。88 °Cはprefillが速くなる前の1Mのprefillが保った88.8〜89.6 °Cの下 | 上流がissue #339に答える。帯はrankのファイルで変えられる |
+| 待ちは1 chunk先も見込む：chunkの前に、最高温度に直前のchunkの上がり幅を足した値を93 °C以内に保ち（`TF_GLM_HEAT_CEILING`）、待ちもその値に収まるまで解かない | 2026-10-07 | 1M tokenのpromptの終わり近くでは、chunkの合間の確認の後にchunk一つで約7 °C上がる：92 °Cでは1台が1回94.3 °Cを読んだ（2.2.0）。見込みありでは最も熱い機の最高が92.6 °C、TP=3のそのpromptの待ちは350.3 s（前は64.1 s）、待ちを除いたprefillは同じ。代わりに帯を86 °C／82 °Cに下げると最高93.0 °Cだが待ちは436.4 s、温まった機では38,960 tokenのpromptも待った | ホストが94 °Cを2回続けて読む、またはchunkの中での確認 |
 | 待ちの作り | 2026-10-04 | 各chunkの前に1語を単独でgatherする（既存の交換には相乗りしない。その結果はhostが読まない）。熱の見張りと冷却gateと同じくACPIのzoneだけを読む（どの記録でもGPUは約9 °C低い）。待ちに上限を置かない（熱い部屋は要求を止め、熱の見張りが最後の守りのまま）。両方の帯を設定しない限り切れている（上流の既定は変わらない） | — |
 
 ## decode
@@ -77,7 +78,7 @@
 
 | 決定 | 日付 | 測った効果 | 見直すとき |
 |---|---|---|---|
-| copy drafts（`TF_GLM_COPY_DRAFTS`）：返答の末尾8 token（返答の中では16）が前のpromptか返答に出ていれば、続くtokenを1 roundに5つまでdraftにし、外れた直後は減らす。検証は他のdraftと同じ。MiaAI-Labのpatch 0007と0032の前半に倣う | 2026-10-06 | `bench --kinds edit`（moduleを名前を挙げた3か所の編集付きで丸ごと返す）43.0 → 57.6 tok/s（+34%、251 roundのうち240がcopy）。decode検査のcountは+3.6%（受理長3.821 → 3.961）。prose・code・`bench` のdecode・prefillは±0.3%以内 | 外れの多い負荷で返答が遅くなる：外れた直後のdraftの数（今は3、他の値と比べていない）を測る |
+| copy drafts（`TF_GLM_COPY_DRAFTS`）：返答の末尾8 token（返答の中では16）が前のpromptか返答に出ていれば、続くtokenを1 roundに5つまでdraftにし、外れた直後は減らす。検証は他のdraftと同じ。MiaAI-Labのpatch 0007と0032の前半に倣う | 2026-10-06 | `bench --kinds edit`（moduleを名前を挙げた3か所の編集付きで丸ごと返す）43.0 → 57.6 tok/s（+34%、251 roundのうち240がcopy）。decode検査のcountは+3.6%（受理長3.821 → 3.961）。prose・code・`bench` のdecode・prefillは±0.3%以内 | 外れの多い負荷で返答が遅くなる：外れた直後のdraftの数（今は3。2026-10-07に1と5を測り、編集は57.4に対して57.5と57.9 tok/s、tokenは同じ。5はそうした負荷で確かめてから）を測る |
 | KDAのdecodeの窓を3 kernelの経路で（`TF_GLM_KDA_DECODE_WIDE`）。64行以上のprompt chunkは前からこの経路。MiaAI-Labのpatch 0016cに倣う | 2026-10-06 | decode +0.6%（`bench`）、decode検査+0.5%、prefillは変わらず。1 GPUでは経路そのものが1行で27%、8行で58%速い。1〜8行で融合kernelと同じビット（graphの有無とも） | — |
 | BF16のdecodeの行列積に形ごとのタイル（`TF_GLM_B16_DECODE_TABLE`）：12の形は掃き取りで選んだタイル、他は64×4×3。Kの切れ端は固定の64幅で数えるので、タイルは和の順を決めない | 2026-10-06 | decode +0.9%（`bench`）、decode検査+0.9%、prefillは変わらず。TP=3では掃き取りの形を足しても1 stepの0.1〜0.2%。起動できた32のタイルすべてが、decodeの26の形・1〜16行で今のビットを出した | 別のGPUかエンジンのbuild：掃き取り直す（エンジンの `tools/bench_glm_b16_decode.py`） |
 | latentの経路はDSAのkv_bをheadごとの写し一つだけで持つ。key・valueの行は `TF_GLM_LATENT=0` のときだけ作る | 2026-10-06 | TP=2でrankあたり192 MiB空く（TP=3は126〜132 MiB）。rank 0の起動の見積もり101.53 → 101.35 GiB | — |

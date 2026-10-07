@@ -11,7 +11,7 @@
 ## Summary
 
 - **What it is.** Build steps, launch scripts and acceptance checks that serve the pinned checkpoint through a pinned TensorFold commit as one OpenAI-compatible endpoint: two hosts at TP=2 over a direct ConnectX-7 link, or three at TP=3 in a switchless ring. The published measurements come from MSI EdgeXpert (MS-C931) systems.
-- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). Each later image was accepted against the same reference values, at the TP sizes and with the checks its [changelog](CHANGELOG.md) section names; the current one, 2.2.0's, at TP=2 and TP=3 with image input on ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
+- **Status.** 2.0.0 was accepted on the reference hosts on 2026-10-04 against the reference values of [validation](docs/validation.md), at both TP sizes ([measured on the release](#measured-on-the-release)). Each later image was accepted against the same reference values, at the TP sizes and with the checks its [changelog](CHANGELOG.md) section names; the current one, 2.3.0's, at TP=2 and TP=3 with image input on ([measured on the release](#measured-on-the-release)). That is the scope of the claim; other hosts are qualified by running the same checks.
 - **Repeatable by contract.** Drafted replies equal serial ones, a resumed prompt equals a fresh one, and the result does not depend on how the prompt is chunked. These are the engine's contract, where 1.x buys repeatability with switches on vLLM ([differences from 1.x](#differences-from-1x)).
 - **Precision.** W4A16 for the routed experts and the dense MLP, BF16 elsewhere, FP8 KV. NVIDIA's model card measured its checkpoint under another recipe on other hardware, so its accuracy table does not describe this serving; [validation](docs/validation.md) gives the numbers that do.
 - **Licensing.** Apache-2.0 code and engine, MIT weights that the operator downloads, nothing non-commercial in the serving path ([licensing at a glance](../README.md#licensing-at-a-glance)).
@@ -20,7 +20,7 @@
 ## What It Is
 
 - **Weights**: `nvidia/GLM-5.3-Flash-NVFP4` at revision `423acf37583782c51c142d145aef733d72943d93`, the same as 1.x, derived from [Z.ai's GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash). The routed experts and the dense MLP run as W4A16 from the checkpoint's NVFP4 blocks; attention, the shared experts and the head stay BF16. One exception, inside the engine: the MTP layer's routed experts are BF16 in the checkpoint and are quantized to NVFP4 for drafting only. Every drafted token is verified by the full model, so replies are unchanged.
-- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.2.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, image input from upstream pull request #194, carried to three ranks, upstream pull request #421 (a new conversation no longer copies and drops the kept prompts first), and decode work that leaves the tokens unchanged: copy drafts, KDA decode windows on the three-kernel chain, per-shape tiles for the BF16 decode matmuls, and no unread copy of the DSA key and value rows ([decisions](docs/decisions.md)). The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
+- **Engine**: the BIZ release of TensorFold, published as the branch `release/2.3.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold): TensorFold v0.6.5 with the GLM NVFP4 loader, FP8 latent KV, the TP=3 split, prefill work that leaves the bits unchanged, upstream pull request #301 (a stopped request ends on every rank within a round), a prefill that waits for heat between chunks, image input from upstream pull request #194, carried to three ranks, upstream pull request #421 (a new conversation no longer copies and drops the kept prompts first), and decode work that leaves the tokens unchanged: copy drafts, KDA decode windows on the three-kernel chain, per-shape tiles for the BF16 decode matmuls, and no unread copy of the DSA key and value rows ([decisions](docs/decisions.md)). The image pins one commit of it ([`TENSORFOLD_REF`](docker/Dockerfile)).
 - **Image**: [`docker/Dockerfile`](docker/Dockerfile), NVIDIA's PyTorch container 26.07 plus the measured package versions (transformers 5.18.0, xgrammar 0.2.8 for structured output, the Hugging Face hub client) and the engine.
 - **Launch**: shell scripts in [`scripts/`](scripts/) and one environment file per rank ([`examples/`](examples/) holds the reference hosts' files). [SETUP.md](SETUP.md) is the order.
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # Each host, from the checkout root (SETUP §3-§5); build once and `docker load` it elsewhere, then compare image IDs
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.2.0 .
-v2/scripts/create_container.sh glm53-tf:2.2.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.3.0 .
+v2/scripts/create_container.sh glm53-tf:2.3.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # tp2-rank1 on the other host; then put this host's values
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -142,6 +142,20 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 Why each 2.x setting was chosen, and what was tried and not adopted, is in [decisions](docs/decisions.md).
 
 ## Measured on the Release
+
+**2.3.0** (2026-10-07, engine `7410d1d`, image `glm53-tf:2.3.0`). The prefill heat wait also looks one chunk ahead (`TF_GLM_HEAT_CEILING` 93 °C); the engine is otherwise 2.2.0's, with the same tokens ([decisions](docs/decisions.md#heat)). At both TP sizes with image input on, the decode check gave the reference token ids and texts, the NLL set the reference values, and the image checks passed.
+
+| 2.3.0, image input on | TP=2 | TP=3 |
+|---|---|---|
+| Decode check count / prose / code (tok/s) | 43.61 / 27.32 / 35.69 | 58.44 / 38.14 / 48.71 |
+| MTP acceptance length, same tasks | 3.961 / 2.098 / 3.180 | 4.024 / 2.222 / 3.234 |
+| `bench --kinds decode` (tok/s, median of three) | 36.54 | 55.40 |
+| `bench --kinds edit` (tok/s, median of three) | 57.49 | 76.22 |
+| Prefill of 38,960 tokens (tok/s) | 1,254.3 / 1,329.9 | 1,559.9 / 1,665.6 |
+| Three passphrases at 1,035,295 tokens | — | 3 of 3, first token after 1,440.6 s, 350.3 s of it heat waits |
+
+- **Heat.** During the 1M-token prompt the hottest host peaked at 92.6 °C and no host read 94 °C (2.2.0: 94.3 °C once). Late chunks rose 4 to 8.6 °C, so the look-ahead waited for 84 to 88 °C before them: 350.3 s of waits against 2.2.0's 64.1 s, the prefill without its waits 1,089 s against 1,090 s.
+- **Prefill.** At both TP sizes the first of the two prompts ran under the second (5.7% at TP=2, 6.3% at TP=3); the two prefill speeds stay open ([validation](docs/validation.md#prefill-and-decode-speed)).
 
 **2.2.0** (2026-10-06, engine `440e631`, image `glm53-tf:2.2.0`). Decode work that leaves the tokens unchanged: copy drafts, KDA decode windows on the three-kernel chain, per-shape tiles for the BF16 decode matmuls, and no unread copy of the DSA key and value rows ([decisions](docs/decisions.md#decode)). At both TP sizes with image input on, the decode check gave the reference token ids and texts and the image checks passed; the counting task's acceptance length rose (copy drafts), the others held.
 
@@ -258,7 +272,7 @@ Each item is a trigger and what this line then does.
 - Upstream releases another 0.6.x of the Python engine (0.6.6 was under test before the freeze: unoffered `<tool_call>` markup leaking into the reply text, #285 with #256; `--loop-guard` against a token repeated without end, #210 and #262 for #204; the open-file limit raised at start, #294) → read it against the release branch and follow it in a 2.x release.
 - More than one sequence at a time: upstream closed MiaAI-Lab's pull request #243 (`--parallel N` on two ranks) with the freeze → this line takes it into its own release branch after 2.2.0, then measures the published AXL weights at two sequences, as 1.x did.
 - Upstream reopens the lossy KV cache question for GLM (it declined FP8 and 4-bit caches in issues #309 and #401, 2026-10-06), or this line moves to an engine without FP8 KV → measure BF16 KV's window first (TP=2 held 344,820 tokens against about 490K with FP8 on 2026-10-02).
-- A host reads 94 °C twice in a row during a long prefill, or once more than for a second (2.2.0's 1M-token acceptance read 94.3 °C once, near the end, where a chunk adds about 7 °C after the check) → check the heat wait within a chunk as well as between chunks, or lower the bands, and measure the 1M-token prompt again.
+- A host reads 94 °C twice in a row during a long prefill (2.3.0's 1M-token acceptance peaked at 92.6 °C with the look-ahead), or its waits weigh on long prompts (350 s of that prompt's 1,441 s) → check the heat within a chunk as well as between chunks, and measure the 1M-token prompt again.
 
 ## Local Data and Contribution
 

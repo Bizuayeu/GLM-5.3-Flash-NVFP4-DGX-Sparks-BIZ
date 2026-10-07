@@ -27,7 +27,7 @@ The other ranks do not end with it. On 2026-10-04 a thermal watch with the same 
 
 The memory guard never stopped a serving engine on the reference hosts; the lowest `MemAvailable` they reached is in [validation](validation.md#memory-and-temperature). Its way of stopping was verified on a root process in a container: a `pkill` from the host user fails on it with "Operation not permitted" and still returns 0, which is why the guard goes through `docker exec`.
 
-The engine's own heat wait keeps a long prefill below the thermal watch's two readings in a row at 94 °C ([serving defaults](../README.md#serving-defaults)); near the end of a 1M-token prompt a single reading can touch 94 °C, since a chunk adds about 7 °C after the check between chunks. A wait has no time limit: once it starts, the request waits until every host is at or below the lower band, and every rank prints `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` once a minute while it lasts. Those lines mean the room is hot, not that the engine hangs.
+The engine's own heat wait keeps a long prefill below the thermal watch's two readings in a row at 94 °C ([serving defaults](../README.md#serving-defaults)); near the end of a 1M-token prompt a chunk adds about 7 °C after the check between chunks, so the wait also looks one chunk ahead and holds the next reading within 93 °C. A wait has no time limit: once it starts, the request waits until every host is at or below the lower band, and every rank prints `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` once a minute while it lasts. Those lines mean the room is hot, not that the engine hangs.
 
 ## A stop that leaves an engine
 
@@ -51,7 +51,7 @@ After `cluster.sh state/cluster.env stop`, on each host:
 
 ```sh
 docker rm -f glm53-tf                                  # the container only sleeps between starts
-v2/scripts/create_container.sh glm53-tf:2.2.0
+v2/scripts/create_container.sh glm53-tf:2.3.0
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 ```
 
@@ -61,7 +61,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 A new image is a new engine build: accept it again before routine use.
 
-1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.2.0 glm53-tf:2.2.0-<engine>`, as the records did), so that going back is a container away.
+1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.3.0 glm53-tf:2.3.0-<engine>`, as the records did), so that going back is a container away.
 2. Load it on the other hosts and compare the image IDs of every host; they must be equal. The ID that `docker images` shows also covers the build's provenance and changes with each checkout the image is built from ([changelog 2.0.0](../CHANGELOG.md)).
 3. Stop, then recreate the container on every host from the new image and run `build_ext.sh` ([above](#recreate-the-container)). For each new engine on the reference hosts it rebuilt all seven extensions, about 155-160 s a host.
 4. Start, and run [validation](validation.md) from the decode check on. A new engine must give the reference hashes; one that does not is a finding to explain, not a value to replace.

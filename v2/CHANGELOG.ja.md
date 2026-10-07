@@ -6,6 +6,34 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.3.0 — 2026-10-07
+
+### Changed
+
+- **prefillの熱の待ちが1 chunk先も見込みます**（`TF_GLM_HEAT_CEILING`、既定93 °C。帯は92 °Cと88 °Cのまま）。chunkの前に、最高温度に直前のchunkの上がり幅を足した値が93 °Cを越えそうなら全rankで待ち、越えなくなるまで解きません。1M tokenのpromptの終わり近くでは、chunkの合間の確認の後にchunk一つで約7 °C上がるので、2.2.0の受け入れでは1回94.3 °Cを読みました。見込みありでは最も熱い機の最高が92.6 °Cでした。TP=3の1M tokenのpromptは長く待ちます：最初のtokenまで1,440.6 s（前は1,154.3 s）、うち熱の待ち350.3 s。待ちを除いたprefillは変わりません（[決定の記録](docs/decisions.ja.md#熱)）。全rankで同じ値にします（違えば起動を断ります）。空にすると見込みません。
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.3.0` の `7410d1d76b4403a209dd2a5617fa85afe1ed1e32`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.2.0のエンジンに熱の見込みを足したもので、同じtokenを出します。GLMのrecipeのNVFP4の節を実重みでの実行から書き、`--vision` で画像の塔を読むと書きました。第三者の告知は `SCORE_RB` をこのtreeの値で書きます。コメントは手元の記録のパスではなく測ったものを名指します。FP8の行の余白、BF16のsplit-Kの部分和、prompt overlapの切れ数の上限をそれぞれ一か所で名付けました。形式と設定の試験はGPUなしで流れます。copy draftsは外れた直後に3つのdraftのままです（1と5と比べて測りました。[決定の記録](docs/decisions.ja.md#decode)）。
+
+### Fixed
+
+- `THIRD_PARTY_NOTICES.md` のHLEの行が、v1/v2の分割で移った `v1/config/hle.lock.json` を指します。
+
+### Documentation
+
+- tool-argument gateのbodyの上限（64 MiB）とtimeout（1回の上流要求あたり2,400 s）を2.xで測りました：toolを1つ宣言した1,035,454 tokenの要求は4.1 MBで、TP=3のgate越しに1,494 s後に返答し、修復の2回目は保持promptから3.5 sで再開しました。
+- [検証](docs/validation.ja.md)と[運用](docs/operations.ja.md)は見込みの理由を書きます。[Next Action](README.ja.md#next-action)は、次の一手としてchunkの中での熱の確認を挙げます。
+
+### Accepted
+
+2026-10-07に参照機で、画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:c6700600e28029995f9fad5271f9395d21d703f2d640372d825e50250f6b8fd9`、3台で同じ）で：
+
+- TP=2とTP=3：decode検査は基準のtoken idと文字列を出し、countの受理長は3.961と4.024。`bench --kinds edit` は両TPで2.2.0の返答。画像の検査はすべて合格。NLLの組は基準の値（TP=2 2.5474／2.9257／1.3184／0.6250、TP=3 2.5313／2.9001／1.3101／0.6237）。
+- TP=3：1,035,295 tokenの3か所の合言葉が3/3、最初のtokenまで1,440.6 s（うち熱の待ち350.3 s）。ACPIの最高は92.6 °Cで、94 °Cを読んだ機はありません。
+- 1M tokenでのtool gate：上のとおり。
+- エンジン自身の試験：briefの一式は1,427 passed、小さなモデルのビットの照合は2.2.0と同じです。
+
 ## 2.2.0 — 2026-10-06
 
 ### Engine

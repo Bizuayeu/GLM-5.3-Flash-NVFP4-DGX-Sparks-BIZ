@@ -11,7 +11,7 @@
 ## 要約
 
 - **何であるか。** 固定したcheckpointを、固定したTensorFoldのcommitで一つのOpenAI互換endpointとして配信するための、build手順・起動の台本・受け入れ検査です。2台なら直結のConnectX-7リンクでTP=2、3台ならswitchなしのリングでTP=3です。公開している測定値はMSI EdgeXpert（MS-C931）で取りました。
-- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.2.0）はTP=2とTP=3・画像入力の有効で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
+- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.3.0）はTP=2とTP=3・画像入力の有効で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
 - **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
@@ -20,7 +20,7 @@
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.2.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、tokenを変えないdecodeの改善（copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない。[決定の記録](docs/decisions.ja.md)）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.3.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、tokenを変えないdecodeの改善（copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない。[決定の記録](docs/decisions.ja.md)）を足したものです。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.2.0 .
-v2/scripts/create_container.sh glm53-tf:2.2.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.3.0 .
+v2/scripts/create_container.sh glm53-tf:2.3.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1。その後この機の値に直す
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -142,6 +142,20 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 2.x系の各設定を選んだ理由と、試して採らなかったものは[決定](docs/decisions.ja.md)にあります。
 
 ## リリースでの測定値
+
+**2.3.0**（2026-10-07、エンジン `7410d1d`、image `glm53-tf:2.3.0`）。prefillの熱の待ちが1 chunk先も見込みます（`TF_GLM_HEAT_CEILING` 93 °C）。他は2.2.0のエンジンで、同じtokenを出します（[決定の記録](docs/decisions.ja.md#熱)）。両TPで画像入力を有効にして、decode検査は基準のtoken idと文字列を、NLLの組は基準の値を出し、画像の検査はすべて合格しました。
+
+| 2.3.0、画像入力の有効 | TP=2 | TP=3 |
+|---|---|---|
+| decode検査 count／prose／code（tok/s） | 43.61／27.32／35.69 | 58.44／38.14／48.71 |
+| MTPの受理長（同じタスク） | 3.961／2.098／3.180 | 4.024／2.222／3.234 |
+| `bench --kinds decode`（tok/s、3回の中央値） | 36.54 | 55.40 |
+| `bench --kinds edit`（tok/s、3回の中央値） | 57.49 | 76.22 |
+| 38,960 tokenのprefill（tok/s） | 1,254.3／1,329.9 | 1,559.9／1,665.6 |
+| 1,035,295 tokenの3か所の合言葉 | — | 3/3、最初のtokenまで1,440.6 s（うち熱の待ち350.3 s） |
+
+- **熱。** 1M tokenのpromptの間、最も熱い機の最高は92.6 °Cで、94 °Cを読んだ機はありません（2.2.0は1回94.3 °C）。終盤のchunkは4〜8.6 °C上がるので、見込みがその前に84〜88 °Cまで待ちました：待ちは350.3 s（2.2.0は64.1 s）、待ちを除いたprefillは1,089 s（2.2.0は1,090 s）。
+- **prefill。** 両TPで2本のうち1本目が2本目より低い値でした（TP=2で5.7%、TP=3で6.3%）。prefillの2つの速さは未解決のままです（[検証](docs/validation.ja.md#prefillとdecodeの速さ)）。
 
 **2.2.0**（2026-10-06、エンジン `440e631`、image `glm53-tf:2.2.0`）。tokenを変えないdecodeの改善：copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない（[決定の記録](docs/decisions.ja.md#decode)）。両TPで画像入力を有効にして、decode検査は基準のtoken idと文字列を出し、画像の検査はすべて合格しました。countの受理長は上がり（copy drafts）、他は変わりません。
 
@@ -258,7 +272,7 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 - 上流がPython版のエンジンの0.6.xをもう一度出す（凍結の前に0.6.6として試験中だったもの：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262〔#204向け〕、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系の版で追う。
 - 同時に2系列以上：上流は凍結とともにMiaAI-Labのpull request #243（2 rankで `--parallel N`）を閉じた → この系列が2.2.0の後に自前のリリースのbranchへ取り込み、1.x系と同じく公開したAXLの重みを2系列で測る。
 - 上流がGLMのlossyなKV cacheの問いを開き直す（issue #309と#401でFP8と4-bitのcacheを断った、2026-10-06）か、この系列がFP8 KVの無いエンジンへ移る → まずBF16 KVの窓を測る（2026-10-02にTP=2でBF16は344,820 token、FP8は約490K）。
-- 長いprefillの間にホストが94 °Cを2回続けて読むか、1秒より長く読む（2.2.0の1M tokenの受け入れでは、終わり近くで1回だけ94.3 °C。そこではchunk一つで確認の後に約7 °C上がる）→ 熱の待ちをchunkの合間だけでなくchunkの中でも確かめるか、帯を下げ、1M tokenのpromptを測り直す。
+- 長いprefillの間にホストが94 °Cを2回続けて読むか（2.3.0の1M tokenの受け入れでは、見込みありで最高92.6 °C）、待ちが長いpromptに重くなる（そのpromptの1,441 sのうち350 s）→ 熱をchunkの合間だけでなくchunkの中でも確かめ、1M tokenのpromptを測り直す。
 
 ## ローカルデータと開発
 
