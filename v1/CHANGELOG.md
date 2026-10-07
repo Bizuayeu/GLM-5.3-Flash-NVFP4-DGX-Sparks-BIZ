@@ -12,6 +12,11 @@
 
 - Comments in `glm53_setup/`, with no behaviour change: the FA2 mounts go once every image a launch may use, the recovery target included, carries this checkout's copies; the TP=3 KV budget is stated as decided (no limit beyond the explicit `cache.kv_cache_memory_bytes`); the subnet-aware routing deferral keeps its open concern with a trigger; `patch_image_budget` says that dropping it means re-pinning `patch_vision_rope` or dropping both; `patch_load_clone` names vLLM #58868; `download.py` names its readers in words 2.x's copy keeps true.
 - The two-node and AXL templates link the [1.25.0 measurements](docs/benchmarks.md#measurements-on-1250) of `runtime.shm_spin_seconds` instead of restating them, and the defaults template links the NCCL channel count at `../docs/`. `pyproject.toml` excludes only `overlays/` from Ruff.
+- Comments that cited a local record path or a host now name the measurement in words: the clone patch's copy speeds, the graph scope's qualification, the warmup canary and the synthetic image size, and the tool gate's repair note (both lines' copies).
+
+### Reference image
+
+Built on 2026-10-07 from this release's tree: `sha256:08d7a4976915a1da355bac29c2f8d918c40532edd6af152f1b3a02236ebcde8a` on the reference hosts. Against the 1.29.9 image, its vLLM and the patch records are the same file for file (2,708 `.py` files); the files that differ are the nine `glm53_setup` modules this release changed, `examples/server.example.toml` and `pyproject.toml`, and its environment and labels are 1.29.9's. On the reference pair the AXL and default profiles passed preflight with 1.29.9's results, the decode check gave 1.29.9's token ids and texts in both, the nine images and the NLL set gave 1.29.9's results, and a profile carrying `host_interface_wifi_test` was refused before launch with the message above.
 
 ## 1.29.14 — 2026-10-06
 

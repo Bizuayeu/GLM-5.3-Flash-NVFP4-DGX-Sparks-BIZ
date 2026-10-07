@@ -14,6 +14,11 @@
 
 - `glm53_setup/` のコメントを直しました（挙動は変わりません）。FA2のmountは、起動が使いうるimageが復旧先も含めてこのcheckoutの写しを持つようになったら外します。TP=3のKVの予算は決定として書きます（明示した `cache.kv_cache_memory_bytes` のほかに上限を掛けない）。subnet-aware routingの先送りは、残る懸念とトリガーだけを書きます。`patch_image_budget` は、外すときは `patch_vision_rope` を固定し直すか一緒に外すと書きます。`patch_load_clone` はvLLM #58868を名指します。`download.py` は読み手を、2.x系の写しでも正しい言い方で書きます。
 - 2ノードとAXLのテンプレートは、`runtime.shm_spin_seconds` の測定値を写さず[1.25.0での測定](docs/benchmarks.ja.md#1250での測定)を指します。配布既定のテンプレートはNCCLチャネル数を `../docs/` で指します。`pyproject.toml` がRuffから除くのは `overlays/` だけです。
+- 手元の記録のパスや機の名前を引いていたコメントは、測ったものを言葉で書きます：clone patchの写しの速さ、graphの範囲の確かめ、warmupのcanaryと合成画像の大きさ、tool gateの修復の注記（両系の写し）。
+
+### Reference image
+
+2026-10-07にこの版の木から作りました：参照機で `sha256:08d7a4976915a1da355bac29c2f8d918c40532edd6af152f1b3a02236ebcde8a`。1.29.9のimageと比べて、vLLMとpatchの記録はファイルごとに同じ（`.py` 2,708本）。違うファイルはこの版が変えた `glm53_setup` の9モジュール、`examples/server.example.toml`、`pyproject.toml` で、環境変数とラベルは1.29.9と同じです。参照の対で、AXLと既定のprofileはpreflightが1.29.9と同じ結果、decode検査はどちらも1.29.9のtoken idと文字列、画像9形とNLLの組も1.29.9と同じ結果でした。`host_interface_wifi_test` を持つprofileは、上の文面で起動前に断られました。
 
 ## 1.29.14 — 2026-10-06
 

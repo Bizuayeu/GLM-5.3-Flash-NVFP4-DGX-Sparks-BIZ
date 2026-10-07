@@ -4,6 +4,12 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.3.2 — 2026-10-07
+
+### Changed
+
+- Comments only, shared with 1.30.0: `glm53_tf/download.py` names the readers of its status file in words true for both lines' copies, and the tool gate's repair note names the measurement instead of a local record path. No file of the image changes; it stays 2.3.0's (linux/arm64 `sha256:c6700600e28029995f9fad5271f9395d21d703f2d640372d825e50250f6b8fd9`).
+
 ## 2.3.1 — 2026-10-07
 
 ### Fixed
