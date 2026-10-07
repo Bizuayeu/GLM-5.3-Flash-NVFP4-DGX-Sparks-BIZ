@@ -4,6 +4,14 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.3.1 — 2026-10-07
+
+### Fixed
+
+- The documentation contract test that 2.3.0 added for `TF_GLM_HEAT_CEILING` is formatted as `ruff format` wants it, so the CPU checks pass again (they failed on 2.3.0's commit and tag; the tests themselves passed).
+
+No file of the image changes; it stays 2.3.0's (linux/arm64 `sha256:c6700600e28029995f9fad5271f9395d21d703f2d640372d825e50250f6b8fd9`).
+
 ## 2.3.0 — 2026-10-07
 
 ### Changed

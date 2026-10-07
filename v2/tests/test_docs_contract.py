@@ -99,8 +99,12 @@ class ServingDefaultsTests(unittest.TestCase):
     def test_the_heat_ceiling(self):
         ceiling = owned(r"TF_GLM_HEAT_CEILING-(\d+)", "scripts/serve.sh")
         for suffix in PAIRS:
-            self.assertIn(f"{ceiling} °C", row(self.serving(suffix), "`TF_GLM_HEAT_HIGH"), suffix)
-            self.assertIn(f"`{ceiling}`", row(readme(suffix), "| `TF_GLM_HEAT_CEILING`"), suffix)
+            self.assertIn(
+                f"{ceiling} °C", row(self.serving(suffix), "`TF_GLM_HEAT_HIGH"), suffix
+            )
+            self.assertIn(
+                f"`{ceiling}`", row(readme(suffix), "| `TF_GLM_HEAT_CEILING`"), suffix
+            )
 
     def test_the_heat_wait_starts_below_the_thermal_watch(self):
         # The engine pauses before the watch would stop it, and looks one chunk ahead to stay under it.

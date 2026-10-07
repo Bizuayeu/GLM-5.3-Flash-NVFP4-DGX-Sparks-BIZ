@@ -6,6 +6,14 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.3.1 — 2026-10-07
+
+### Fixed
+
+- 2.3.0で `TF_GLM_HEAT_CEILING` のために足した文書の契約の試験を、`ruff format` の求める書式にしました。CPU checksが再び通ります（2.3.0のcommitとtagで落ちていました。試験そのものは通っていました）。
+
+imageに入るファイルは変わりません。2.3.0のimage（linux/arm64 `sha256:c6700600e28029995f9fad5271f9395d21d703f2d640372d825e50250f6b8fd9`）のままです。
+
 ## 2.3.0 — 2026-10-07
 
 ### Changed
