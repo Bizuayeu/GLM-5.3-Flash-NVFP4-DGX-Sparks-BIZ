@@ -16,6 +16,8 @@ Each rank logs to `~/glm53-tf/logs/serve-r<RANK>-<LABEL>.log`, which a start wit
 
 A start can also stop at once with `CUDA startup memory budget cannot fit requested context 300000`, right after a new image was loaded or another engine read the weights. On GB10's unified memory the free memory CUDA reports leaves the page cache out, and the cached weights take the window's margin (on 2026-10-06, 9 GiB of cache left 108.8 GiB free and the TP=2 window did not fit). Ask the kernel to drop the cache of the Hugging Face cache's files on every host (`os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)` on each file; no root needed), then start again; `python3 -c "import torch; print(torch.cuda.mem_get_info())"` in the container shows the free memory the start will see.
 
+Which weights serve is the rank file's `CHECKPOINT`: the pinned snapshot unless it is set, the published AXL weights' snapshot as the option ([configuration](../README.md#configuration)). To change them, stop, set the same `CHECKPOINT` in every rank's file and start again; ranks started on different checkpoints refuse to start.
+
 ## A rank stops and the others wait
 
 Two watchers stop one host's engine, each on its own host only:
@@ -27,7 +29,7 @@ The other ranks do not end with it. On 2026-10-04 a thermal watch with the same 
 
 The memory guard never stopped a serving engine on the reference hosts; the lowest `MemAvailable` they reached is in [validation](validation.md#memory-and-temperature). Its way of stopping was verified on a root process in a container: a `pkill` from the host user fails on it with "Operation not permitted" and still returns 0, which is why the guard goes through `docker exec`.
 
-The engine's own heat wait keeps a long prefill below the thermal watch's two readings in a row at 94 °C ([serving defaults](../README.md#serving-defaults)); near the end of a 1M-token prompt a chunk adds about 7 °C after the check between chunks, so the wait also looks one chunk ahead and holds the next reading within 93 °C. A wait has no time limit: once it starts, the request waits until every host is at or below the lower band, and every rank prints `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` once a minute while it lasts. Those lines mean the room is hot, not that the engine hangs.
+The engine's own heat wait keeps a long prefill below the thermal watch's two readings in a row at 94 °C ([serving defaults](../README.md#serving-defaults)); near the end of a 1M-token prompt a chunk adds about 7 °C after the check between chunks, so the wait also looks one chunk ahead and holds the next reading within 93 °C as far as the last chunk's rise predicts it (in 2.4.0's acceptance one host read 94.4 °C once after a chunk with almost no rise, and the next check started a wait; [validation](validation.md#memory-and-temperature)). A wait has no time limit: once it starts, the request waits until every host is at or below the lower band, and every rank prints `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` once a minute while it lasts. Those lines mean the room is hot, not that the engine hangs.
 
 ## A stop that leaves an engine
 
@@ -51,7 +53,7 @@ After `cluster.sh state/cluster.env stop`, on each host:
 
 ```sh
 docker rm -f glm53-tf                                  # the container only sleeps between starts
-v2/scripts/create_container.sh glm53-tf:2.3.0
+v2/scripts/create_container.sh glm53-tf:2.4.0
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 ```
 
@@ -61,7 +63,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 A new image is a new engine build: accept it again before routine use.
 
-1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.3.0 glm53-tf:2.3.0-<engine>`, as the records did), so that going back is a container away.
+1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.4.0 glm53-tf:2.4.0-<engine>`, as the records did), so that going back is a container away.
 2. Load it on the other hosts and compare the image IDs of every host; they must be equal. The ID that `docker images` shows also covers the build's provenance and changes with each checkout the image is built from ([changelog 2.0.0](../CHANGELOG.md)).
 3. Stop, then recreate the container on every host from the new image and run `build_ext.sh` ([above](#recreate-the-container)). For each new engine on the reference hosts it rebuilt all seven extensions, about 155-160 s a host.
 4. Start, and run [validation](validation.md) from the decode check on. A new engine must give the reference hashes; one that does not is a finding to explain, not a value to replace.

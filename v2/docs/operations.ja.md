@@ -16,6 +16,8 @@
 
 新しいimageを読み込んだ直後や、別のエンジンが重みを読んだ直後には、起動が `CUDA startup memory budget cannot fit requested context 300000` ですぐに止まることもあります。GB10の統合メモリでは、CUDAが返す空きはページキャッシュの分を含まないので、キャッシュに残った重みが窓の余裕を食います（2026-10-06には9 GiBのキャッシュで空きが108.8 GiBになり、TP=2の窓が入りませんでした）。全ホストでHugging Faceのcacheのファイルのキャッシュを捨てるようカーネルに伝え（各ファイルに `os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)`、rootは要りません）、起動し直します。起動が見る空きは、containerの中の `python3 -c "import torch; print(torch.cuda.mem_get_info())"` で分かります。
 
+どの重みを配信するかはrankのファイルの `CHECKPOINT` で決まります：設定しなければ固定のsnapshot、任意で公開したAXLの重みのsnapshotです（[設定](../README.ja.md#設定)）。変えるには、止めてから全rankのファイルに同じ `CHECKPOINT` を書き、起動し直します。違うcheckpointで起動したrankどうしは起動を断ります。
+
 ## 一つのrankが止まり、他は待つ
 
 ホストのエンジンを止める見張りは二つで、どちらも自分のホストだけに働きます：
@@ -27,7 +29,7 @@
 
 メモリの見張りが配信中のエンジンを止めたことは参照機ではありません。参照機が下がった `MemAvailable` の最低値は[検証](validation.ja.md#メモリと温度)にあります。止め方そのものは、containerの中のrootのプロセスで確かめました。ホストの利用者の `pkill` はそれに「許可されていない操作」で失敗し、それでも0を返します。見張りが `docker exec` を通るのはこのためです。
 
-エンジン自身の熱の待ちが、長いprefillを熱の見張りの「94 °Cが2回続く」より下に保ちます（[配信の既定](../README.ja.md#配信の既定)）。1M tokenのpromptの終わり近くでは、chunkの合間の確認の後にchunk一つで約7 °C上がるので、待ちは1 chunk先も見込み、次の読みを93 °C以内に保ちます。待ちに時間の上限はありません。一度始まると、全ホストが下の帯以下になるまで要求は待ち、その間は全rankが1分ごとに `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` を出します。この行は部屋が熱いことを示し、エンジンが止まっていることを示すものではありません。
+エンジン自身の熱の待ちが、長いprefillを熱の見張りの「94 °Cが2回続く」より下に保ちます（[配信の既定](../README.ja.md#配信の既定)）。1M tokenのpromptの終わり近くでは、chunkの合間の確認の後にchunk一つで約7 °C上がるので、待ちは1 chunk先も見込み、直前のchunkの上がり幅で見込める範囲で次の読みを93 °C以内に保ちます（2.4.0の受け入れでは、上がり幅がほぼ0のchunkの後に1台が1回94.4 °Cを読み、次の確認で待ちに入りました。[検証](validation.ja.md#メモリと温度)）。待ちに時間の上限はありません。一度始まると、全ホストが下の帯以下になるまで要求は待ち、その間は全rankが1分ごとに `[tensorfold] heat: waiting <s> s, hottest zone <°C> C` を出します。この行は部屋が熱いことを示し、エンジンが止まっていることを示すものではありません。
 
 ## エンジンが残る停止
 
@@ -51,7 +53,7 @@ rankどうしはTCPのsocketではなくRoCEで話す必要があります：
 
 ```sh
 docker rm -f glm53-tf                                  # containerは起動の合間は眠っているだけ
-v2/scripts/create_container.sh glm53-tf:2.3.0
+v2/scripts/create_container.sh glm53-tf:2.4.0
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 ```
 
@@ -61,7 +63,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 新しいimageは新しいエンジンのbuildです。日常の利用の前に受け入れ直します。
 
-1. 一台でbuildします（[手順書 §3](../SETUP.ja.md#3-image)）。先に全ホストで、使っているimageに二つ目のtagを付けて残します（記録と同じく `docker tag glm53-tf:2.3.0 glm53-tf:2.3.0-<engine>`）。戻るのがcontainer一つで済みます。
+1. 一台でbuildします（[手順書 §3](../SETUP.ja.md#3-image)）。先に全ホストで、使っているimageに二つ目のtagを付けて残します（記録と同じく `docker tag glm53-tf:2.4.0 glm53-tf:2.4.0-<engine>`）。戻るのがcontainer一つで済みます。
 2. 他のホストへ読み込み、全ホストのimageのIDを比べます。等しくなければなりません。`docker images` が示すIDはbuildの来歴も含み、buildしたcheckoutごとに変わります（[changelogの2.0.0](../CHANGELOG.ja.md)）。
 3. 止めてから、全ホストで新しいimageからcontainerを作り直し、`build_ext.sh` を実行します（[上](#containerを作り直す)）。参照機では、新しいエンジンのたびに7つのextensionを全部buildし直し、1台あたり約155〜160秒でした。
 4. 起動し、decode検査から[検証](validation.ja.md)を回します。新しいエンジンは基準のhashを出さなければなりません。出さなければ、それは説明すべき所見で、置き換える値ではありません。

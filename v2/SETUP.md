@@ -28,27 +28,36 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 ```
 
+To serve the published AXL weights instead (an option; [configuration](README.md#configuration)), download and verify them the same way; their revision is in [`config/axl.lock.json`](config/axl.lock.json), and their download state is kept under `state/axl/`, apart from the pinned one's:
+
+```sh
+python -m glm53_tf download --checkpoint axl --background
+python -m glm53_tf verify-download --checkpoint axl --hf .venv/bin/hf --output ../records/checksum-axl --wait
+```
+
 Then copy the cache to the other hosts and verify each copy with the same `verify-download`; how to copy, and why to verify before loading, are as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The engine reads the checkpoint from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
+
+Before copying, check that the model's folder holds the files, for example by its size (`du -sh ~/.cache/huggingface/hub/models--<owner>--<name>`). Newer Hugging Face hub clients can keep a model's files in a store shared by the whole cache (`hub/blobs/xx/…`) and leave only links in the model's folder: huggingface_hub 1.32.0 did on one reference host, while 1.30.0, the version the lock installs, kept them under the model's own `blobs/` on the others. Copying such a folder copies the links only, and the next `download` on the receiving host fetches everything from the Internet again. Copy the shared `hub/blobs/` entries too, or use the same client version on every host.
 
 ## 3. Image
 
 Build on one of the GB10 hosts (linux/arm64), from the checkout root:
 
 ```sh
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.3.0 .
-docker image inspect --format '{{.Id}}' glm53-tf:2.3.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.4.0 .
+docker image inspect --format '{{.Id}}' glm53-tf:2.4.0
 ```
 
-The Dockerfile pins the engine by one commit (`TENSORFOLD_REF`) and refuses to build without a full SHA. Copy the image to the other hosts (`docker save glm53-tf:2.3.0 | ssh <host> docker load`, over the link) or build it there, then compare the image IDs of every host; they must be equal. The base image is pinned by digest, `nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c` (`nvcr.io/nvidia/pytorch:26.07-py3` when it was measured), so a moved tag cannot change it. The image's tag names the last version that changed a file the image copies (the Dockerfile, `serve.sh`, `build_ext.sh` and the licence files): a version that changes none of them, such as one for documents or the host-side tools, keeps that tag.
+The Dockerfile pins the engine by one commit (`TENSORFOLD_REF`) and refuses to build without a full SHA. Copy the image to the other hosts (`docker save glm53-tf:2.4.0 | ssh <host> docker load`, over the link) or build it there, then compare the image IDs of every host; they must be equal. The base image is pinned by digest, `nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c` (`nvcr.io/nvidia/pytorch:26.07-py3` when it was measured), so a moved tag cannot change it. The image's tag names the last version that changed a file the image copies (the Dockerfile, `serve.sh`, `build_ext.sh` and the licence files): a version that changes none of them, such as one for documents or the host-side tools, keeps that tag.
 
 ## 4. Container and rank file on each host
 
 ```sh
-v2/scripts/create_container.sh glm53-tf:2.3.0        # container glm53-tf, ~/glm53-tf at /work
+v2/scripts/create_container.sh glm53-tf:2.4.0        # container glm53-tf, ~/glm53-tf at /work
 cp v2/examples/tp3-rank0.env ~/glm53-tf/rank.env      # this host's rank: tp2-rank0/1 or tp3-rank0/1/2
 ```
 
-Edit `~/glm53-tf/rank.env` with this host's values: `MASTER` (rank 0's address on the link, the same on every rank), `NCCL_IB_HCA` (the RDMA devices on the links, both rails), `NCCL_IB_GID_INDEX`, and `NCCL_SOCKET_IFNAME`. The examples are the reference hosts' files and say what each line was measured as. The file is sourced by `bash`, not passed to `docker --env-file`.
+Edit `~/glm53-tf/rank.env` with this host's values: `MASTER` (rank 0's address on the link, the same on every rank), `NCCL_IB_HCA` (the RDMA devices on the links, both rails), `NCCL_IB_GID_INDEX`, and `NCCL_SOCKET_IFNAME`. The examples are the reference hosts' files and say what each line was measured as. The file is sourced by `bash`, not passed to `docker --env-file`. To serve the published AXL weights, add `CHECKPOINT=/hub/models--Bizuayeu--GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16/snapshots/bbad98c8f380588c16a2326bf5a2ab7344190b07` to the file of every rank; without it a rank serves the pinned snapshot, and ranks started on different checkpoints refuse to start.
 
 ## 5. Build the engine's extensions
 

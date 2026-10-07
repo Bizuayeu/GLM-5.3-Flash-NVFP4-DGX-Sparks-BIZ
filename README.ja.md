@@ -27,7 +27,7 @@ BIZは意図であり、約束ではありません。製品ティア・サポ�
 |---|---|---|
 | 独自のセットアップコード・文書 | **Apache-2.0** | 本リポジトリ |
 | GLM-5.3-Flash NVFP4 重み | **MIT**（固定NVIDIAモデルカードの表記。上流Z.aiモデルもMIT） | 利用者が取得。同梱しない |
-| attentionと `lm_head` のW4A16再パック（1.x系の公開した任意設定） | **MIT**。NVIDIAのモデルカードを併置 | 任意の[Hugging Face配布の重み](docs/licensing.ja.md#重みのmit通知)。Git追跡外 |
+| attentionと `lm_head` のW4A16再パック（1.x系と2.x系の公開した任意設定） | **MIT**。NVIDIAのモデルカードを併置 | 任意の[Hugging Face配布の重み](docs/licensing.ja.md#重みのmit通知)。Git追跡外 |
 | LPA cut32補助重み（1.x系） | **Apache-2.0**。学習データの通知は別途保持 | 任意の[Release添付物](v1/docs/lpa.ja.md#学習済みprojectorの取得)。Git追跡外 |
 | TensorFoldのBIZ版（2.x系） | **Apache-2.0**（0.6.0より前のコードはMITの表示を保つ） | [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) から `TENSORFOLD_REF` でimageにclone。エンジン自身の表示は `/opt/tensorfold` に。ここには同梱しない |
 | 完成Dockerイメージ | 同梱物ごと（CUDA・Torch・NCCL等。NVIDIAのPyTorch containerはNVIDIAの条件）。一括して一色とは扱わない | 利用者が固定の公式base imageから構築 |

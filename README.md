@@ -27,7 +27,7 @@ Each artifact keeps its own terms; obligations and the rationale are in the [lic
 |---|---|---|
 | Original setup code and documents | **Apache-2.0** | This repository |
 | GLM-5.3-Flash NVFP4 weights | **MIT** (stated in the pinned NVIDIA model card; upstream Z.ai model is MIT) | Downloaded by the operator; not bundled |
-| Attention and `lm_head` W4A16 repack (1.x's published option) | **MIT**, with NVIDIA's model card beside it | Optional [Hugging Face weights](docs/licensing.md#weight-notices); outside Git |
+| Attention and `lm_head` W4A16 repack (the published option of 1.x and 2.x) | **MIT**, with NVIDIA's model card beside it | Optional [Hugging Face weights](docs/licensing.md#weight-notices); outside Git |
 | LPA cut32 auxiliary projector (1.x) | **Apache-2.0**; training-data notices retained separately | Optional [Release asset](v1/docs/lpa.md#download-the-trained-projector); outside Git |
 | TensorFold, the BIZ release (2.x) | **Apache-2.0** (code from before 0.6.0 keeps its MIT notice) | Cloned into the image from [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `TENSORFOLD_REF`, with the engine's own notices under `/opt/tensorfold`; not vendored here |
 | Built container image | Per bundled component (CUDA, Torch, NCCL and others; NVIDIA's PyTorch container under NVIDIA's terms); not treated as one blanket license | Built by the operator from the pinned official base image |

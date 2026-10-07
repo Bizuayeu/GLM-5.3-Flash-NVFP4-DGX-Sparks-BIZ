@@ -6,6 +6,37 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.4.0 — 2026-10-08
+
+### Added
+
+- **公開したAXLの重みを任意で配信できます。既定は固定のcheckpointのままです。** NVFP4 BIZ AXL（[Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) のrevision `bbad98c8f380588c16a2326bf5a2ab7344190b07`、[`config/axl.lock.json`](config/axl.lock.json) で固定）は、attentionのprojectionと `lm_head` をW4A16のNVFP4に詰め直し、他は固定のcheckpointのままのものです。1.x系が公開した任意設定で配信するcheckpointと同じです。`download --checkpoint axl` と `verify-download --checkpoint axl` が取得と検証をし、その状態は固定のcheckpointの取得とは別の `state/axl/` に置きます（[手順書 §2](SETUP.ja.md#2-checkoutとcheckpoint)）。全rankのrankのファイルの `CHECKPOINT` でこれを配信します（[設定](README.ja.md#設定)）。TP=2ではdecode検査が57.30／37.53／44.80 tok/s（固定の重みは43.80／27.54／36.01）、`bench --kinds edit` が74.26（同58.13）で、NLLは高くなりました（2.5556／2.9438／1.3334／0.6474、固定の重みは2.5474／2.9257／1.3184／0.6250）。タスクの水準の品質は2.x系では測っていません（[リリースでの測定値](README.ja.md#リリースでの測定値)）。
+
+### Changed
+
+- **copy draftsは外れた後に減らしません**（エンジンのcopy draftsの `MISS_MOST` を3 → 5）：外れた直後のroundも、他のroundと同じく5つまでdraftにします。TP=2で3と比べ、編集と、copyの外れが多い2つの負荷（moduleを5組の改名つきで返す：copyしたdraftの10%が外れ。そのmoduleのunittestを書く：41%）で、5は編集と改名で1.0%速く、unittestでは同じで、tokenも同じでした（[決定の記録](docs/decisions.ja.md#decode)）。
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.4.0` の `ab8e74161ba807d9a637fee02d19edb932276257`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.3.0のエンジンに、W4A16のNVFP4のattentionとheadの読み込みと `MISS_MOST` 5を足したものです。エンジンはcheckpointのテンソルごとに経路を選び、切り替えはありません：`weight_scale` を持つprojectionはNVFP4の線形層（decodeのlaneの行列積とpromptのGEMM）として読み、`kv_b` はlatentの経路のためにfp32へ戻します。rankの起動時の照合にcheckpointの種類が入ったので、違うcheckpointで起動したrankどうしは起動を断ります。固定のcheckpointの経路はビット単位で変わりません。
+
+### Documentation
+
+- [手順書 §2](SETUP.ja.md#2-checkoutとcheckpoint) はAXLの取得と検証を載せ、modelのフォルダにファイルの無いcacheの写し方を書きます：新しいHugging Face hubのclientは、modelのファイルをcache全体で共有する置き場（`hub/blobs/`）に置き、modelのフォルダにはlinkだけを持つことがあります（参照機の1台のhuggingface_hub 1.32.0がそうでした。他の機の1.30.0はmodel自身の `blobs/` に置きました）。するとmodelのフォルダを写してもlinkしか写らず、写し先の次の `download` がInternetから全部取り直します。このリリースでAXLの重みを写したときにそうなりました。
+- [検証](docs/validation.ja.md)はAXLの重みの基準値を固定の重みの隣に載せます。[決定の記録](docs/decisions.ja.md)にAXLと `MISS_MOST` の行があります。
+
+### Accepted
+
+2026-10-07と08に参照機で、画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:7d47fc819ded734e87b0a881b913ee0e5ffa4b866e3d813090c09ff038b145f6`、3台で同じ）で、固定の重みとAXLのそれぞれをTP=2とTP=3で：
+
+- 固定の重み、TP=2とTP=3：decode検査は2.3.0のtoken idを出し、countの受理長は3.961と4.056。NLLの組は基準の値。画像の検査はすべて合格。
+- AXL、TP=2とTP=3：decode検査はAXLの基準のtoken idを出し（[検証](docs/validation.ja.md#decode検査)）、TP=2では2回の起動で同じ。NLLの組はTP=2 2.5556／2.9438／1.3334／0.6474、TP=3 2.5590／2.9471／1.3357／0.6439。
+- `bench --kinds edit` は4回の起動すべて（両TP、両方の重み）で基準の返答（`ecd7a283a48a0cc4`）。
+- 長い入力：AXLのTP=2で262,113 tokenの3か所の合言葉が3/3。TP=3の1,035,295 tokenは両方の重みで3/3、最初のtokenまで固定の重みで1,588.4 s、AXLで1,524.1 s（うち熱の待ち480.5 sと454.4 s）。
+- 固定の重みのTP=3での1M tokenのtool gate：1回目は1,553.3 s後に200（うち熱の待ち448.4 s）で `tool_calls`、修復の2回目は保持promptから3.6 sで200。
+- 熱：固定の重みでは最も熱い機の最高が92.6 °Cで、2.3.0と同じ。AXLのTP=3の1M tokenのpromptの間に、1台が1秒の記録で1回94.4 °Cを読みました（熱の見張りの2秒の記録では93.5 °C）。始めて約4分、90.5〜91 °Cで30秒以上横ばいの後でした：そのchunkの前の確認は92 °C未満で、直前のchunkの上がり幅がほぼ0だったので、見込みは待たせませんでした。次の確認で待ちに入り、以後の待ちは12〜15 °Cの上がり幅を見込みました。熱の見張りはエンジンを止めていません（その規則は94 °C以上が2回続くこと）。1秒で待ちに入ったので、この読みは許容しました。
+- エンジン自身の試験：briefの一式は1,461 passed（42 skipped）、AXLの試験は34 passed。小さなモデルのビットの照合はBF16とFP8とも2.3.0と同じです。
+
 ## 2.3.2 — 2026-10-07
 
 ### Changed

@@ -4,6 +4,37 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.4.0 — 2026-10-08
+
+### Added
+
+- **The published AXL weights can be served, as an option; the pinned checkpoint stays the default.** NVFP4 BIZ AXL ([Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16](https://huggingface.co/Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16) at revision `bbad98c8f380588c16a2326bf5a2ab7344190b07`, pinned in [`config/axl.lock.json`](config/axl.lock.json)) has the attention projections and `lm_head` repacked to W4A16 NVFP4 and everything else as in the pinned checkpoint: the checkpoint 1.x serves as its published option. `download --checkpoint axl` and `verify-download --checkpoint axl` fetch and verify it, with their state under `state/axl/`, apart from the pinned download's ([setup §2](SETUP.md#2-checkout-and-checkpoint)); `CHECKPOINT` in every rank's rank file serves it ([configuration](README.md#configuration)). At TP=2 the decode check ran at 57.30 / 37.53 / 44.80 tok/s against the pinned weights' 43.80 / 27.54 / 36.01 and `bench --kinds edit` at 74.26 against 58.13, with a higher NLL (2.5556 / 2.9438 / 1.3334 / 0.6474 against 2.5474 / 2.9257 / 1.3184 / 0.6250); its task-level quality was not measured on 2.x ([measured on the release](README.md#measured-on-the-release)).
+
+### Changed
+
+- **Copy drafts no longer cut after a miss** (`MISS_MOST` 3 → 5 in the engine's copy drafts): a round right after a miss drafts up to 5, as the others do. At TP=2 against 3, on edits and on two loads whose copies miss often (the module returned with five renames, 10% of copied drafts missed; unit tests for it, 41%), 5 ran 1.0% faster on edits and renames and the same on the tests, with the same tokens ([decisions](docs/decisions.md#decode)).
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.4.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `ab8e74161ba807d9a637fee02d19edb932276257` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.3.0's engine with a loader for W4A16 NVFP4 attention and head, and `MISS_MOST` 5. The engine picks the path per tensor from the checkpoint, with no switch: a projection with `weight_scale` loads as an NVFP4 linear layer (the decode lane matmul and the prompt GEMM), and `kv_b` is dequantized to fp32 for the latent path. The ranks' startup agreement includes the checkpoint's kind, so ranks started on different checkpoints refuse to start. The pinned path is unchanged bit for bit.
+
+### Documentation
+
+- [Setup §2](SETUP.md#2-checkout-and-checkpoint) gives the AXL download and its verification, and says how to copy a cache whose files are not in the model's folder: newer Hugging Face hub clients can keep a model's files in a store shared by the whole cache (`hub/blobs/`), with only links in the model's folder (huggingface_hub 1.32.0 on one reference host did; 1.30.0 on the others kept them under the model's own `blobs/`). Copying the model's folder then copies links only, and the next `download` on the receiving host fetches everything from the Internet again, as it did while the AXL weights were copied for this release.
+- [Validation](docs/validation.md) gives the AXL weights' reference values beside the pinned ones; [decisions](docs/decisions.md) has the AXL and `MISS_MOST` rows.
+
+### Accepted
+
+On the reference hosts on 2026-10-07 and 08 with image input on, with the release candidate image (linux/arm64 `sha256:7d47fc819ded734e87b0a881b913ee0e5ffa4b866e3d813090c09ff038b145f6`, the same on the three hosts), on the pinned weights and on AXL, at TP=2 and TP=3:
+
+- Pinned, TP=2 and TP=3: the decode check gave 2.3.0's token ids, with counting's acceptance length 3.961 and 4.056; the NLL set gave the reference values; the image checks passed.
+- AXL, TP=2 and TP=3: the decode check gave AXL's reference token ids ([validation](docs/validation.md#decode-check)), at TP=2 the same in two launches; the NLL set gave TP=2 2.5556 / 2.9438 / 1.3334 / 0.6474 and TP=3 2.5590 / 2.9471 / 1.3357 / 0.6439.
+- `bench --kinds edit` gave the reference reply (`ecd7a283a48a0cc4`) in all four launches, at both TP sizes on both weights.
+- Long inputs: three passphrases at 262,113 tokens on AXL at TP=2, 3 of 3; at 1,035,295 tokens at TP=3, 3 of 3 on both weights, first token after 1,588.4 s on the pinned weights and 1,524.1 s on AXL, with 480.5 s and 454.4 s of heat waits.
+- The tool gate at 1M tokens on the pinned weights at TP=3: the first call answered 200 after 1,553.3 s (448.4 s of heat waits) with `tool_calls`; the repair's second call answered 200 in 3.6 s from the kept prompt.
+- Heat: on the pinned weights the hottest host peaked at 92.6 °C, as with 2.3.0. During AXL's 1M-token prompt at TP=3 one host read 94.4 °C once in the 1 s telemetry (93.5 °C in the thermal watch's 2 s readings), about 4 minutes in, after more than 30 s at 90.5-91 °C: the check before that chunk read below 92 °C with the last chunk's rise near 0, so the look-ahead did not hold it. The next check started a wait, and the later waits allowed for rises of 12-15 °C. The thermal watch did not stop the engine (its rule is two readings in a row at or above 94 °C); the reading was accepted since the wait started within a second.
+- The engine's own tests: the brief set 1,461 passed (42 skipped) and the AXL tests 34 passed; the tiny model's bit checks equal 2.3.0's, in BF16 and FP8.
+
 ## 2.3.2 — 2026-10-07
 
 ### Changed

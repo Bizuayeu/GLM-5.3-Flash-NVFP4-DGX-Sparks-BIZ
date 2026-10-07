@@ -28,27 +28,36 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 ```
 
+代わりに公開したAXLの重みを配信するなら（任意。[設定](README.ja.md#設定)）、同じように取得して検証します。revisionは [`config/axl.lock.json`](config/axl.lock.json) にあり、取得の状態は固定のcheckpointのものとは別の `state/axl/` に置きます：
+
+```sh
+python -m glm53_tf download --checkpoint axl --background
+python -m glm53_tf verify-download --checkpoint axl --hf .venv/bin/hf --output ../records/checksum-axl --wait
+```
+
 その後、他のホストへcacheを写し、写しごとに同じ `verify-download` で検証します。写し方と、読み込む前に検証する理由は[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じです。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
+
+写す前に、modelのフォルダがファイルを持っていることを確かめます。たとえば大きさで（`du -sh ~/.cache/huggingface/hub/models--<owner>--<name>`）。新しいHugging Face hubのclientは、modelのファイルをcache全体で共有する置き場（`hub/blobs/xx/…`）に置き、modelのフォルダにはlinkだけを残すことがあります：参照機の1台ではhuggingface_hub 1.32.0がそうしました。lockが入れる版の1.30.0は、他の機でmodel自身の `blobs/` に置きました。そのようなフォルダを写すとlinkしか写らず、写し先の次の `download` がInternetから全部取り直します。共有の `hub/blobs/` の中身も写すか、全ホストで同じ版のclientを使います。
 
 ## 3. image
 
 GB10のホスト（linux/arm64）の一台で、checkoutのルートからbuildします。
 
 ```sh
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.3.0 .
-docker image inspect --format '{{.Id}}' glm53-tf:2.3.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.4.0 .
+docker image inspect --format '{{.Id}}' glm53-tf:2.4.0
 ```
 
-Dockerfileはエンジンを一つのcommit（`TENSORFOLD_REF`）に固定し、完全なSHAでなければbuildを拒みます。imageを他のホストへ写すか（リンク越しに `docker save glm53-tf:2.3.0 | ssh <host> docker load`）そこでbuildし、全ホストのimage IDを比べます。一致していなければなりません。base imageはdigestで固定しています：`nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c`（測定したときの `nvcr.io/nvidia/pytorch:26.07-py3`）。tagが動いても変わりません。imageのtagは、imageに写るファイル（Dockerfile・`serve.sh`・`build_ext.sh`・ライセンスのファイル）を最後に変えた版の名前です。文書やホスト側の道具だけを変える版では、tagはそのままです。
+Dockerfileはエンジンを一つのcommit（`TENSORFOLD_REF`）に固定し、完全なSHAでなければbuildを拒みます。imageを他のホストへ写すか（リンク越しに `docker save glm53-tf:2.4.0 | ssh <host> docker load`）そこでbuildし、全ホストのimage IDを比べます。一致していなければなりません。base imageはdigestで固定しています：`nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c`（測定したときの `nvcr.io/nvidia/pytorch:26.07-py3`）。tagが動いても変わりません。imageのtagは、imageに写るファイル（Dockerfile・`serve.sh`・`build_ext.sh`・ライセンスのファイル）を最後に変えた版の名前です。文書やホスト側の道具だけを変える版では、tagはそのままです。
 
 ## 4. 各ホストのcontainerとrankのファイル
 
 ```sh
-v2/scripts/create_container.sh glm53-tf:2.3.0        # container glm53-tf、~/glm53-tf を /work に
+v2/scripts/create_container.sh glm53-tf:2.4.0        # container glm53-tf、~/glm53-tf を /work に
 cp v2/examples/tp3-rank0.env ~/glm53-tf/rank.env      # このホストのrank：tp2-rank0/1 か tp3-rank0/1/2
 ```
 
-`~/glm53-tf/rank.env` をこのホストの値に直します：`MASTER`（リンク上のrank 0のアドレス、全rankで同じ）、`NCCL_IB_HCA`（リンクのRDMAデバイス、2本のrail）、`NCCL_IB_GID_INDEX`、`NCCL_SOCKET_IFNAME`。例は参照機のファイルで、各行を何として測ったかが書いてあります。このファイルは `bash` が読み込むもので、`docker --env-file` には渡しません。
+`~/glm53-tf/rank.env` をこのホストの値に直します：`MASTER`（リンク上のrank 0のアドレス、全rankで同じ）、`NCCL_IB_HCA`（リンクのRDMAデバイス、2本のrail）、`NCCL_IB_GID_INDEX`、`NCCL_SOCKET_IFNAME`。例は参照機のファイルで、各行を何として測ったかが書いてあります。このファイルは `bash` が読み込むもので、`docker --env-file` には渡しません。公開したAXLの重みを配信するには、全rankのファイルに `CHECKPOINT=/hub/models--Bizuayeu--GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16/snapshots/bbad98c8f380588c16a2326bf5a2ab7344190b07` を足します。書かなければrankは固定のsnapshotを配信し、違うcheckpointで起動したrankどうしは起動を断ります。
 
 ## 5. エンジンのextensionをbuildする
 
