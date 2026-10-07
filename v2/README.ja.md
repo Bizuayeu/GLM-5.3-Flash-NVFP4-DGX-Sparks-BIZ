@@ -82,7 +82,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | NCCL | 各リンク2本のrail・4 channel・IBのtransportを明示、rankごとのファイルから | 2本のrail・4 channel・IBのtransportを明示・subnet-aware routing |
 | 画像入力 | 有効：全rankのファイルの `VISION=1` で `--vision` が付く。rank 0が画像のtower（1.05 GiB）を持ち、他の会話の保持promptは3 GiBのうち2.4 GiBになる | 有効。保持promptは3 GiBのまま |
 | rank間のprefillの交換 | エンジンの既定 `split` | 同じ |
-| 熱によるprefillの休止 | chunkの合間に全rankそろって、どれかのrankのACPIの最高温度が92 °Cを超えたら、全rankが88 °C以下になるまで待つ（`TF_GLM_HEAT_HIGH`／`TF_GLM_HEAT_LOW`） | 同じ |
+| 熱によるprefillの休止 | chunkの合間に全rankそろって、どれかのrankのACPIの最高温度が92 °Cを超えたら、全rankが88 °C以下になるまで待つ（`TF_GLM_HEAT_HIGH`／`TF_GLM_HEAT_LOW`）。その温度に直前のchunkの上がり幅を足すと93 °Cを越えるときも、越えなくなるまで待つ（`TF_GLM_HEAT_CEILING`） | 同じ |
 | 他の会話の保持prompt | エンジンの既定：8本、3 GiB | 同じ |
 
 **TP=2を300,000にする理由。** `--context 0` では対の窓が567,255 tokenになり、他の会話の保持promptに何も残りませんでした。長い履歴を送り直すチャットやエージェントでは保持が効きます。エンジン自身のメモリの見積もりでは、300,000 tokenは567,255に比べてrankあたり約3.3 GiBを空け、既定の3 GiBの保持promptが収まります。1.x系は262,144 tokenですが、それには合わせていません。別の窓にするには `serve.sh` に `--context` を渡します（最後のflagが効きます）。対が持てる最大は約567Kです。
@@ -101,6 +101,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | | `MODEL_NAME`・`HOST`・`PORT` | `glm-tf`・`127.0.0.1`・`8095` | rank 0のmodel idと待ち受け |
 | | `CHECKPOINT` | `/hub` の下の固定snapshot | container内のcheckpointのdirectory |
 | | `TF_GLM_HEAT_HIGH`・`TF_GLM_HEAT_LOW` | `92`・`88`（°C） | prefillの熱の待ち。全rankで同じ値、空にすると待たない |
+| | `TF_GLM_HEAT_CEILING` | `93`（°C） | 待ちの見込み：最高温度に直前のchunkの上がり幅を足した値をこの温度以内に保つ。帯が要る。全rankで同じ値、空にすると見込まない |
 | | `TF_GLM_CACHE_GIB` | `3`（エンジンの既定） | 窓の残りのうち、他の会話の保持promptに使うrankごとのメモリの上限。全rankで同じ値 |
 | | `TF_GLM_CACHE_ENTRIES` | `8`（エンジンの既定） | 他の会話の保持promptの本数。別の値にしたらdecode検査にも同じ値を渡します（[decode検査](docs/validation.ja.md#decode検査)） |
 | | `TF_GLM_COPY_DRAFTS`、`TF_GLM_KDA_DECODE_WIDE`、`TF_GLM_B16_DECODE_TABLE` | `1`（エンジンの既定） | copy drafts、KDAのdecodeの経路、BF16のdecodeのタイル（[決定の記録](docs/decisions.ja.md)）。`0` でそれぞれを切ります。どちらでもtokenは同じです。全rankで同じ値にします（違えば起動を断ります） |

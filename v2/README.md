@@ -82,7 +82,7 @@ The model thinks before it answers: the reasoning comes back in `reasoning_conte
 | NCCL | two rails per link, four channels, the IB transport named, from each rank's file | two rails, four channels, the IB transport named, subnet-aware routing |
 | Image input | on: `VISION=1` in every rank file adds `--vision`; rank 0 holds the image tower (1.05 GiB), and other conversations' kept prompts get 2.4 GiB of the 3 GiB | on; the kept prompts keep 3 GiB |
 | Prefill exchange between ranks | the engine's default, `split` | same |
-| Prefill pause for heat | between chunks, every rank together, while any rank's hottest ACPI zone is above 92 °C, until all are at or below 88 °C (`TF_GLM_HEAT_HIGH`/`TF_GLM_HEAT_LOW`) | same |
+| Prefill pause for heat | between chunks, every rank together, while any rank's hottest ACPI zone is above 92 °C, until all are at or below 88 °C (`TF_GLM_HEAT_HIGH`/`TF_GLM_HEAT_LOW`); also while that zone plus the last chunk's rise would pass 93 °C, until it would not (`TF_GLM_HEAT_CEILING`) | same |
 | Kept prompts of other conversations | the engine's defaults: 8 entries, 3 GiB | same |
 
 **Why 300,000 at TP=2.** With `--context 0` the pair took a window of 567,255 tokens and left nothing for other conversations' kept prompts, which matter for chat and agents that resend a long history. By the engine's own memory geometry, 300,000 tokens free about 3.3 GiB per rank against 567,255, enough for the default 3 GiB of kept prompts. 1.x serves 262,144; this window is not matched to it. Pass another `--context` to `serve.sh` to choose differently (the last flag wins); the most the pair holds is about 567K.
@@ -101,6 +101,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `MODEL_NAME`, `HOST`, `PORT` | `glm-tf`, `127.0.0.1`, `8095` | rank 0's model id and listener |
 | | `CHECKPOINT` | the pinned snapshot under `/hub` | the checkpoint directory inside the container |
 | | `TF_GLM_HEAT_HIGH`, `TF_GLM_HEAT_LOW` | `92`, `88` (°C) | the prefill heat wait; the same on every rank, empty for none |
+| | `TF_GLM_HEAT_CEILING` | `93` (°C) | the wait's look-ahead: the hottest zone plus the last chunk's rise stays within it; needs the bands, the same on every rank, empty for none |
 | | `TF_GLM_CACHE_GIB` | `3` (the engine's) | the most memory per rank for other conversations' kept prompts, out of what the window leaves; the same on every rank |
 | | `TF_GLM_CACHE_ENTRIES` | `8` (the engine's) | kept prompts of other conversations; the decode check must be told another value ([decode check](docs/validation.md#decode-check)) |
 | | `TF_GLM_COPY_DRAFTS`, `TF_GLM_KDA_DECODE_WIDE`, `TF_GLM_B16_DECODE_TABLE` | `1` (the engine's) | copy drafts, the KDA decode chain and the BF16 decode tiles ([decisions](docs/decisions.md)); `0` turns one off, with the same tokens either way; the same on every rank, or the start is refused |

@@ -3,8 +3,9 @@
 # The 2.x serving defaults (README.md#serving-defaults): FP8 latent KV, MTP drafts, replies of up to 32,768 tokens
 # when a request names no limit, and the window by TP: 300,000 tokens at TP=2, the largest that fits at TP=3
 # (--context 0; 1,048,576 on the reference ring). The prefill exchange takes the engine's default (split).
-# A prefill waits between chunks while any rank's hottest ACPI zone is above 92 C, until all are at or below
-# 88 C (TF_GLM_HEAT_HIGH/LOW; the rank file may set other bands, the same on every rank, or empty ones for none).
+# A prefill waits between chunks while any rank's hottest ACPI zone is above 92 C, or would pass 93 C if the next
+# chunk rose as much as the last one, until all are at or below 88 C and that rise would stay within 93 C
+# (TF_GLM_HEAT_HIGH/LOW/CEILING; the rank file may set other values, the same on every rank, or empty ones for none).
 # RANK_ENV is this host's file (examples/tp*-rank*.env): its NCCL settings and MASTER, rank 0's address on the link
 # between the hosts. Start the other ranks first and rank 0 last (cluster.sh does).
 set -eu
@@ -29,8 +30,10 @@ set +a
 : "${MASTER:?$rank_env must set MASTER, rank 0 address on the link between the hosts}"
 export TF_GLM_KV=fp8
 # 94 C is where the hosts' thermal watch stops the engine; 88 C sits below the 88.8-89.6 C a 1M prefill held
-# at TP=3 before the faster prefill work. With these bands the 1M prefill at TP=3 peaked at 92.8 C (README.md).
+# at TP=3 before the faster prefill work. Near the end of a 1M prefill one chunk adds about 7 C after the check
+# between chunks, so the wait also looks one chunk ahead and keeps the next reading within 93 C (README.md).
 export TF_GLM_HEAT_HIGH=${TF_GLM_HEAT_HIGH-92} TF_GLM_HEAT_LOW=${TF_GLM_HEAT_LOW-88}
+export TF_GLM_HEAT_CEILING=${TF_GLM_HEAT_CEILING-93}
 # The pinned checkpoint as the Hugging Face cache holds it, mounted read-only at /hub (create_container.sh)
 CHECKPOINT=${CHECKPOINT:-/hub/models--nvidia--GLM-5.3-Flash-NVFP4/snapshots/423acf37583782c51c142d145aef733d72943d93}
 # VISION=1 in the rank file: image input (--vision; rank 0 holds the image tower), the same on every rank
