@@ -4,6 +4,29 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.7.0 — 2026-10-09
+
+### Changed
+
+- **A request that names no reasoning effort gets `high`, not the chat template's `max`.** The pinned chat template renders an unnamed effort as `max`, where the thinking runs on almost without end and takes most of the reply limit; 1.x serves such a request at `high` (`api.default_reasoning_effort`). `serve.sh` passes the engine's `--reasoning-effort high` on rank 0, from `REASONING_EFFORT` in rank 0's file (empty: none, the template's own); a client's own effort still wins. The checks name their own effort, so their reference values stand ([serving defaults](README.md#serving-defaults)).
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.7.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `9cdd935bba7b6092f7471bc42d88b19b7df8a515` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.5.0's engine with these:
+  - A prompt chunk's DSA pool scores take one row and 32 pool blocks a program, loading the row's index queries and head weights once for its blocks, with the same bits. At TP=3 on the pinned weights a prefill of about 226K tokens took 5.8-5.9% less time, heat waits left out ([measured on the release](README.md#measured-on-the-release)). After MiaAI-Lab's patch 0086 (Apache-2.0), rewritten for this tree's FP8 pooled keys and scored columns.
+  - `/v1/responses` accepts OpenAI's `include` values and ignores them: each asks for output this server has nothing to add to, and some clients send one by habit. A value OpenAI does not define, or an `include` that is not a list of strings, is still refused with 400. After MiaAI-Lab's patch 0093 (Apache-2.0), rewritten.
+  - `TF_GLM_LOOP_GUARD=1` in rank 0's file closes a think block that collapsed into an exact cycle of at most 16 tokens held for 256 tokens, or into one token taking half of the last 256, and counts it as `loop_guard` in the reply's `tensorfold` block. Off by default: no gate is built and no request changes ([decisions](docs/decisions.md#engine)). Taken from MiaAI-Lab's patch 0091 (Apache-2.0), its test rewritten.
+  - `MODELS` lists the two NVFP4 checkpoints the CUDA engine reads, the pinned one and the published AXL weights, so `tensorfold models` shows them and pulling or serving one by its repo id no longer prints that it is not a checkpoint TensorFold is tested with.
+  - When the ranks' settings differ at start, the refusal names each setting that differs, with rank 0's value and the others'.
+  - At start the engine reads the checkpoint's tensor headers once, not twice: the checkpoint's kind for the ranks' comparison is counted from the headers the memory estimate read.
+- Also: refactors and tests with the same bits (the E2M1 table and the row alignment held in one place each, one helper for a mixed-precision block's algorithms, the NVFP4 head chosen as every other NVFP4 projection), and the GLM recipe describes the published AXL weights. The engine's `THIRD_PARTY_NOTICES.md` names patches 0086, 0091 and 0093.
+
+### Documentation
+
+- The [README](README.md#configuration) gives `TF_GLM_LOOP_GUARD`, what `/v1/responses` does with `include` and MiaAI-Lab's three patches among [other recipes](README.md#other-recipes-on-tensorfold); [decisions](docs/decisions.md) has the rows for the effort, the pool scores and the loop guard.
+
+The image is `glm53-tf:2.7.0` (linux/arm64 `sha256:IMAGE_TBD`).
+
 ## 2.6.1 — 2026-10-09
 
 ### Changed

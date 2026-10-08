@@ -14,6 +14,7 @@
 | 配信のcontainerにCPUの集合を設定しない（`create_container.sh` は配置をkernelに任せる） | 2026-10-05 | 固定しないとエンジンのスレッドは高効率コアを含む20コアすべてで動きました。両rankを性能コアに固定しても（`docker update --cpuset-cpus 5-9,15-19`）、decodeとprefillの差は揺れの内でした（counting 41.35 → 41.36 tok/s、prefill 1,327 → 1,329 tok/s）。1.x系には固定が要ります（[CPU配置](../../v1/docs/benchmarks.ja.md#参照対でのcpu配置2026-09-26)） | 同じ設定で片方のrankのdecodeだけが遅い |
 | 上流の#285・#294、patch 0080（書き直し）、TR3の名を2.5.0のエンジンに同乗させる | 2026-10-08 | 専用の版は切らず、次にエンジンのリリースのbranchを切るときに取り込んだ：#285（MiaAI-Lab。end tokenが `</tool_call>` より先に来たGLMのtool呼び出しを、全体がparseできれば送る）と#294（plotarmordev。起動時に開けるファイル数の上限を上げる）はそのまま、作者もそのまま。MiaAI-Labのpatch 0080は書き直し（会話に引用された画像の印は本物の画像の隣で文字のまま。codeは写していない）、エンジンの表示に挙げた。EXL3/TR3のcheckpointの名を `brandonmusic/GLM-5.3-Flash-tr3-4bpw` にし、取り下げられたMia-AiLabの再掲は一覧に残した。既定の経路（画像なし・toolなし）のtokenは変わらない。2.5.0の受け入れは[リリースでの測定値](../README.ja.md#リリースでの測定値)にある | — |
 | #294の時機に左右される試験をforkで直す | 2026-10-08 | 上流の試験は時機によって落ちることがあった：試験のserverが受けたsocketをworkerのthreadで閉じ、それが試験のsqueezeと次のacceptの間に入ることがあった。forkの試験はその場で閉じる | — |
+| loop guardを入れ、既定では無効にする（`TF_GLM_LOOP_GUARD`）：`1` にすると、rank 0は、16 token以下の完全な周期が256 token続くか、直近256 tokenの半分を一つのtokenが占めるかで潰れた思考のblockを、思考の予算が閉じるのと同じ形で閉じ、応答の `tensorfold` blockに `loop_guard` として数える。MiaAI-Labのpatch 0091を取り込み、試験は書き直した | 2026-10-09 | 無効ならgateは作られず、どの要求も変わらない。配信の負荷でまだ測っていないので無効のままにする | 配信の負荷で測る |
 
 ## 精度とメモリ
 
@@ -34,6 +35,7 @@
 | TP=2の窓は300,000 token、`--context 0` の567,255にしない | 2026-10-04 | 他の会話の保持promptに既定の3 GiBを残す（[300,000の理由](../README.ja.md#配信の既定)） | 配備が別の `--context` を渡す |
 | TP=3の窓は収まる最大（`--context 0`） | 2026-10-03から使い、2026-10-04に配布の既定 | 参照機のリングで1,048,576 token、モデルの上限 | — |
 | 要求が上限を指定しないときの応答は最大32,768 token | 2026-10-03 | — | — |
+| 要求が推論のeffortを指定しないときは `high`（rank 0の `--reasoning-effort`、そのファイルの `REASONING_EFFORT`） | 2026-10-09 | 固定のchat templateは指定のないeffortを `max` として描き、`max` では思考がほぼ際限なく続いて応答の上限の大半を使う。1.x系はそうした要求を `high` で処理している（[effortをhighにする理由](../README.ja.md#配信の既定)）。検査は自分でeffortを指定するので、その基準値はそのまま | — |
 | 4,096行のprefillのchunk | 2026-10-02に不採用 | 同じ版の2,048行の1,169.9 tok/sに対し1,076.1、窓は約490Kから約405Kへ縮む。ビットは同じだった | — |
 | 一度に1系列 | 2026-10-02 | エンジンのCUDAの経路はGLMの要求を一度に一つずつdecodeする | 上流が凍結とともに閉じた#243を、この系列がリリースのbranchへ取り込む（[Next Action](../README.ja.md#next-action)） |
 | 2.0.0では画像入力なし | 2026-10-04 | エンジンはCUDAのGLMで画像を拒む | 2.1.0で#194により再開（次の行） |
@@ -65,6 +67,7 @@
 | BF16のsplit-Kの部分和は短い窓のためだけに確保する | 2026-10-02 | `--context 0` の窓が約490Kから567,255 tokenに増えた。prefillは変わらない | — |
 | prefillの交換の既定を `split` に（`TF_GLM_PREFILL_REDUCE`） | 2026-10-03 | TP=3、一続きの起動の中で：それまでの `gather`（1,394〜1,398 tok/s）に対し `scatter` +6.8%、`split` +19.6%。decode検査のhashもNLL採点セットも変わらない。rankどうしが送り合えるところで採り、それ以外は `gather`。TP=2（2026-10-06、2.1.1）では、promptの2つの速さのどちらでも `split` が `gather` より約5%速く（1,326対1,262 tok/s、1,228対1,171）、decode検査のtoken idと文字列は同じだった | — |
 | indexerのpromptの仕事：programあたり16行、選択が読むpoolの列だけを採点、長い行の読みを5回から3回に | 2026-10-03 | 実のDSAの層で1 GPU、1M tokenでのchunkのtokenの選択が209.5 → 165.5 ms（−21%）、同じビット。上の交換の仕事と合わせ、200Kと500Kの実測に当てた1Mのprefillの見積もりは短くなった（[長い入力](validation.ja.md#長い入力)）。試して遅かったもの：histogramを採点に融合、11 bitで3 pass、persistent grid、2,048のblock | — |
+| prompt chunkのpoolのscoreを、programあたり16行・1 blockでなく、1行・32 pool blockで計算する（`SCORE_LOOP`）。decodeの窓はprogramあたり1 blockのまま。MiaAI-Labのpatch 0086に倣い、この木のFP8のpool keyと採点する列に合わせて書き直した | 2026-10-09 | programあたり1 blockでは、blockごとに各行のindexのqueryとheadの重みを読み直していた。今は行のそれを32 blockのために一度だけ読み、各blockの計算は前と同じで、ビットも同じ。固定の重みのTP=3で、なしの起動3回とありの起動3回：熱の待ちを除いた約226K tokenのprefillが5.8〜5.9%短く、ありの起動はどれも、なしの起動のどれより速く、返答は同じ（[リリースでの測定値](../README.ja.md#リリースでの測定値)） | — |
 | ビットが変わるprefillの案 | 2026-10-02と03に不採用 | 行のblockの32頭を一つのGEMMで採点し頭の和を後に回す（採点が2倍速くなれば1Mのprefillで約240秒の短縮と見積もり）、FP8のtensor coreでの採点、chunked KDA（その漸化式は38,960 tokenのpromptで2.06秒で、得は多くて数%）、MiaAI-Labの1 passのsparse attention。どれも基準のhashとNLLの元のビットを変える、または変え得る | — |
 
 ## 熱
@@ -95,7 +98,7 @@
 - `0c9e8da`：GLMの `/v1/completions` がtoken idのpromptを受け、vLLMの形の `prompt_logprobs` を返す。NLLの検査（`score-nll`）はこれを使う。指定の無い要求は変わらず、指定のある要求は保持promptから再開しない。
 - `68a7e6a`：NVFP4のrouted expertのprompt用kernel（上）。
 - `e190c7b`、`9c51f2f`：KDAのconvの係数をfp32で（上）。
-- `aac7927`：DSAのpromptのabsorbとexpandを行のblockごとに、indexerのpoolの採点をprogramあたり4行に（MiaAI-Labのpatch 0009に倣う。のち16行、上の表の行）。
+- `aac7927`：DSAのpromptのabsorbとexpandを行のblockごとに、indexerのpoolの採点をprogramあたり4行に（MiaAI-Labのpatch 0009に倣う。のち16行、2.7.0から1行・32 block、上の表の行）。
 - `2caf43c`：8 warpのKDAのpromptのstep kernel（上）。
 - `bee087d`：BF16のsplit-Kの部分和は短い窓だけ（上）。
 - `c35cfd9`：起動時の見積もりがdraft headの行を詰めた数で数え、3 rankのどれもちょうど見積もりどおりを読み込む。

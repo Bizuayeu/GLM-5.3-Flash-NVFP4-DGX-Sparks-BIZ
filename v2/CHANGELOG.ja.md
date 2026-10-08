@@ -6,6 +6,29 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.7.0 — 2026-10-09
+
+### Changed
+
+- **推論のeffortを指定しない要求は、chat templateの `max` ではなく `high` になります。** 固定のchat templateは指定のないeffortを `max` として描き、`max` では思考がほぼ際限なく続いて応答の上限の大半を使います。1.x系はそうした要求を `high` で処理しています（`api.default_reasoning_effort`）。`serve.sh` はrank 0でエンジンの `--reasoning-effort high` を渡し、値はrank 0のファイルの `REASONING_EFFORT` から取ります（空なら指定なし＝templateのまま）。クライアント自身が指定したeffortはそのまま優先されます。検査は自分でeffortを指定するので、その基準値はそのままです（[配信の既定](README.ja.md#配信の既定)）。
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.7.0` の `9cdd935bba7b6092f7471bc42d88b19b7df8a515`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.5.0のエンジンに次を足したものです：
+  - prompt chunkのDSAのpoolのscoreは、1 programで1行・32 pool blockを計算し、行のindexのqueryとheadの重みをそのblockのために一度だけ読みます。ビットは同じです。固定の重みのTP=3で、約226K tokenのprefillは熱の待ちを除いて5.8〜5.9%短くなりました（[リリースでの測定値](README.ja.md#リリースでの測定値)）。MiaAI-Labのpatch 0086（Apache-2.0）に倣い、この木のFP8のpool keyと採点する列に合わせて書き直したものです。
+  - `/v1/responses` はOpenAIの `include` の値を受けて無視します：どの値もこのserverが足すもののない出力を求めるもので、癖で送るクライアントがあります。OpenAIが定めていない値や、文字列のlistでない `include` は今も400で断ります。MiaAI-Labのpatch 0093（Apache-2.0）に倣った書き直しです。
+  - rank 0のファイルの `TF_GLM_LOOP_GUARD=1` は、16 token以下の完全な周期が256 token続くか、直近256 tokenの半分を一つのtokenが占めるかで潰れた思考のblockを閉じ、応答の `tensorfold` blockに `loop_guard` として数えます。既定は無効で、gateは作られず、どの要求も変わりません（[決定の記録](docs/decisions.ja.md#エンジン)）。MiaAI-Labのpatch 0091（Apache-2.0）を取り込み、試験は書き直しました。
+  - `MODELS` はCUDAのエンジンが読む2つのNVFP4のcheckpoint（固定のものと公開したAXLの重み）を挙げます。`tensorfold models` がそれらを示し、repo idでpullや配信をしても、TensorFoldが試験したcheckpointではないとは表示しなくなりました。
+  - 起動時にrankの設定が違うとき、断りの文は違う設定を名前で挙げ、rank 0の値と他のrankの値を示します。
+  - 起動時、エンジンはcheckpointのtensorのheaderを2回でなく1回だけ読みます：rankの比べに使うcheckpointの種類を、メモリの見積もりが読んだheaderから数えます。
+- ほかに：ビットを変えないrefactorと試験（E2M1の表と行の揃えをそれぞれ一か所に、mixed-precisionのblockのalgorithmを読むhelperを一つに、NVFP4のheadを他のNVFP4のprojectionと同じ条件で選ぶ）と、公開したAXLの重みを説明するGLMのレシピ。エンジンの `THIRD_PARTY_NOTICES.md` はpatch 0086・0091・0093を挙げます。
+
+### Documentation
+
+- [README](README.ja.md#設定)は `TF_GLM_LOOP_GUARD`、`/v1/responses` の `include` の扱い、[TensorFoldの他のレシピ](README.ja.md#tensorfoldの他のレシピ)でのMiaAI-Labの3つのpatchを載せます。[決定の記録](docs/decisions.ja.md)にeffort、poolのscore、loop guardの行があります。
+
+imageは `glm53-tf:2.7.0`（linux/arm64 `sha256:IMAGE_TBD`）です。
+
 ## 2.6.1 — 2026-10-09
 
 ### Changed
