@@ -11,16 +11,16 @@
 ## 要約
 
 - **何であるか。** 固定したcheckpointを、固定したTensorFoldのcommitで一つのOpenAI互換endpointとして配信するための、build手順・起動の台本・受け入れ検査です。2台なら直結のConnectX-7リンクでTP=2、3台ならswitchなしのリングでTP=3です。公開している測定値はMSI EdgeXpert（MS-C931）で取りました。
-- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.4.0）はTP=2とTP=3・画像入力の有効で、固定のcheckpointと公開したAXLの重みの両方で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
+- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.5.0）はTP=2とTP=3・画像入力の有効で、固定のcheckpointと公開したAXLの重みの両方で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。任意で使う公開したAXLの重みは、attentionのprojectionとheadもW4A16にします。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
 - **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
-- **未検証。** 同時に2系列以上、[回した検査](#リリースでの測定値)を超える画像入力、公開したAXLの重みで回した検査（decode検査、NLL、編集の返答、長い入力）を超えるもの（タスクの水準の品質、tool-eval-benchとHLEは2.x系では測っていません）、ハーネス連携（ZCode・Claude Code）、他のrank数と機材、アプリケーション全体の品質と本番の信頼性（[制限](#制限)）。
+- **未検証。** 同時に2系列以上、[回した検査](#リリースでの測定値)を超える画像入力、公開したAXLの重みで回した検査（decode検査、NLL、編集の返答、長い入力、TP=2のtool-eval-bench）を超えるもの（HLEは2.x系では回していません）、ハーネス連携（ZCode・Claude Code）、他のrank数と機材、アプリケーション全体の品質と本番の信頼性（[制限](#制限)）。
 
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。このcheckpointが既定です。任意で使えるのは公開したAXLの重み（NVFP4 BIZ AXL、[1.x系](../v1/README.ja.md)の公開した任意設定）：`Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16` のrevision `bbad98c8f380588c16a2326bf5a2ab7344190b07`（[`config/axl.lock.json`](config/axl.lock.json)）で、attentionのprojectionと `lm_head` をW4A16のNVFP4に詰め直し、他は固定のcheckpointのままのものです。rankのファイルの `CHECKPOINT` で選びます（[設定](#設定)）。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.4.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、tokenを変えないdecodeの改善（copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない。[決定の記録](docs/decisions.ja.md)）を足したものです。2.4.0は、公開したAXLの重みをそのテンソルのとおりに読むW4A16のNVFP4のattentionとheadの読み込みと、外れた後に減らさないcopy draftsを足しました。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.5.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善、上流のpull request #301（止めた要求が全rankで1 round以内に終わる）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、上流のpull request #421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、tokenを変えないdecodeの改善（copy drafts、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない。[決定の記録](docs/decisions.ja.md)）を足したものです。2.4.0は、公開したAXLの重みをそのテンソルのとおりに読むW4A16のNVFP4のattentionとheadの読み込みと、外れた後に減らさないcopy draftsを足しました。2.5.0は、上流のpull request #285（end tokenが `</tool_call>` より先に来たGLMのtool呼び出しを、全体がparseできれば送る）と#294（起動時に開けるファイル数の上限を上げる）、本物の画像の隣で文字のままにする引用の `<|image|>`（MiaAI-Labのpatch 0080に倣う）、brandonmusicのものとしたTR3のcheckpointの名を足しました。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.4.0 .
-v2/scripts/create_container.sh glm53-tf:2.4.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.5.0 .
+v2/scripts/create_container.sh glm53-tf:2.5.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1。その後この機の値に直す
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -143,6 +143,27 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 
 ## リリースでの測定値
 
+**2.5.0**（2026-10-08、エンジン `8a36b2c`、image `glm53-tf:2.5.0`）。`bench --kinds decode` は上限まで数える新しい要求を送り（[ベンチマークの方法](docs/benchmarks.ja.md#prefillとdecodeの速さ)）、エンジンは上流のpull request #285と#294、本物の画像の隣で文字のままにする引用の `<|image|>`、TR3の新しい名を取り込みました。既定の経路（画像なし・toolなし）のtokenは2.4.0と同じです（[決定の記録](docs/decisions.ja.md#エンジン)）。両方の重み・両TPで画像入力を有効にして、decode検査は2.4.0のtoken idを、`bench --kinds edit` は基準の返答を出し、TP=2のNLLの組は両方の重みで2.4.0と4桁まで同じでした。固定の重みでは両TPで画像の検査がすべて合格し、引用の `<|image|>` を本物の画像の隣に含む会話は200を返して画像を読みました。
+
+| 2.5.0、画像入力の有効 | 固定、TP=2 | AXL、TP=2 | 固定、TP=3 | AXL、TP=3 |
+|---|---|---|---|---|
+| decode検査 count／prose／code（tok/s） | 43.59／27.37／35.71 | 57.03／37.45／44.70 | 58.82／38.04／48.46 | 71.97／48.83／59.70 |
+| MTPの受理長（同じタスク） | 3.961／2.098／3.180 | 3.813／2.004／2.893 | 4.056／2.222／3.234 | 3.631／2.060／2.994 |
+| `bench --kinds decode`、2.5.0の要求（tok/s、中央値） | 42.63 | 57.09 | 56.73 | 76.55 |
+| `bench --kinds edit`（tok/s、中央値） | 57.81 | 74.20 | 76.26 | 96.50 |
+| 38,960 tokenのprefill（s、2本） | 30.17／29.32 | — | 24.24／23.45 | — |
+| 長い入力（262Kと1M token）、1M tokenのtool gate | — | — | — | — |
+| rank 0の起動の見積もり（GiB） | 101.35 | 96.71 | 81.93 | 78.68 |
+| teacher-forced NLL 日／英／コード／数学 | 2.5474／2.9257／1.3184／0.6250 | 2.5556／2.9438／1.3334／0.6474 | — | — |
+| tool-eval-bench、直／tool引数ゲート越し | 92／93 | 89／91 | — | — |
+
+- **`bench --kinds decode`。** どの行も上限で止まり（`finish_reason` `length`、512 token）、各起動の3回の返答は同じでした。TP=2では両方の重みが同じ返答を出し、AXLは固定の重みより34%速い値でした。この行は以前のリリースの `bench --kinds decode` とは比べられません。前の要求ではmodelが返答を自分で終え、その後に作った文をdecodeしていました。
+- **TP=3の固定の重み。** TP=3の固定の重みの返答も上限まで数えますが、数える前の思考が41 tokenでAXLより11 token長いので、TP=3の返答はtokenまで同じではなく、そこでのAXLの固定の重みより35%速い値は、同じ文どうしではなく2つの数える文の比べです。
+- **tool-eval-bench**（TP=2、69シナリオ、[検証](docs/validation.ja.md#tool引数ゲート越しのtool)の呼び方）。直では両方の重みがTC-43（`web_search` の空の `query`）でSafety Gateを通らず、ゲート越しでは両方とも通過しました。2.4.0と同じ点と出方です。
+- **このリリースで測っていないもの**（`—`）。既定の経路のtoken idは両TPで2.4.0と同じなので、2.4.0のTP=3のNLL、長い入力、1Mのtool gateの結果がこのエンジンにも当てはまります。AXLのprefillと、AXLでの画像の検査は回していません。
+- **2.4.0との差。** decode検査と編集は、両方の重み・両TPで−0.8〜+0.1%でした。
+- **prefill。** 固定の重みのTP=2の2本のうち、1本目が2本目より2.9%長くかかりました。prefillの2つの速さは未解決のままです（[検証](docs/validation.ja.md#prefillとdecodeの速さ)）。
+
 **2.4.0**（2026-10-08、エンジン `ab8e741`、image `glm53-tf:2.4.0`）。公開したAXLの重みを任意で配信でき、copy draftsは外れた後に減らしません（`MISS_MOST` 5）。固定のcheckpointでは他は2.3.0のエンジンで、同じtokenを出します（[決定の記録](docs/decisions.ja.md#精度とメモリ)）。両方の重み・両TPで画像入力を有効にして、decode検査はその重みの基準のtoken idを、NLLの組は下の値を、`bench --kinds edit` は基準の返答を出し、画像の検査は固定の重みですべて合格しました。
 
 | 2.4.0、画像入力の有効 | 固定、TP=2 | AXL、TP=2 | 固定、TP=3 | AXL、TP=3 |
@@ -157,7 +178,7 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 | rank 0の起動の見積もり（GiB） | 101.35 | 96.71 | 81.93 | 78.68 |
 | teacher-forced NLL 日／英／コード／数学 | 2.5474／2.9257／1.3184／0.6250 | 2.5556／2.9438／1.3334／0.6474 | 2.5313／2.9001／1.3101／0.6237 | 2.5590／2.9471／1.3357／0.6439 |
 
-- **重み。** AXLは両TPで固定の重みより速く、NLLは高い値でした。タスクの水準の品質は2.x系では測っていません。decode検査のtoken idはAXL自身の基準で（[検証](docs/validation.ja.md#decode検査)）、TP=2では2回の起動で同じ、編集の返答は固定の重みと同じです。TP=2のAXLの `bench --kinds decode` だけは固定の重みより2%速いにとどまり、decode検査と編集は5分の1以上速い値でした。benchの行には受理の数が無く、原因は分かっていません。
+- **重み。** AXLは両TPで固定の重みより速く、NLLは高い値でした。タスクの水準の品質は2.x系では測っていません。decode検査のtoken idはAXL自身の基準で（[検証](docs/validation.ja.md#decode検査)）、TP=2では2回の起動で同じ、編集の返答は固定の重みと同じです。TP=2のAXLの `bench --kinds decode` だけは固定の重みより2%速いにとどまり、decode検査と編集は5分の1以上速い値でした。原因はリリースの後に分かり、要求にありました：両方の重みとも約100 tokenで自分で数えるのを終え、512の残りはそれぞれのmodelが自分の終わりの後に作った会話で、重みによって違ったので、この行は違う文を比べていました。2.5.0の要求は上限まで数えます（上の2.5.0）。
 - **熱。** 固定の重みでは最も熱い機の最高が92.6 °Cで、2.3.0と同じです。AXLのTP=3の1M tokenのpromptの間に、1台が1秒の記録で1回94.4 °Cを読みました（熱の見張りの2秒の記録では93.5 °C）。始めて約4分、90.5〜91 °Cで30秒以上横ばいの後でした：そのchunkの前の確認は92 °C未満で、直前のchunkの上がり幅がほぼ0だったので、見込みは待たせませんでした。次の確認で待ちに入り、以後の待ちは12〜15 °Cの上がり幅を見込みました。熱の見張りはエンジンを止めていません。1秒で待ちに入ったので、この読みは許容しました（[Next Action](#next-action)）。
 - **1M tokenでのtool gate**（固定、TP=3）。1回目は1,553.3 s後に200（うち熱の待ち448.4 s）で `tool_calls`、修復の2回目は保持promptから3.6 sで200でした。
 - **2.3.0との差。** 固定の重みで、編集はTP=2で1.1%（57.49 → 58.13 tok/s）、TP=3で0.2%（76.22 → 76.40）速く、decode検査と `bench --kinds decode` は±1.3%以内でした。
@@ -235,7 +256,7 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 
 - **一度に1系列。** エンジンのCUDAの経路はGLMの要求を一本ずつdecodeし、他は順番を待ちます。
 - **TP=2では画像がメモリを取ります。** 画像入力が有効だとtowerの分だけ、他の会話の保持promptのメモリが減ります（[配信の既定](#配信の既定)）。全rankで `VISION=0` にすると3 GiBに戻ります。
-- **公開したAXLの重みは品質と引き換えに速さを取ります。** NLLは採点セットのどの領域でも高い値です（[リリースでの測定値](#リリースでの測定値)）。2.x系ではtool-eval-benchとHLEを回していません。全rankで同じcheckpointを配信します。
+- **公開したAXLの重みは品質と引き換えに速さを取ります。** NLLは採点セットのどの領域でも高い値で、TP=2のtool-eval-benchは直で89、tool引数ゲート越しで91でした（固定の重みは92と93。[リリースでの測定値](#リリースでの測定値)）。2.x系ではHLEを回していません。全rankで同じcheckpointを配信します。
 - **TP=3はDFlash2とEXL3を拒みます。** どちらも2 rankにしか分割できません。この系列はどちらも使いません：`serve.sh` は `--drafter none` を渡し、checkpointはNVFP4です。
 - **streamの応答。** draftがあると1 roundが思考から本文へまたがることがあり、1つのdeltaに `reasoning_content` と `content` の両方が乗ります。deltaごとに片方しか読まないクライアントは文を落とします。streamでない応答は欠けません。
 - **FP8 KVはBF16 KVに対して損失があります**（1.x系も同じ）。draftした応答はserialと同じままです。短い4本の文章では、二つのcacheのNLLの差は0.011以内でした（2026-10-02）。
@@ -277,7 +298,7 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 | レシピ | ライセンス | この系列が取り込んだもの |
 |---|---|---|
 | [ashhart/TensorFold](https://github.com/ashhart/TensorFold) | Apache-2.0（0.5.0まではMIT） | エンジンそのもの。リリースのbranchは上流v0.6.5に自前のcommitを足したものです。上流はPython版のエンジンを凍結し（issue #286）、2026-10-06にこの系列のissueとpull requestのすべてに返事しました：0.6.xには入らない。新しい作業の行き先のZig版は、GLMを移したときに#308・#310・#339・#333・#396〜#399の設計に倣い、lossyなFP8のcacheは採らない（#309、#401） |
-| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | FP8 latent KVはそのpatch 0038に倣い、v0.6.x上で書き直して、エンジンの表示にクレジットしています（上流のissue #309）。copy draftsはそのpatch 0007と0032の前半に、KDAのdecodeの窓は0016cに倣い、同じくクレジットしています。TP=3の分け方はpatch 0066と同じ規則です（単位の境界で切り、余りを若いrankへ）。上流のpull request #301（止めた要求が全rankで終わる）はそのままリリースに入っています。自前のEXL3 checkpointをDFlash2のdraftで、同時に最大8要求、画像と動画の入力つきで配信しています |
+| [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold) | Apache-2.0 | FP8 latent KVはそのpatch 0038に倣い、v0.6.x上で書き直して、エンジンの表示にクレジットしています（上流のissue #309）。copy draftsはそのpatch 0007と0032の前半に、KDAのdecodeの窓は0016cに倣い、同じくクレジットしています。TP=3の分け方はpatch 0066と同じ規則です（単位の境界で切り、余りを若いrankへ）。上流のpull request #301（止めた要求が全rankで終わる）と#285（end tokenが `</tool_call>` より先に来たGLMのtool呼び出し、2.5.0から）はそのままリリースに入っています。会話に引用された画像の印を本物の画像の隣で文字のままにするのは、そのpatch 0080に倣った書き直しです。自前のEXL3 checkpointをDFlash2のdraftで、同時に最大8要求、画像と動画の入力つきで配信しています |
 | [jakejharris/jspark3 v2.0.1](https://github.com/jakejharris/jspark3/releases/tag/v2.0.1) | Apache-2.0（レシピ）、MIT（そのエンジン＝TensorFold 0.3.6.2のfork） | 何も取り込んでいません。自前のTensorFoldのforkで、4-bitのMLX形式の重みを3台に分けてTP=3で配信します。既定はDFlash2のdraftで、商用には `--drafter none` の経路を示しています。会話の状態をdiskに保存するcacheを持ち、RigMarkで測っています |
 
 ## 免責事項
@@ -291,7 +312,7 @@ GLM-5.3-FlashをTensorFoldで配信する公開レシピです。各レシピの
 各項目は、きっかけと、そのときこの系列がすることです。
 
 - 上流のTensorFoldが、Zig版のエンジンでGLM-5.3-FlashをCUDAで配信する（2026-10-06時点でPython版は凍結〔issue #286〕、Zig版のCUDAはまだどのモデルも配信していない。上流は、そこでこの系列のissue #308・#310・#339とpull request #333・#396〜#399の設計に倣うと返事した）→ リリースのbranchと突き合わせて読み、2.x系がそちらへ移るかを決める。
-- 上流がPython版のエンジンの0.6.xをもう一度出す（凍結の前に0.6.6として試験中だったもの：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262〔#204向け〕、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系の版で追う。
+- 上流がPython版のエンジンの0.6.xをもう一度出す（凍結の前に0.6.6として試験中だったもの：要求に無い `<tool_call>` のmarkupが応答の本文に漏れる件の#285と#256、同じtokenを延々繰り返すのを止める `--loop-guard` の#210と#262〔#204向け〕、起動時に開けるファイル数を上げる#294）→ リリースのbranchと突き合わせて読み、2.x系の版で追う（2.5.0は#285と#294を取り込んだ）。
 - 同時に2系列以上：上流は凍結とともにMiaAI-Labのpull request #243（2 rankで `--parallel N`）を閉じた → この系列が2.2.0の後に自前のリリースのbranchへ取り込み、1.x系と同じく公開したAXLの重みを2系列で測る。
 - 上流がGLMのlossyなKV cacheの問いを開き直す（issue #309と#401でFP8と4-bitのcacheを断った、2026-10-06）か、この系列がFP8 KVの無いエンジンへ移る → まずBF16 KVの窓を測る（2026-10-02にTP=2でBF16は344,820 token、FP8は約490K）。
 - 長いprefillの間にホストが94 °Cを2回続けて読むか（2.4.0の1M tokenの受け入れでは、AXLのTP=3で1回94.4 °C。直前のchunkの上がり幅がほぼ0で見込みが通したchunkの中で、待ちは1秒で始まった。固定の重みの最高は92.6 °C）、待ちが長いpromptに重くなる（固定の重みのそのpromptの1,588 sのうち480 s）→ 熱をchunkの合間だけでなくchunkの中でも確かめ、1M tokenのpromptを測り直す。

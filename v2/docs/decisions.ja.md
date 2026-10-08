@@ -12,6 +12,8 @@
 | 上流のTensorFoldから始めてGLMに要るものだけを移植し、MiaAI-LabのTensorFoldのレシピの上には作らない | 2026-10-02 | そのFP8 latent KV（patch 0038）は先行するpatch約37本の上に乗っており、上流0.6.1へのdry runはほぼ全hunkが失敗したので、上流の上で書き直した（約600行） | — |
 | 上流のリリースに追従し、衝突は上流の側を採る | 2026-10-03 | v0.6.2、v0.6.3、v0.6.4、続いてv0.6.5（2.1.0、衝突なし）。v0.6.4ではTP=3の交換を上流の通信のinterface（#219）の上に載せ直した。全rankでの停止は上流のpull request #301をそのまま取り込み、新しく書いていない | 上流が#320か#301をmergeする、またはこの系列のissueと#333を取り込む（[Next Action](../README.ja.md#next-action)） |
 | 配信のcontainerにCPUの集合を設定しない（`create_container.sh` は配置をkernelに任せる） | 2026-10-05 | 固定しないとエンジンのスレッドは高効率コアを含む20コアすべてで動きました。両rankを性能コアに固定しても（`docker update --cpuset-cpus 5-9,15-19`）、decodeとprefillの差は揺れの内でした（counting 41.35 → 41.36 tok/s、prefill 1,327 → 1,329 tok/s）。1.x系には固定が要ります（[CPU配置](../../v1/docs/benchmarks.ja.md#参照対でのcpu配置2026-09-26)） | 同じ設定で片方のrankのdecodeだけが遅い |
+| 上流の#285・#294、patch 0080（書き直し）、TR3の名を2.5.0のエンジンに同乗させる | 2026-10-08 | 専用の版は切らず、次にエンジンのリリースのbranchを切るときに取り込んだ：#285（MiaAI-Lab。end tokenが `</tool_call>` より先に来たGLMのtool呼び出しを、全体がparseできれば送る）と#294（plotarmordev。起動時に開けるファイル数の上限を上げる）はそのまま、作者もそのまま。MiaAI-Labのpatch 0080は書き直し（会話に引用された画像の印は本物の画像の隣で文字のまま。codeは写していない）、エンジンの表示に挙げた。EXL3/TR3のcheckpointの名を `brandonmusic/GLM-5.3-Flash-tr3-4bpw` にし、取り下げられたMia-AiLabの再掲は一覧に残した。既定の経路（画像なし・toolなし）のtokenは変わらない：decode検査は両方の重み・両TPで2.4.0のtoken idを出した。TP=2のtool-eval-benchは両方の重みで2.4.0と同じ点と出方、画像の印の引用を本物の画像の隣に含む会話は両TPで200 | — |
+| #294の時機に左右される試験をforkで直す | 2026-10-08 | 上流の試験は時機によって落ちることがあった：試験のserverが受けたsocketをworkerのthreadで閉じ、それが試験のsqueezeと次のacceptの間に入ることがあった。forkの試験はその場で閉じる | — |
 
 ## 精度とメモリ
 
@@ -84,6 +86,7 @@
 | KDAのdecodeの窓を3 kernelの経路で（`TF_GLM_KDA_DECODE_WIDE`）。64行以上のprompt chunkは前からこの経路。MiaAI-Labのpatch 0016cに倣う | 2026-10-06 | decode +0.6%（`bench`）、decode検査+0.5%、prefillは変わらず。1 GPUでは経路そのものが1行で27%、8行で58%速い。1〜8行で融合kernelと同じビット（graphの有無とも） | — |
 | BF16のdecodeの行列積に形ごとのタイル（`TF_GLM_B16_DECODE_TABLE`）：12の形は掃き取りで選んだタイル、他は64×4×3。Kの切れ端は固定の64幅で数えるので、タイルは和の順を決めない | 2026-10-06 | decode +0.9%（`bench`）、decode検査+0.9%、prefillは変わらず。TP=3では掃き取りの形を足しても1 stepの0.1〜0.2%。起動できた32のタイルすべてが、decodeの26の形・1〜16行で今のビットを出した | 別のGPUかエンジンのbuild：掃き取り直す（エンジンの `tools/bench_glm_b16_decode.py`） |
 | latentの経路はDSAのkv_bをheadごとの写し一つだけで持つ。key・valueの行は `TF_GLM_LATENT=0` のときだけ作る | 2026-10-06 | TP=2でrankあたり192 MiB空く（TP=3は126〜132 MiB）。rank 0の起動の見積もり101.53 → 101.35 GiB | — |
+| `bench --kinds decode` は `ignore_eos` ではなく、決まった数える要求で上限まで走らせる：`Write the numbers from 1 to 1000, one per line, and nothing else.`、最大512 token（2.5.0） | 2026-10-08 | 上の窓とは別に、TP=2で2.4.0のエンジンで。前の要求（`Count upward from one, one number per line.`、`ignore_eos`）では、両方の重みとも約100 tokenで自分で数えるのを終え、512の残りはそれぞれのmodelが自分の終わりの後に作った会話だった（固定の重みは数え続け、AXLは散文を書いた）。そのためAXLのこの行は固定の重みより2%速いだけで、decode検査は5分の1以上速かった。`ignore_eos` の無い数える要求2つを両方の重みで2回ずつ流すと、どちらも上限まで数え、この要求は両方の重みでtokenまで同じ返答を出し、もう一方は出さなかった。これでAXLは固定の重みより34%速く、decode検査と同じ向き。`finish_reason` が `length` でない行は途中で止まったもので、比べられない（[ベンチマークの方法](benchmarks.ja.md#prefillとdecodeの速さ)） | — |
 
 ## 他で名前を挙げていないエンジンのcommit
 

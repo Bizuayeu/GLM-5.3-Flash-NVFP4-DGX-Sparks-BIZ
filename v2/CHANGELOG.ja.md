@@ -6,6 +6,41 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.5.0 — 2026-10-08
+
+### Changed
+
+- **`bench --kinds decode` は新しい要求を送ります。道具が測るものの変更です：返答はmodel自身の終わりを越えずに、上限まで数えます。** 要求は `Write the numbers from 1 to 1000, one per line, and nothing else.` で、streamで、`ignore_eos` なしで最大512 token、temperature 0、`chat_template_kwargs` は同じです。行には `finish_reason` と、応答の `tensorfold` ブロックの `rounds`・`tokens_per_round`、返答の `sha256` が足されます。前の要求 `Count upward from one, one number per line.`（`ignore_eos` つき）では、modelは約100 tokenで自分で返答を終えていました。512の残りはmodelが自分の終わりの後に作った会話で、重みによって違いました（固定の重みは数え続け、AXLは散文を書いた）。つまりこの行は違う文を比べていました。新しい要求では受け入れのどの行も上限で止まり（`finish_reason` `length`）、TP=2では両方の重みがtokenまで同じ返答を出しました。その値は以前のリリースの `bench --kinds decode` とは比べられません（[ベンチマークの方法](docs/benchmarks.ja.md#prefillとdecodeの速さ)）。
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.5.0` の `8a36b2cb6449821d6204dcaf28618106e8502b63`（[`TENSORFOLD_REF`](docker/Dockerfile)）からTensorFoldを作ります。2.4.0のエンジンに、上流とそのレシピから次を足したものです：
+  - GLMのtool呼び出しで、end tokenが `</tool_call>` より先に来ても、全体がparseできればtool callとして送ります。欠けた `<arg_key>` は戻します（TensorFold #285、MiaAI-Lab）。
+  - serverは起動時に開けるファイル数のsoftの上限をhardの上限まで上げ、acceptでdescriptorを使い切ったら一度ログに出します（TensorFold #294、plotarmordev）。参照機のcontainerでは、shellのsoftの上限が1,024、hardの上限が524,288で、動いているエンジンのsoftの上限は524,288でした。
+  - 会話に引用された `<|image|>` は、本物の画像の隣では文字のままで、要求を400で失敗させません（MiaAI-Labのpatch 0080、Apache-2.0に倣う。書き直しで、codeは写していません）。begin/image/endの並びを丸ごと引用した会話は、今も画像として数えます。
+  - GLMのEXL3/TR3のcheckpointの名を `brandonmusic/GLM-5.3-Flash-tr3-4bpw` にしました。取り下げられたMia-AiLabの再掲は一覧に残すので、その名でpullした写しも試験済みとして認識されます。
+- ほかに：#294の上流の試験は時機によって落ちることがありました（試験のserverが受けたsocketをworkerのthreadで閉じ、それが試験のsqueezeと次のacceptの間に入ることがあった）。forkの試験はその場で閉じるようにしました。エンジンの `THIRD_PARTY_NOTICES.md` は、patch 0080をMiaAI-Labの他のpatchと並べて挙げ、外れたroundの後のcopy draftsの上限をこの木の `MISS_MOST` として説明します。
+- 既定の経路（画像なし・toolなし）のtokenは変わりません：decode検査は両方の重み・両TPで2.4.0のtoken idを出しました。
+
+### Documentation
+
+- 2.4.0のTP=2で、AXLの `bench --kinds decode` が固定の重みより2%速いだけだった原因を、[README](README.ja.md#リリースでの測定値)と[検証](docs/validation.ja.md#prefillとdecodeの速さ)が原因不明としていた所に書きました：前の要求の、終わりの後の会話です。[検証](docs/validation.ja.md)はこのリリースの `bench --kinds decode` の値と引用の `<|image|>` の検査を、[ベンチマークの方法](docs/benchmarks.ja.md#prefillとdecodeの速さ)は新しい要求を載せます。[決定の記録](docs/decisions.ja.md)に要求とエンジンの取り込みの行があります。
+- 公開したAXLの重みのtool-eval-benchを2.x系で測りました（TP=2、下）。HLEは2.x系ではまだ回していません。
+
+### Accepted
+
+2026-10-08に参照機で、画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`、3台で同じ）で、固定の重みとAXLのそれぞれをTP=2とTP=3で：
+
+- decode検査は4回の起動すべてで2.4.0のtoken idを出しました。受理長は3.961／2.098／3.180（固定 TP=2）、3.813／2.004／2.893（AXL TP=2）、4.056／2.222／3.234（固定 TP=3）、3.631／2.060／2.994（AXL TP=3）。
+- 新しい要求での `bench --kinds decode`：どの行も上限で止まりました（`finish_reason` `length`、512 token）。TP=2では両方の重みが同じ返答（`7754eb09bd6615fd`）で、AXLは57.09 tok/s、固定の重みは42.63（+34%）。TP=3ではAXLが76.55 tok/s、固定の重みが56.73（+35%。次の項の但し書きつき）。
+- TP=3の固定の重みの返答（`27fc79ab52b7830f`）も1行に1つずつ上限まで数えましたが、他の返答の234に対して230まででした：数える前の思考が41 tokenで、AXLより11 token長いので、TP=3の2つの返答はtokenまで同じではありません。
+- `bench --kinds edit` は4回の起動すべてで基準の返答（`ecd7a283a48a0cc4`）。
+- TP=2のNLLの組は、両方の重みで2.4.0と4桁まで同じ：固定 2.5474／2.9257／1.3184／0.6250、AXL 2.5556／2.9438／1.3334／0.6474。
+- 固定の重み、TP=2とTP=3：画像の検査はすべて合格。引用の `<|image|>` を本物の画像の隣に含む会話は200を返して画像を読み、引用の無い同じ要求も同じでした（2.4.0は引用のある方を400で断った）。
+- TP=2のtool-eval-bench、前と同じ呼び方（69シナリオ）：固定の重みは直で92、tool引数ゲート越しで93、AXLは89と91。直では両方ともTC-43（`web_search` の空の `query`）でSafety Gateを通らず、ゲート越しでは両方とも通過。2.4.0と同じ点と出方です。
+- この窓では回していないもの：TP=3のNLLの組、長い入力（262Kと1M token）、1M tokenのtool gate、AXLのprefill、AXLでの画像の検査。既定の経路のtoken idは両TPで2.4.0と同じなので、2.4.0のTP=3のNLL、長い入力、1Mのtool gateの結果がこのエンジンにも当てはまります。
+- エンジン自身の試験：briefの一式は1,511 passed（42 skipped）で、GLMのエンジン・EXL3・visionのGPUの試験を含みます。取り込みとAXLの試験は129 passed（3 skipped）。小さなモデルのビットの照合はBF16とFP8とも基準と同じです。
+
 ## 2.4.0 — 2026-10-08
 
 ### Added

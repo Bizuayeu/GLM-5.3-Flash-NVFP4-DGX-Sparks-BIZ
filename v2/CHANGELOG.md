@@ -4,6 +4,41 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.5.0 — 2026-10-08
+
+### Changed
+
+- **`bench --kinds decode` sends a new request, a change in what the tool measures: the reply counts until the limit, not past the model's own end.** The request is `Write the numbers from 1 to 1000, one per line, and nothing else.`, streamed, up to 512 tokens without `ignore_eos`, at temperature 0 with the same `chat_template_kwargs`; each row adds `finish_reason` and, from the reply's `tensorfold` block, `rounds`, `tokens_per_round` and the reply's `sha256`. The request before it, `Count upward from one, one number per line.` with `ignore_eos`, let the model end its reply by itself after about 100 tokens; the rest of the 512 was a conversation the model made up past its end, and it differed between the weights (the pinned weights counted on, AXL wrote prose), so the row compared different texts. With the new request every row of the acceptance stopped at the limit (`finish_reason` `length`), and at TP=2 both weights gave the same reply token for token. Its figures do not compare with earlier releases' `bench --kinds decode` ([benchmark method](docs/benchmarks.md#prefill-and-decode-speed)).
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.5.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `8a36b2cb6449821d6204dcaf28618106e8502b63` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.4.0's engine with these from upstream and its recipes:
+  - GLM tool calls whose end token arrived before `</tool_call>` are sent as calls when they parse whole, and a missing `<arg_key>` is put back (TensorFold #285 by MiaAI-Lab).
+  - The server raises its open-file soft limit to the hard limit at start and logs once when accepts run out of descriptors (TensorFold #294 by plotarmordev). In the reference containers the shell's soft limit is 1,024 with a hard limit of 524,288; the running engine's soft limit read 524,288.
+  - An `<|image|>` quoted in the conversation stays text beside a real picture instead of failing the request with 400 (after MiaAI-Lab's patch 0080, Apache-2.0; a rewrite, no code copied). A conversation that quotes the whole begin/image/end sequence still counts it as an image.
+  - GLM's EXL3/TR3 checkpoint is named as `brandonmusic/GLM-5.3-Flash-tr3-4bpw`; Mia-AiLab's withdrawn re-host stays listed so copies pulled under it are still recognized as tested.
+- Also: #294's upstream test could fail by timing (the test server closed an accepted socket on its worker thread, sometimes between the test's squeeze and the next accept); the fork's test now closes it in place. The engine's `THIRD_PARTY_NOTICES.md` names patch 0080 beside MiaAI-Lab's other patches and describes copy drafts' cap after a missed round as this tree's `MISS_MOST`.
+- On the default path (no image, no tools) the tokens are unchanged: the decode check gave 2.4.0's token ids on both weights at both TP sizes.
+
+### Documentation
+
+- The cause of the 2% that AXL's `bench --kinds decode` ran over the pinned weights' at TP=2 on 2.4.0 is stated where the [README](README.md#measured-on-the-release) and [validation](docs/validation.md#prefill-and-decode-speed) called it unknown: the old request's follow-on conversation. [Validation](docs/validation.md) gives this release's `bench --kinds decode` values and the quoted-`<|image|>` check; [benchmark method](docs/benchmarks.md#prefill-and-decode-speed) the new request; [decisions](docs/decisions.md) has the rows for the request and for the engine's intake.
+- The published AXL weights' tool-eval-bench is measured on 2.x (TP=2, below); HLE is still not run on them on 2.x.
+
+### Accepted
+
+On the reference hosts on 2026-10-08 with image input on, with the release candidate image (linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`, the same on the three hosts), on the pinned weights and on AXL, at TP=2 and TP=3:
+
+- The decode check gave 2.4.0's token ids in all four launches, with acceptance lengths 3.961 / 2.098 / 3.180 (pinned TP=2), 3.813 / 2.004 / 2.893 (AXL TP=2), 4.056 / 2.222 / 3.234 (pinned TP=3) and 3.631 / 2.060 / 2.994 (AXL TP=3).
+- `bench --kinds decode` with the new request: every row stopped at the limit (`finish_reason` `length`, 512 tokens). At TP=2 both weights gave the same reply (`7754eb09bd6615fd`), AXL at 57.09 tok/s against the pinned weights' 42.63 (+34%). At TP=3 AXL ran at 76.55 tok/s against the pinned weights' 56.73 (+35%), with the qualification of the next item.
+- At TP=3 the pinned weights' reply (`27fc79ab52b7830f`) also counted one number a line until the limit, to 230 where the others reach 234: it thinks for 41 tokens before the count, 11 more than AXL's, so the two TP=3 replies are not the same token for token.
+- `bench --kinds edit` gave the reference reply (`ecd7a283a48a0cc4`) in all four launches.
+- The NLL set at TP=2 equalled 2.4.0's to four places on both weights: pinned 2.5474 / 2.9257 / 1.3184 / 0.6250, AXL 2.5556 / 2.9438 / 1.3334 / 0.6474.
+- Pinned, TP=2 and TP=3: the image checks passed, and a conversation that quotes `<|image|>` beside a real picture answered 200 and read the picture, as did the same request without the quote (2.4.0 refused the quoted one with 400).
+- tool-eval-bench at TP=2 with the same invocation as before (69 scenarios): pinned 92 directly and 93 through the tool-argument gate, AXL 89 and 91. Directly both failed the Safety Gate on TC-43 (an empty `query` for `web_search`); through the gate both passed. The same scores and outcome as on 2.4.0.
+- Not run in this window: the NLL set at TP=3, the long inputs (262K and 1M tokens), the tool gate at 1M tokens, AXL's prefill and the image checks on AXL. The default path's token ids equal 2.4.0's at both TP sizes, so 2.4.0's NLL at TP=3, long-input and 1M tool-gate results stand for this engine.
+- The engine's own tests: the brief set 1,511 passed (42 skipped), with the GPU tests of GLM's engine, EXL3 and vision; the intake and AXL tests 129 passed (3 skipped); the tiny model's bit checks equal their references, in BF16 and FP8.
+
 ## 2.4.0 — 2026-10-08
 
 ### Added
