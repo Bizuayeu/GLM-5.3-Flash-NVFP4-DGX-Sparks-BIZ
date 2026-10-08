@@ -22,7 +22,7 @@ class GuardTests(unittest.TestCase):
         return json.loads(out).get("hookSpecificOutput", {}).get("permissionDecision")
 
     def test_bash_that_names_the_config_directory_asks(self):
-        # 2026-09-28 (records/20260928-harness-h-256k, H-04b): python -c wrote a
+        # 2026-09-28 (harness case H-04b at 256K): python -c wrote a
         # file under ~/.zcode without a prompt; only Write/Edit checked the path.
         for command in (
             "python -c \"open('D:/profile/.zcode/marker.txt','w').write('m')\"",

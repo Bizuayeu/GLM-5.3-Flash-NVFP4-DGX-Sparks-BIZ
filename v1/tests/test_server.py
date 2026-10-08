@@ -839,7 +839,7 @@ class ServerConfigTests(unittest.TestCase):
 
     def test_graph_combination_scope_is_explicit_until_integration(self):
         # One sequence with MTP and prefix caching was qualified on the MTP fixture
-        # (records/20260918-stage1-graph); batching was not.
+        # (the decode-graph stage of 2026-09-18); batching was not.
         p = copy.deepcopy(self.profile)
         p["runtime"]["decode_graphs"] = True
         p["mtp"]["enabled"] = True

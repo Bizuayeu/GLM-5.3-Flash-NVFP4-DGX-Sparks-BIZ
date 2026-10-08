@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from glm53_tf import decode_check, decode_divergence
 
-# The stream's last chunk on TensorFold (records/20261003-tp3/t5, U3 on b1-2rail).
+# The stream's last chunk on TensorFold (a TP=3 run, 2026-10-03).
 TF_BLOCK = {"rounds": 26, "accepted": 38, "drafted": 59, "tokens_per_round": 2.423}
 
 

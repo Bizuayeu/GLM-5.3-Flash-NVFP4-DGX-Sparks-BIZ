@@ -232,7 +232,7 @@ class TelemetryTests(unittest.TestCase):
         )
 
     def test_a_record_keeps_its_fields_and_appends_the_counters(self):
-        # A line of nvidia-smi's at nounits (records/20261006-prefill-modes, edgexpert01),
+        # A line of nvidia-smi's at nounits (a GB10 host, 2026-10-06),
         # and a line of the old five fields, which is skipped.
         lines = [
             "53, 10.14, 2190, 0, 0x0000000000000004, 55157801736, 0, 0, 0, 0\n",
