@@ -7,8 +7,8 @@ ARG BASE_IMAGE=nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc38
 FROM ${BASE_IMAGE}
 
 ARG TENSORFOLD_REPO=https://github.com/Bizuayeu/TensorFold.git
-# The one place the engine version is set: a full commit SHA of the fork's release branch (release/2.4.0).
-ARG TENSORFOLD_REF=ab8e74161ba807d9a637fee02d19edb932276257
+# The one place the engine version is set: a full commit SHA of the fork's release branch (release/2.5.0).
+ARG TENSORFOLD_REF=8a36b2cb6449821d6204dcaf28618106e8502b63
 RUN echo "$TENSORFOLD_REF" | grep -Eqx '[0-9a-f]{40}' \
  || { echo "TENSORFOLD_REF must be a full commit SHA, not '$TENSORFOLD_REF'" >&2; exit 1; }
 
