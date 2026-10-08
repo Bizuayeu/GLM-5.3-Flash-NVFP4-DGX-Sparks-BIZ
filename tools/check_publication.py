@@ -505,9 +505,52 @@ def duplicate_numbers(root, files):
     return {key: sorted(names) for key, names in seen.items() if len(names) > 1}
 
 
+# A run directory of the untracked records/ (records/<YYYYMMDD>-<topic>), which no reader of
+# the public repository can open: a public file says what was measured instead.
+RECORD_PATH = re.compile(r"records/\d{8}-")
+# Files allowed their current count. The data's own provenance stays with the data; the
+# documents and the overlay keep theirs until they are rewritten in words (1.x's documents
+# and its pair modes, the private plans' deferred list), and their counts then go down.
+RECORD_PATHS_ALLOWED = {
+    "v1/config/nll_set.json": 4,  # provenance of each measured set
+    "v2/config/nll_set.json": 4,  # 1.x's set, byte for byte
+    "v1/config/freedombench-ja.lock.json": 1,  # provenance
+    "v1/docs/benchmarks.md": 9,  # until 1.x's documents are next edited
+    "v1/docs/benchmarks.ja.md": 9,
+    "v1/docs/candidate-order.md": 1,
+    "v1/docs/candidate-order.ja.md": 1,
+    "v1/docs/freedombench.md": 1,
+    "v1/docs/freedombench.ja.md": 1,
+    "v1/overlays/kda-quant-split.py": 1,  # its hash is pinned; until 1.x's pair modes run
+}
+
+
+def record_path_problems(root, files):
+    """A public file that names a private records/ run directory, beyond what
+    ``RECORD_PATHS_ALLOWED`` allows it; an allowance above the file's count is stale."""
+    found = []
+    for name in sorted(files):
+        try:
+            text = (root / name).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        count = len(RECORD_PATH.findall(text))
+        allowed = RECORD_PATHS_ALLOWED.get(name, 0)
+        if count > allowed:
+            found.append(f"private record path: {name} ({count}, allowed {allowed})")
+        elif count < allowed:
+            found.append(
+                f"stale record-path allowance: {name} ({count}, allowed {allowed})"
+            )
+    for name in sorted(set(RECORD_PATHS_ALLOWED) - set(files)):
+        found.append(f"stale record-path allowance: {name} (not a public file)")
+    return found
+
+
 def problems(root, files, plans=False):
     """Every issue of the repository at ``root`` whose public files are ``files``."""
     found = audit(root, files)
+    found += record_path_problems(root, files)
     documents = {name for name in files if name.endswith(".md")}
     texts = {name: (root / name).read_text(encoding="utf-8") for name in documents}
     found += anchor_problems(texts)

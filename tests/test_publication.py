@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from tools.check_publication import (
@@ -17,6 +18,7 @@ from tools.check_publication import (
     plan_link_problems,
     problems,
     recipe_problems,
+    record_path_problems,
 )
 
 
@@ -399,6 +401,53 @@ def write(root, files):
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(text, encoding="utf-8")
     return set(files)
+
+
+RUN = "records/" + "20260101-run"  # built, so this file names no run itself
+
+
+class RecordPathTests(unittest.TestCase):
+    """A public file says what was measured, not which private records/ run holds it."""
+
+    ALLOWED = {"v1/docs/benchmarks.md": 9}
+
+    def check(self, files):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = write(root, files)
+            with unittest.mock.patch(
+                "tools.check_publication.RECORD_PATHS_ALLOWED", self.ALLOWED
+            ):
+                return record_path_problems(root, names)
+
+    def test_a_file_naming_a_run_is_reported_without_the_path(self):
+        found = self.check(
+            {
+                "v1/tests/test_x.py": f"# measured on the pair ({RUN})\n",
+                "v1/docs/vision.md": "measured on the pair, 2026-01-01\n",
+                "v1/docs/benchmarks.md": f"{RUN}/a\n" * 9,
+            }
+        )
+        self.assertEqual(
+            found, ["private record path: v1/tests/test_x.py (1, allowed 0)"]
+        )
+
+    def test_an_allowance_holds_its_count_both_ways(self):
+        more = self.check({"v1/docs/benchmarks.md": f"{RUN}/a\n" * 10})
+        self.assertEqual(
+            more, ["private record path: v1/docs/benchmarks.md (10, allowed 9)"]
+        )
+        fewer = self.check({"v1/docs/benchmarks.md": f"{RUN}/a\n" * 8})
+        self.assertEqual(
+            fewer, ["stale record-path allowance: v1/docs/benchmarks.md (8, allowed 9)"]
+        )
+
+    def test_an_allowance_for_a_file_that_is_gone_is_stale(self):
+        found = self.check({"README.md": "x"})
+        self.assertEqual(
+            found,
+            ["stale record-path allowance: v1/docs/benchmarks.md (not a public file)"],
+        )
 
 
 LINE2 = {
