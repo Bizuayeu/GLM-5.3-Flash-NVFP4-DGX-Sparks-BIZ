@@ -6,6 +6,15 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.6.0 — 2026-10-08
+
+### Changed
+
+- `bench` のsummaryは、上限の4,096 tokenで切れたeditの返事（`finish_reason` が `length`）をeditの中央値から外し、新しい `cut` がそうした行を種類ごとに数えます。行は今までどおり印字・記録し、`all` にも速さを残します。これまでは、[測定](docs/benchmarks.ja.md)が編集を測っていないと書いていた切れた返事も中央値に入っていました。
+- `verify-download` は、`state/` にダウンロードの状態が無いホスト（`download` がまだ登録していない写したcache）では、`checksum-status.json` に `no download status` を記録し、回すべき `download` のコマンドを出して終了コード1で終わります。これまでは `FileNotFoundError` で止まっていました。写した後に `download` を一度回すことは[手順書](SETUP.ja.md#2-checkoutとcheckpoint)にあります。
+
+imageに入るファイルは変わらず、2.5.0のimage（linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`）のままです。
+
 ## 2.5.1 — 2026-10-08
 
 ### Changed

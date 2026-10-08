@@ -4,6 +4,15 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.6.0 — 2026-10-08
+
+### Changed
+
+- `bench`'s summary leaves an edit reply cut at its 4,096-token limit (`finish_reason` `length`) out of the edit median, and its new `cut` counts such rows by kind. The row is still printed and written, and `all` keeps its rate. Before, a cut reply, which [benchmarks](docs/benchmarks.md) already said does not measure an edit, went into the median.
+- `verify-download` on a host whose `state/` holds no download status (a copied cache that `download` has not registered) records `no download status` in `checksum-status.json`, prints the `download` command to run and exits 1, instead of stopping on `FileNotFoundError`; [SETUP](SETUP.md#2-checkout-and-checkpoint) says to run `download` once after a copy.
+
+No file of the image changes; it stays 2.5.0's (linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`).
+
 ## 2.5.1 — 2026-10-08
 
 ### Changed
