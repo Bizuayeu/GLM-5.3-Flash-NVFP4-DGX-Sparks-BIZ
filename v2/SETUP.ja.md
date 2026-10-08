@@ -35,7 +35,7 @@ python -m glm53_tf download --checkpoint axl --background
 python -m glm53_tf verify-download --checkpoint axl --hf .venv/bin/hf --output ../records/checksum-axl --wait
 ```
 
-その後、他のホストへcacheを写し、写しごとに同じ `verify-download` で検証します。写し方と、読み込む前に検証する理由は[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じです。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
+その後、他のホストへcacheを写し、写しごとに同じ `verify-download` で検証します。各ホストで先に `download` を一度（AXLは `--checkpoint axl` を付けて）回して `state/` にsnapshotを記録させ（写したファイルを使い、欠けたものだけ取ります）、それから `verify-download` を `--wait` なしで回します。写し方と、読み込む前に検証する理由は[1.x系の手順3](../v1/SETUP.ja.md#3-重みを一度取得しそれぞれのコピーを検証する)と同じです。エンジンは各ホストのHugging Faceのcache（既定は `~/.cache/huggingface/hub`）から読みます。
 
 写す前に、modelのフォルダがファイルを持っていることを確かめます。たとえば大きさで（`du -sh ~/.cache/huggingface/hub/models--<owner>--<name>`）。新しいHugging Face hubのclientは、modelのファイルをcache全体で共有する置き場（`hub/blobs/xx/…`）に置き、modelのフォルダにはlinkだけを残すことがあります：参照機の1台ではhuggingface_hub 1.32.0がそうしました。lockが入れる版の1.30.0は、他の機でmodel自身の `blobs/` に置きました。そのようなフォルダを写すとlinkしか写らず、写し先の次の `download` がInternetから全部取り直します。共有の `hub/blobs/` の中身も写すか、全ホストで同じ版のclientを使います。
 
@@ -100,7 +100,7 @@ toolを使うクライアントはport 8896へつなぎます。
 
 ## 8. 受け入れ
 
-日常の利用の前に[検証](docs/validation.ja.md)の項目を回し、基準値と比べます。最初にdecode検査、次にNLL、それから長い入力とtool-eval-benchです。長い要求の間はホストを冷まします。
+日常の利用の前に[検証](docs/validation.ja.md)の項目を、decode検査（`bench --kinds edit` の応答を含む）からメモリと温度まで、その順に回して基準値と比べます。公開のAXLの重みの基準値は、検証にあるものはそれ自身の値です。長い要求の間はホストを冷まします。
 
 2.x系がimageごとに何について受け入れられているかはREADMEの[状態](README.ja.md#要約)、各項目の証拠は[リリースでの測定値](README.ja.md#リリースでの測定値)にあります。その範囲の外は検収していません。
 

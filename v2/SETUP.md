@@ -35,7 +35,7 @@ python -m glm53_tf download --checkpoint axl --background
 python -m glm53_tf verify-download --checkpoint axl --hf .venv/bin/hf --output ../records/checksum-axl --wait
 ```
 
-Then copy the cache to the other hosts and verify each copy with the same `verify-download`; how to copy, and why to verify before loading, are as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The engine reads the checkpoint from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
+Then copy the cache to the other hosts and verify each copy with the same `verify-download`: on each, run `download` once (with `--checkpoint axl` for AXL) so that its `state/` records the snapshot, which reuses the copied files and fetches only a missing one, then `verify-download` without `--wait`; how to copy, and why to verify before loading, are as in [1.x step 3](../v1/SETUP.md#3-acquire-the-checkpoint-once-and-verify-each-copy). The engine reads the checkpoint from each host's Hugging Face cache, by default `~/.cache/huggingface/hub`.
 
 Before copying, check that the model's folder holds the files, for example by its size (`du -sh ~/.cache/huggingface/hub/models--<owner>--<name>`). Newer Hugging Face hub clients can keep a model's files in a store shared by the whole cache (`hub/blobs/xx/…`) and leave only links in the model's folder: huggingface_hub 1.32.0 did on one reference host, while 1.30.0, the version the lock installs, kept them under the model's own `blobs/` on the others. Copying such a folder copies the links only, and the next `download` on the receiving host fetches everything from the Internet again. Copy the shared `hub/blobs/` entries too, or use the same client version on every host.
 
@@ -100,7 +100,7 @@ Clients that use tools then talk to port 8896.
 
 ## 8. Accept
 
-Run the checks of [validation](docs/validation.md) and compare them with its reference values before routine use: the decode check first, then NLL, then the long inputs and tool-eval-bench. Let the hosts cool between long requests.
+Run the checks of [validation](docs/validation.md) in its order and compare them with its reference values before routine use, from the decode check (with `bench --kinds edit`'s reply) to memory and temperature. On the published AXL weights the references are their own, where validation gives them. Let the hosts cool between long requests.
 
 What 2.x is accepted for, image by image, is the README's [status](README.md#summary), and each item's evidence is in [measured on the release](README.md#measured-on-the-release); nothing outside that scope is qualified.
 
