@@ -11,8 +11,8 @@ from pathlib import Path
 from .config import LINE, MODEL, REVISION, STATE
 from .io import write_json
 
-# Under STATE; the checksum run (verify_download) and, in 1.x, the server preflight
-# read what this writes there.
+# Under STATE; the checksum run (verify_download) and the server preflight read what
+# this writes there.
 STATUS_FILE = "download-status.json"
 
 
