@@ -43,7 +43,7 @@
 
 `python -m glm53_tf bench` が両方をそれぞれ3回ずつ走らせます。`--kinds prefill --runs 1` で1つのpromptを送り（冷却gateの後ごとに）、`--lines 250` で約3,000 tokenの慣らしになり、`--out` は要求ごとに1行を足します。行には応答の `prefill_s`・`heat_wait_s`・`cached` と、要求の開始と終了のepochが入ります。
 
-**編集のdecode（`--kinds edit`、頼んだときだけ）。** copy draftsのために足しました。copy draftsは文脈からdraftを作るので、返事が文脈を繰り返すところでしか効きません。promptは約6,000文字の決まったPythonのmoduleをcode blockに入れたものと、名前を挙げた1行の編集3つで、`Return the whole module with only these edits, in one code block` と頼みます。毎回同じです（nonceは無いので、2回目からは保持promptから再開することがありますが、decodeの速さには触れません）。streamで、temperature 0、effort low、最大4,096 tokenで、返事は自分で終わります。`finish_reason` が `length` なら返事が切れたということで、その行は編集を測っていません。速さは上のdecodeと同じ取り方で、codeの前の推論のtokenも入ります。行には `prompt_tokens`・`finish_reason` と、応答の `rounds`・`drafted`・`accepted`・`copy_rounds`・`copy_drafted`・`copy_accepted`・`sha256`（token idのhash。回の間でも、copy draftsの有無でも変わりません）が足されます。
+**編集のdecode（`--kinds edit`、頼んだときだけ）。** copy draftsのために足しました。copy draftsは文脈からdraftを作るので、返事が文脈を繰り返すところでしか効きません。promptは約6,000文字の決まったPythonのmoduleをcode blockに入れたものと、名前を挙げた1行の編集3つで、`Return the whole module with only these edits, in one code block` と頼みます。毎回同じです（nonceは無いので、2回目からは保持promptから再開することがありますが、decodeの速さには触れません）。streamで、temperature 0、effort low、最大4,096 tokenで、返事は自分で終わります。`finish_reason` が `length` なら返事が切れたということで、その行は編集を測っていません（2.6.0からsummaryの中央値はその行を外し、`cut` が数えます）。速さは上のdecodeと同じ取り方で、codeの前の推論のtokenも入ります。行には `prompt_tokens`・`finish_reason` と、応答の `rounds`・`drafted`・`accepted`・`copy_rounds`・`copy_drafted`・`copy_accepted`・`sha256`（token idのhash。回の間でも、copy draftsの有無でも変わりません）が足されます。
 
 ## 長い入力
 

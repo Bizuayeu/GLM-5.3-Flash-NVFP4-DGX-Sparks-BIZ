@@ -21,7 +21,7 @@ edit (only when asked for): a fixed Python module of about 6,000 characters and 
   copy_drafted, copy_accepted and sha256 (the token ids' hash: the same every run at temperature 0).
 The prefill and decode rows also carry the reply's `tensorfold` fields prefill_s, heat_wait_s and cached,
 and every row the request's start and end epochs. One JSON line per request, then a summary with each
-kind's median.
+kind's median; an edit reply cut at its limit is left out of the median and counted under "cut".
 
     python -m glm53_tf bench --kinds prefill --runs 1 --lines 250    (warm-up, about 3,000 tokens)
     python -m glm53_tf bench --out ../records/<run>/bench.jsonl
@@ -396,6 +396,13 @@ def edit(_args):
 RUN = {"prefill": prefill, "decode": decode, "edit": edit}
 
 
+def compares(row):
+    """An edit reply cut at its limit (finish_reason length) is not the edited module:
+    its rate stays in the row and in the summary's "all" but not in the median, and the
+    summary's "cut" counts it by kind."""
+    return not (row["kind"] == "edit" and row["finish_reason"] == "length")
+
+
 def kinds(text):
     names = text.split(",")
     unknown = [k for k in names if k not in KINDS + OPTIONAL]
@@ -418,11 +425,15 @@ def main(argv=None):
     parser.add_argument("--lines", type=int, default=LINES, help="the prefill's lines")
     parser.add_argument("--out", help="a JSONL file that receives one row per request")
     args = parser.parse_args(argv)
-    speeds = {}
+    speeds, kept, cut = {}, {}, {}
     for kind in args.kinds:
         for _ in range(args.runs):
             row = RUN[kind](args)
             speeds.setdefault(kind, []).append(row["tok_per_s"])
+            if compares(row):
+                kept.setdefault(kind, []).append(row["tok_per_s"])
+            else:
+                cut[kind] = cut.get(kind, 0) + 1
             if args.out:
                 with open(args.out, "a", encoding="utf-8") as f:
                     f.write(json.dumps(row) + "\n")
@@ -430,8 +441,9 @@ def main(argv=None):
     print(
         json.dumps(
             {
-                "summary": {k: statistics.median(v) for k, v in speeds.items()},
+                "summary": {k: statistics.median(v) for k, v in kept.items()},
                 "all": speeds,
+                **({"cut": cut} if cut else {}),
                 "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             }
         ),

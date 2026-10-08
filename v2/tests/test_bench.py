@@ -54,13 +54,13 @@ def prefill_reply(prompt_tokens=38960, cached=0):
     return [json.dumps(reply).encode()]
 
 
-def decode_reply(n=4):
+def decode_reply(n=4, finish="length"):
     """A streamed reply: one reasoning chunk, then content, the end chunk and usage."""
     chunks = [{"choices": [{"delta": {"reasoning_content": "go"}}]}]
     chunks += [{"choices": [{"delta": {"content": f"{i}\n"}}]} for i in range(n - 1)]
     chunks += [
         {
-            "choices": [{"delta": {}, "finish_reason": "length"}],
+            "choices": [{"delta": {}, "finish_reason": finish}],
             "tensorfold": dict(BLOCK, token_ids=list(range(n))),
         },
         {"choices": [], "usage": {"prompt_tokens": 17, "completion_tokens": n}},
@@ -79,11 +79,12 @@ class Reply(list):
         return b"".join(self)
 
 
-def run(argv, sent=None, auth=None):
+def run(argv, sent=None, auth=None, edit_finish="stop"):
     """Run main() against canned replies; return its printed JSON lines.
 
     Every monotonic reading is one second after the previous; `sent` collects the
-    request bodies and `auth` their Authorization headers.
+    request bodies and `auth` their Authorization headers. The decode reply runs to
+    its limit; an edit reply ends with `edit_finish` (on its own unless told).
     """
     sent = [] if sent is None else sent
     auth = [] if auth is None else auth
@@ -92,6 +93,8 @@ def run(argv, sent=None, auth=None):
         auth.append(req.get_header("Authorization"))
         body = json.loads(req.data)
         sent.append(body)
+        if body == bench.edit_body():
+            return Reply(decode_reply(finish=edit_finish))
         return Reply(decode_reply() if body.get("stream") else prefill_reply())
 
     out = io.StringIO()
@@ -248,7 +251,7 @@ class RowTests(unittest.TestCase):
                 "kind": "edit",
                 "prompt_tokens": 17,
                 "completion_tokens": 4,
-                "finish_reason": "length",
+                "finish_reason": "stop",
                 "ttft": 1.0,
                 "seconds_after_first": 1.0,
                 "tok_per_s": 3.0,
@@ -258,6 +261,14 @@ class RowTests(unittest.TestCase):
             },
         )
         self.assertEqual(summary["summary"], {"edit": 3.0})
+        self.assertNotIn("cut", summary)
+
+    def test_an_edit_reply_cut_at_its_limit_is_left_out_of_the_median(self):
+        lines = run(["--kinds", "decode,edit", "--runs", "2"], edit_finish="length")
+        summary = lines[-1]
+        self.assertEqual(summary["summary"], {"decode": 3.0})
+        self.assertEqual(summary["all"]["edit"], [3.0, 3.0])
+        self.assertEqual(summary["cut"], {"edit": 2})
 
     def test_a_reply_without_a_block_records_an_empty_one(self):
         self.assertEqual(bench.kept(None), {})
