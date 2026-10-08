@@ -55,6 +55,21 @@ class CheckpointTests(unittest.TestCase):
         self.assertRegex(revision, r"^[0-9a-f]{40}$")
         self.assertEqual(state, Path("state/axl"))
 
+    def test_both_tools_explain_the_checkpoint_choice(self):
+        import contextlib
+        import io
+
+        from glm53_tf import download, verify_download
+
+        for tool in (download, verify_download):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out), self.assertRaises(SystemExit):
+                tool.main(["--help"])
+            self.assertIn(
+                " ".join(config.CHECKPOINT_HELP.split()),
+                " ".join(out.getvalue().split()),
+            )
+
     def test_an_unknown_checkpoint_is_refused(self):
         with self.assertRaisesRegex(ValueError, "unknown checkpoint"):
             config.checkpoint("other", Path("state"))

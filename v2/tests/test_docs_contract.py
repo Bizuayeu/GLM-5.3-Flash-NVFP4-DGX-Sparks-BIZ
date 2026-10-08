@@ -279,6 +279,15 @@ class LockTests(unittest.TestCase):
                 found = [a or b for a, b in written.findall(read(f"{page}{suffix}.md"))]
                 self.assertTrue(found, page + suffix)
                 self.assertEqual(set(found), {lock["revision"]}, page + suffix)
+        # Every rank file offers it as a commented CHECKPOINT line, so a rank that takes it
+        # takes this revision.
+        for path in sorted((LINE / "examples").glob("tp*-rank*.env")):
+            offered = re.findall(
+                r"^# CHECKPOINT=\S*/snapshots/([0-9a-f]+)$",
+                path.read_text(encoding="utf-8"),
+                re.M,
+            )
+            self.assertEqual(offered, [lock["revision"]], path.name)
 
 
 class SiteFileTests(unittest.TestCase):

@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import CHECKPOINTS, STATE, checkpoint
+from .config import CHECKPOINT_HELP, CHECKPOINTS, STATE, checkpoint
 from .download import STATUS_FILE
 from .io import write_json
 
@@ -18,7 +18,9 @@ def main(argv=None):
     parser.add_argument("--hf", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--wait", action="store_true")
-    parser.add_argument("--checkpoint", choices=CHECKPOINTS, default="pinned")
+    parser.add_argument(
+        "--checkpoint", choices=CHECKPOINTS, default="pinned", help=CHECKPOINT_HELP
+    )
     args = parser.parse_args(argv)
     model, revision, state = checkpoint(args.checkpoint, STATE)
     args.output.mkdir(parents=True, exist_ok=True)

@@ -16,6 +16,9 @@ LOCK_PATH = LINE / "config/model.lock.json"
 # fetch with --checkpoint axl; serving them is the rank file's CHECKPOINT (README.md).
 AXL_LOCK_PATH = LINE / "config/axl.lock.json"
 CHECKPOINTS = ("pinned", "axl")
+CHECKPOINT_HELP = (
+    "pinned (NVIDIA's, the default) or axl (the published option, kept under state/axl)"
+)
 
 
 def load_lock(path=None):

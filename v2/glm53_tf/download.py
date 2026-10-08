@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import CHECKPOINTS, LINE, STATE, checkpoint
+from .config import CHECKPOINT_HELP, CHECKPOINTS, LINE, STATE, checkpoint
 from .io import write_json
 
 # In the checkpoint's state folder (config.checkpoint); the checksum run
@@ -83,7 +83,9 @@ def download(name="pinned"):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--background", action="store_true")
-    parser.add_argument("--checkpoint", choices=CHECKPOINTS, default="pinned")
+    parser.add_argument(
+        "--checkpoint", choices=CHECKPOINTS, default="pinned", help=CHECKPOINT_HELP
+    )
     args = parser.parse_args(argv)
     state = checkpoint(args.checkpoint, STATE)[2]
     if args.background:
