@@ -4,6 +4,14 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.6.1 — 2026-10-09
+
+### Changed
+
+- The publication audit (`tools/check_publication.py`, run by CI) reports a public file that names a run directory of the untracked `records/`, which no reader of the repository can open; a public file says what was measured instead. The files that name runs today are listed with their counts: the measured sets' provenance in `config/`, for good, and 1.x's benchmarks, FreedomBench and candidate-order pages and one overlay until they are next rewritten. A listed file above its count, or below it, is reported too, so the list only shrinks.
+
+No file of the image changes; it stays 2.5.0's (linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`).
+
 ## 2.6.0 — 2026-10-08
 
 ### Changed
