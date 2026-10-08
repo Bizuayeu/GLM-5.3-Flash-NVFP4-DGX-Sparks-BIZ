@@ -4,6 +4,22 @@
 
 正典は[英語版](CHANGELOG.md)です。GitHub Releaseの本文は英語版の各版の節から作られます。1.5.0以前の節は後から訳して加えました。項目は英語版と同じ順に並べています。
 
+## 1.31.0 — 2026-10-09
+
+### Changed
+
+- `state/` にダウンロードの状態が無いホスト（`download` がまだ登録していない、写したcache）では、`verify-download` は `--wait` の有無によらず、`FileNotFoundError` で止まる代わりに `checksum-status.json` に `no download status` を記録し、回すべき `download` を表示して1で終わります。2.x系の2.6.0と同じです。写したあとに `download` を一度回すことは[運用手順](docs/operations.ja.md#一度取得して検証する)にあります。
+- 挙動を変えないコードの整理：profileの検査は、撤去した二つのkey（`runtime.mla_decode_cpb`、`nodes[].host_interface_wifi_test`）を一つの表から、以前と同じ文面で拒みます。`download.py` は状態ファイルの二つの読み手を素直に書きます。
+- [KDAのoverlay](overlays/README.md)の、分割したinput projectionについてのコメントは、非公開の記録を引かず、測ったものを書きます。コードは変わりませんが、固定したSHA-256はoverlaysのREADMEと[AXLの例](examples/server.axl.example.toml)で `154f25b8…` になりました。profileは固定している写しのまま動きます。新しいファイルを写すときは、新しいhashも一緒に設定してください。TP=2とTP=3の起動のgoldenが動くのは、AXLのprofileのfingerprintと起動のラベルだけです。
+
+### Documentation
+
+- [ベンチマーク](docs/benchmarks.ja.md)、[候補の並び](docs/candidate-order.ja.md)、[FreedomBench](docs/freedombench.ja.md)は、読者が開けない非公開の `records/` のrunディレクトリではなく、日付と条件で測定を引きます。公開監査は、これらのページにそのパスをもう許しません。
+
+### Reference image
+
+2026-10-09にこの版の木から作りました：参照機で `sha256:REFERENCE_IMAGE_TBD`。
+
 ## 1.30.1 — 2026-10-08
 
 ### Changed

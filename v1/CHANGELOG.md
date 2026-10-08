@@ -2,6 +2,22 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.31.0 — 2026-10-09
+
+### Changed
+
+- `verify-download` on a host whose `state/` holds no download status (a copied cache that `download` has not registered) records `no download status` in `checksum-status.json`, prints the `download` command to run and exits 1, with or without `--wait`, instead of stopping on `FileNotFoundError`, as 2.x has since 2.6.0; [operations](docs/operations.md#acquire-and-verify-once) says to run `download` once after a copy.
+- Code tidied with no behaviour change: the profile check refuses the two removed keys (`runtime.mla_decode_cpb`, `nodes[].host_interface_wifi_test`) from one table, with the same texts as before, and `download.py` names the two readers of its status file plainly.
+- The [KDA overlay's](overlays/README.md) comment on the split input projection says what was measured instead of citing a private record. Its code is unchanged, but its pinned SHA-256 is now `154f25b8…` in the overlays README and the [AXL example](examples/server.axl.example.toml). A profile keeps working with the copy it pins; copying the new file means setting the new hash with it. The TP=2 and TP=3 launch goldens move only in the AXL profiles' fingerprint and startup label.
+
+### Documentation
+
+- [Benchmarks](docs/benchmarks.md), [candidate order](docs/candidate-order.md) and [FreedomBench](docs/freedombench.md) cite their runs by date and conditions instead of private `records/` run directories, which readers cannot open; the publication audit no longer allows such a path in them.
+
+### Reference image
+
+Built on 2026-10-09 from this release's tree: `sha256:REFERENCE_IMAGE_TBD` on the reference hosts.
+
 ## 1.30.1 — 2026-10-08
 
 ### Changed
