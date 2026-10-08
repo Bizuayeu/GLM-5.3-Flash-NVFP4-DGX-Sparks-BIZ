@@ -22,9 +22,13 @@ BLOCK = {
     "copy_drafted": 5,
     "copy_accepted": 3,
     "sha256": "0123456789abcdef",
+    "tokens_per_round": 3.5,
     "stages_ms": {"draft": 1.0},
 }
 BLOCK_KEPT = {"prefill_s": 30.25, "heat_wait_s": 1.5, "cached": 0}
+DECODE_KEPT = dict(
+    BLOCK_KEPT, rounds=1, tokens_per_round=3.5, sha256="0123456789abcdef"
+)
 EDIT_KEPT = {
     "cached": 0,
     "rounds": 1,
@@ -144,19 +148,25 @@ class PromptTests(unittest.TestCase):
             [
                 {
                     "role": "user",
-                    "content": "Count upward from one, one number per line.",
+                    "content": "Write the numbers from 1 to 1000, "
+                    "one per line, and nothing else.",
                 }
             ],
         )
         self.assertEqual(
-            {k: body[k] for k in ("max_tokens", "ignore_eos", "temperature", "stream")},
-            {"max_tokens": 512, "ignore_eos": True, "temperature": 0, "stream": True},
+            {k: body[k] for k in ("max_tokens", "temperature", "stream")},
+            {"max_tokens": 512, "temperature": 0, "stream": True},
         )
         self.assertEqual(body["stream_options"], {"include_usage": True})
         self.assertEqual(
             body["chat_template_kwargs"],
             {"reasoning_effort": "low", "clear_thinking": True},
         )
+
+    def test_the_decode_reply_ends_at_the_limit_not_past_the_models_end(self):
+        # The count runs past 512 tokens, so the limit ends it; ignore_eos would rate
+        # what the model makes up after it stops by itself.
+        self.assertNotIn("ignore_eos", bench.decode_body())
 
     def test_the_edit_prompt_is_the_same_every_time(self):
         body = bench.edit_body()
@@ -218,10 +228,11 @@ class RowTests(unittest.TestCase):
             {
                 "kind": "decode",
                 "completion_tokens": 4,
+                "finish_reason": "length",
                 "ttft": 1.0,
                 "seconds_after_first": 1.0,
                 "tok_per_s": 3.0,
-                "tensorfold": BLOCK_KEPT,
+                "tensorfold": DECODE_KEPT,
                 "start_epoch": 1759700000.0,
                 "end_epoch": 1759700000.0,
             },

@@ -5,9 +5,14 @@ prefill: one user message, a line `nonce <a fresh UUID>`, --lines fixed lines an
   max_tokens 1; the default 3,200 lines give 38,960 tokens with the chat template. The rate is the
   prompt tokens over the request's wall time at the client. The engine has no endpoint that drops its
   kept prompts, so the fresh nonce keeps any of them from matching; each row's `cached` shows it.
-decode: `Count upward from one, one number per line.`, streamed, 512 tokens with ignore_eos. The rate
-  is the completion tokens after the first over the time after the first streamed token; the prompt is
-  the same every time, so the acceptance stays comparable between runs.
+decode: `Write the numbers from 1 to 1000, one per line, and nothing else.`, streamed, up to 512 tokens.
+  The rate is the completion tokens after the first over the time after the first streamed token. The
+  reply counts until the limit cuts it (`finish_reason` `length`, the count in the 200s), so every token
+  rated is the counting itself, and the pinned and the published AXL weights give the same tokens; a row
+  with another `finish_reason` stopped early and does not compare. Before 2.5.0 the request was
+  `Count upward from one, one number per line.` with ignore_eos: the model stops by itself after about
+  100 tokens, and the rest of the 512 was a conversation the model made up past its end, different per
+  weights and TP. The row adds `finish_reason` and the reply's rounds, tokens_per_round and sha256.
 edit (only when asked for): a fixed Python module of about 6,000 characters and three named one-line
   edits, `Return the whole module with only these edits`, streamed, temperature 0, up to 4,096 tokens
   and ending on its own (a `finish_reason` of `length` means the reply was cut). Rated as decode is;
@@ -40,6 +45,9 @@ KINDS = ("prefill", "decode")
 OPTIONAL = ("edit",)  # run only when --kinds names them
 TEMPLATE = {"reasoning_effort": "low", "clear_thinking": True}
 KEPT = ("prefill_s", "heat_wait_s", "cached")
+DECODE_KEPT = KEPT + ("rounds", "tokens_per_round", "sha256")
+DECODE_PROMPT = "Write the numbers from 1 to 1000, one per line, and nothing else."
+DECODE_TOKENS = 512  # the count reaches the 200s: the limit ends the reply
 EDIT_KEPT = (
     "cached",
     "rounds",
@@ -268,11 +276,8 @@ def prefill_body(nonce, lines=LINES):
 def decode_body():
     return {
         "model": MODEL,
-        "messages": [
-            {"role": "user", "content": "Count upward from one, one number per line."}
-        ],
-        "max_tokens": 512,
-        "ignore_eos": True,
+        "messages": [{"role": "user", "content": DECODE_PROMPT}],
+        "max_tokens": DECODE_TOKENS,
         "temperature": 0,
         "stream": True,
         "stream_options": {"include_usage": True},
@@ -354,15 +359,16 @@ def streamed(body):
 
 
 def decode():
-    start_epoch, start, first, end, usage, block, _ = streamed(decode_body())
+    start_epoch, start, first, end, usage, block, finish = streamed(decode_body())
     tokens = usage["completion_tokens"]
     return {
         "kind": "decode",
         "completion_tokens": tokens,
+        "finish_reason": finish,
         "ttft": round(first - start, 3),
         "seconds_after_first": round(end - first, 3),
         "tok_per_s": round((tokens - 1) / (end - first), 2),
-        "tensorfold": kept(block),
+        "tensorfold": kept(block, DECODE_KEPT),
         "start_epoch": round(start_epoch, 1),
         "end_epoch": round(time.time(), 1),
     }
