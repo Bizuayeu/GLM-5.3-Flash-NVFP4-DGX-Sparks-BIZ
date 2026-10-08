@@ -13,6 +13,9 @@ maps both to the placeholders the golden was written with, and the golden is unc
 1.29.14 (2026-10-06): the AXL example's two overlay sources moved from source/overlays/ to
 source/state/overlays/, where overlays/README.md says to copy them. That changes the two mount
 paths and moves the fingerprint and startup label of ``ring_axl`` and ``ring_axl_no_spin``; nothing else.
+1.31.0 (2026-10-09): a comment in the KDA overlay names what was measured instead of a private
+record, so its sha256 is now 154f25b8...; the code is unchanged. That moves the fingerprint and
+startup label of ``ring_axl`` and ``ring_axl_no_spin``; nothing else.
 """
 
 import copy

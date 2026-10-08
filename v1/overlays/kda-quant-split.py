@@ -188,8 +188,9 @@ class Glm5NextLinearAttention(GatedDeltaNetAttention):
         # fused width (12,576 per rank at TP=2) costs 1.6-1.9x a BF16 GEMM on 2,048-row prefill
         # chunks and pads to 12,608 with an output slice every forward; three 4,096-wide GEMMs plus
         # the 288-wide tail cost 1.1-1.3x with the q|k|v concatenation included, and the same within
-        # noise at decode M (records/20260922-inproj-tile). Module names are what the checkpoint's
-        # quantization_config declares: q_proj / k_proj / v_proj / in_proj_bfg_a.
+        # noise at decode M (one GB10, 2026-09-22: CUDA-event medians of 30 runs after 5 warmups).
+        # Module names are what the checkpoint's quantization_config declares: q_proj / k_proj /
+        # v_proj / in_proj_bfg_a.
         self.q_proj = ColumnParallelLinear(
             self.hidden_size,
             projection_size,

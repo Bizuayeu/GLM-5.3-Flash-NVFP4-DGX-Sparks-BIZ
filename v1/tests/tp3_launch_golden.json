@@ -927,7 +927,7 @@
   }
  },
  "ring_axl": {
-  "fingerprint": "dc3a66c5af5df0e02106b1813100548c5e3bab8c4cf8fd2cbba5dd3798016097",
+  "fingerprint": "855aaadaf5049b1f628c4c381481c92829101c07e04482f79fc7f05d36017b3b",
   "ranks": [
    {
     "site": {
@@ -1064,7 +1064,7 @@
      "--restart",
      "no",
      "--label",
-     "glm53.experiment.startup=dc3a66c5af5df0e02106b1813100548c5e3bab8c4cf8fd2cbba5dd3798016097",
+     "glm53.experiment.startup=855aaadaf5049b1f628c4c381481c92829101c07e04482f79fc7f05d36017b3b",
      "--label",
      "glm53.setup.rank=0",
      "--gpus",
@@ -1377,7 +1377,7 @@
      "--restart",
      "no",
      "--label",
-     "glm53.experiment.startup=dc3a66c5af5df0e02106b1813100548c5e3bab8c4cf8fd2cbba5dd3798016097",
+     "glm53.experiment.startup=855aaadaf5049b1f628c4c381481c92829101c07e04482f79fc7f05d36017b3b",
      "--label",
      "glm53.setup.rank=1",
      "--gpus",
@@ -1691,7 +1691,7 @@
      "--restart",
      "no",
      "--label",
-     "glm53.experiment.startup=dc3a66c5af5df0e02106b1813100548c5e3bab8c4cf8fd2cbba5dd3798016097",
+     "glm53.experiment.startup=855aaadaf5049b1f628c4c381481c92829101c07e04482f79fc7f05d36017b3b",
      "--label",
      "glm53.setup.rank=2",
      "--gpus",
@@ -2788,7 +2788,7 @@
   }
  },
  "ring_axl_no_spin": {
-  "fingerprint": "ea9987406d90a761e3eceaee042c9b29e36792adb1e5b2e724ff77b3511f3e30",
+  "fingerprint": "50eafd63f2369dab8b7c8173a9acc5a1275df2d2d1df3118640c2bf55fd8b001",
   "ranks": [
    {
     "site": {
@@ -2924,7 +2924,7 @@
      "--restart",
      "no",
      "--label",
-     "glm53.experiment.startup=ea9987406d90a761e3eceaee042c9b29e36792adb1e5b2e724ff77b3511f3e30",
+     "glm53.experiment.startup=50eafd63f2369dab8b7c8173a9acc5a1275df2d2d1df3118640c2bf55fd8b001",
      "--label",
      "glm53.setup.rank=0",
      "--gpus",
@@ -3230,7 +3230,7 @@
      "--restart",
      "no",
      "--label",
-     "glm53.experiment.startup=ea9987406d90a761e3eceaee042c9b29e36792adb1e5b2e724ff77b3511f3e30",
+     "glm53.experiment.startup=50eafd63f2369dab8b7c8173a9acc5a1275df2d2d1df3118640c2bf55fd8b001",
      "--label",
      "glm53.setup.rank=1",
      "--gpus",
@@ -3537,7 +3537,7 @@
      "--restart",
      "no",
      "--label",
-     "glm53.experiment.startup=ea9987406d90a761e3eceaee042c9b29e36792adb1e5b2e724ff77b3511f3e30",
+     "glm53.experiment.startup=50eafd63f2369dab8b7c8173a9acc5a1275df2d2d1df3118640c2bf55fd8b001",
      "--label",
      "glm53.setup.rank=2",
      "--gpus",

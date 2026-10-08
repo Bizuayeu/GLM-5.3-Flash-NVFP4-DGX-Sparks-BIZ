@@ -10,7 +10,7 @@ own sources; these mount over them.
 
 | File | Replaces in the image | SHA-256 | Base SHA-256 | Marker |
 | --- | --- | --- | --- | --- |
-| `kda-quant-split.py` | `/usr/local/lib/python3.12/dist-packages/vllm/models/glm5next/nvidia/kda.py` | `27a532ced5011543eb17b1e538a61415fd51d8df8ff904245f04030f3985f30b` | `99cfc24678c0a99f2c813c20e3dcc30c8bfac4f55ec4299737689d5d51f472cd` | `kda-quant-overlay` |
+| `kda-quant-split.py` | `/usr/local/lib/python3.12/dist-packages/vllm/models/glm5next/nvidia/kda.py` | `154f25b8d9a5f176afb2f0b91edc92670916f39d72804c1fee32d40f4d472289` | `99cfc24678c0a99f2c813c20e3dcc30c8bfac4f55ec4299737689d5d51f472cd` | `kda-quant-overlay` |
 | `mla-quant-split.py` | `/usr/local/lib/python3.12/dist-packages/vllm/models/glm5next/nvidia/model.py` | `a9b1ea5ce05983973bc79954147809a17e0e5aa0f96eae47c6011306f51b533d` | `48f60a65afab1afd737b282d109c6c11f97d881d3ec774442e174fab09c2f525` | `mla-quant-overlay` |
 
 The base SHA-256 is that of the file each overlay was made against, in the pinned image.
