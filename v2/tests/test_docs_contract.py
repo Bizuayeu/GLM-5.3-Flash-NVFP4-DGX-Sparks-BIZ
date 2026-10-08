@@ -266,6 +266,20 @@ class LockTests(unittest.TestCase):
                 text = read(f"{name}{suffix}.md")
                 self.assertTrue(lock["revision"] in text, name + suffix)
 
+    def test_pages_name_the_locked_axl_revision(self):
+        # The published option is written out by revision and by snapshot path; each is the lock's.
+        lock = config.load_lock(config.AXL_LOCK_PATH)
+        org, name = lock["model"].split("/")
+        written = re.compile(
+            rf"{re.escape(lock['model'])}` (?:at revision|のrevision) `([0-9a-f]+)`"
+            rf"|models--{re.escape(org)}--{re.escape(name)}/snapshots/([0-9a-f]+)"
+        )
+        for page in ("README", "SETUP"):
+            for suffix in PAIRS:
+                found = [a or b for a, b in written.findall(read(f"{page}{suffix}.md"))]
+                self.assertTrue(found, page + suffix)
+                self.assertEqual(set(found), {lock["revision"]}, page + suffix)
+
 
 class SiteFileTests(unittest.TestCase):
     """The pages put a file with the site's values where Git ignores it (state/)."""
