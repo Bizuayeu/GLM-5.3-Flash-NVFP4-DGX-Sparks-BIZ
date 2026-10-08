@@ -6,6 +6,24 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.5.1 — 2026-10-08
+
+### Changed
+
+- `config.MODEL` と `config.REVISION` を外しました。2.4.0から道具は `checkpoint()` でcheckpointを決めており、読んでいたのは試験だけでした。`download` と `verify-download` のhelpが `--checkpoint` を説明します。`bench` のprefillは他の種類と同じ表で走ります。行と要求は変わりません。
+- 例のrankのファイルに、公開のAXLの重みの固定snapshotを持つ `CHECKPOINT` の行をコメントで置きました。[README](README.ja.md#設定)と手順書が足すように言う行です。
+
+### Documentation
+
+- 2.x系の測定値はREADMEの[リリースでの測定値](README.ja.md#リリースでの測定値)に一度だけ書きます。[判断](docs/decisions.ja.md)は差の要旨とリンク、[検証](docs/validation.ja.md)は判定と今の基準値、[運用](docs/operations.ja.md)は注意とリンクを持ちます。2.4.0のAXLのTP=3の1Mのpromptで読んだ94.4 °Cは、受け入れの1秒ごとの記録の値として、thermal watch（2秒ごと）の93.5 °Cと並べて書きます。
+- 判断の再開の条件を、上流のPythonのエンジンの凍結（#286）に合わせました（来ないmergeを待たない）。Next Actionの#243の項目から過ぎた日付を外しました。
+- READMEの1.x系との違いに、92／88 °Cの帯と並べて93 °Cの見込み（`TF_GLM_HEAT_CEILING`）を書きます。応答の `tensorfold` blockの一覧に `drafted`・`prefill_s`・`sha256` を足しました。
+- [手順書 §8](SETUP.ja.md#8-受け入れ)は検証をその順に、`bench --kinds edit` の応答を含むdecode検査からメモリと温度まで回します。checkpointの手順は、写したcacheを登録するやり方（`download` を一度、その後 `verify-download` を `--wait` なしで）を書きます。登録しないと `verify-download` はダウンロードの状態が無いところで止まります。
+- [測定](docs/benchmarks.ja.md)は長い入力の目標が何tokenに合ったか（2.2.0から1,035,295 token、AXLのTP=2は262,113 token）を書き、`bench` のdocstringは各行が持つ欄を書きます。[運用](docs/operations.ja.md)はimageを替える前に、新しい版ではなく使っているimageにtagを付けます。
+- 試験のコメントは、手元の記録のパスではなく測ったものを書きます。
+
+imageに入るファイルは変わらず、2.5.0のimage（linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`）のままです。
+
 ## 2.5.0 — 2026-10-08
 
 ### Changed

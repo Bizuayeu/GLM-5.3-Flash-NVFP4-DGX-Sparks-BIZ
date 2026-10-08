@@ -4,6 +4,24 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.5.1 — 2026-10-08
+
+### Changed
+
+- `config.MODEL` and `config.REVISION` are gone: since 2.4.0 the tools resolve the checkpoint through `checkpoint()`, and only the tests read them. `download` and `verify-download` explain `--checkpoint` in their help. `bench`'s prefill runs through the same table as the other kinds; its rows and requests do not change.
+- The example rank files carry a commented `CHECKPOINT` line with the published AXL weights' locked snapshot, which the [README](README.md#configuration) and SETUP tell an operator to add.
+
+### Documentation
+
+- Each 2.x measurement is told once, in the README's [measured on the release](README.md#measured-on-the-release): [decisions](docs/decisions.md) keep the gist of each difference with a link, [validation](docs/validation.md) its criteria and current references, [operations](docs/operations.md) the caution and a link. The 94.4 °C reading of 2.4.0's AXL 1M prompt at TP=3 is described as the acceptance's one-second log, beside the thermal watch's 93.5 °C every 2 s.
+- Decisions' reopen conditions follow upstream's freeze of its Python engine (#286) instead of merges that will not come; Next Action's #243 item loses a date that has passed.
+- The README's differences from 1.x name the 93 °C look-ahead (`TF_GLM_HEAT_CEILING`) beside the 92/88 °C bands; the reply's `tensorfold` block lists `drafted`, `prefill_s` and `sha256`.
+- [SETUP §8](SETUP.md#8-accept) runs validation in its order, from the decode check with `bench --kinds edit`'s reply to memory and temperature; the checkpoint step says how to register a copied cache (`download` once, then `verify-download` without `--wait`), without which `verify-download` stops for want of a download status.
+- [Benchmarks](docs/benchmarks.md) say what the long-input targets fitted to (1,035,295 tokens from 2.2.0, 262,113 for AXL at TP=2); `bench`'s docstring says which fields each row keeps; [operations](docs/operations.md) tags the image in use, not the new one, before an image change.
+- A test comment cites what was measured, not a local record path.
+
+No file of the image changes; it stays 2.5.0's (linux/arm64 `sha256:ec61cc199b160225f182bb07e857b830c5189d21f77c8ed84bc29d4638903d8b`).
+
 ## 2.5.0 — 2026-10-08
 
 ### Changed

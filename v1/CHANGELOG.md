@@ -2,6 +2,14 @@
 
 [日本語](CHANGELOG.ja.md) (this English file is canonical and the GitHub Release is made from it)
 
+## 1.30.1 — 2026-10-08
+
+### Changed
+
+- Test comments cite what was measured (the decode-graph stage, the 256K harness case H-04b, a GB10 host's nvidia-smi line), not a local record path or host.
+
+No file of the reference image changes; it stays 1.30.0's.
+
 ## 1.30.0 — 2026-10-07
 
 ### Removed
