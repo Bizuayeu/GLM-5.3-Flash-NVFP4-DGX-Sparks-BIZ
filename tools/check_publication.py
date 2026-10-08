@@ -509,18 +509,12 @@ def duplicate_numbers(root, files):
 # the public repository can open: a public file says what was measured instead.
 RECORD_PATH = re.compile(r"records/\d{8}-")
 # Files allowed their current count. The data's own provenance stays with the data; the
-# documents and the overlay keep theirs until they are rewritten in words (1.x's documents
-# and its pair modes, the private plans' deferred list), and their counts then go down.
+# overlay keeps its one until it is rewritten in words (1.x's pair modes, the private plans'
+# deferred list), and its count then goes down.
 RECORD_PATHS_ALLOWED = {
     "v1/config/nll_set.json": 4,  # provenance of each measured set
     "v2/config/nll_set.json": 4,  # 1.x's set, byte for byte
     "v1/config/freedombench-ja.lock.json": 1,  # provenance
-    "v1/docs/benchmarks.md": 9,  # until 1.x's documents are next edited
-    "v1/docs/benchmarks.ja.md": 9,
-    "v1/docs/candidate-order.md": 1,
-    "v1/docs/candidate-order.ja.md": 1,
-    "v1/docs/freedombench.md": 1,
-    "v1/docs/freedombench.ja.md": 1,
     "v1/overlays/kda-quant-split.py": 1,  # its hash is pinned; until 1.x's pair modes run
 }
 

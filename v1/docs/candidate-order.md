@@ -47,6 +47,6 @@ On 2026-09-14 (Asia/Tokyo), both ranks used rebuilt image `sha256:f6fc154c5b5397
 
 Ordinary / LPA / restored task scores were 22 / 24 / 21 out of 24, with no LPA-only regression. All three tool round trips, cancellation followed by another request, and 32,704 input + 64 output capacity cases passed; capacity preemption deltas were zero. History passed independent rescoring of 61 answers, nine boundaries and eviction. A separate 30,100-token midpoint edit restored H=9,216 and answered correctly in all three arms.
 
-A same-request replay of eight existing heldout cases scored 8/8 in each arm, aggregated from request-ID-audited cases, part of them rerun; this is not a fresh unused test set. Private evidence: `records/20260913-mia-updates/canonical-v78-assessment.json`.
+A same-request replay of eight existing heldout cases scored 8/8 in each arm, aggregated from request-ID-audited cases, part of them rerun; this is not a fresh unused test set. The replay ran on the same image on 2026-09-14.
 
 For 128 output tokens, three measured requests after one warmup had median total seconds of 12.215 / 10.366 / 10.969 at 2,048 input; 28.205 / 24.529 / 28.790 at 8,192; and 39.976 / 34.547 / 40.099 at 16,320 with H=4,608. Generated token sequences differ in 34 of 36 paired measurements against the older image, so elapsed differences do not isolate sorting-kernel cost or establish a speed gain. Sustained load, a trained Euryale proposer and numerical identity across all configurations remain unqualified.

@@ -696,7 +696,7 @@ KDAの状態checkpoint（dense retention）がKV予算の大半を占め、100K�
 | `runtime.inductor_deterministic` 付きの同時2系列AXL profileの3起動（2026-09-25） | 3／0／0、同じcompletion | 46.05〜46.27／27.95〜28.44／38.39〜38.80 |
 | 同じkey付きの配布既定の3起動（2026-09-25） | 3起動とも同じcompletion | 32.80〜32.84／20.76〜20.82／27.53〜27.64（配布既定の公表値は32.01／20.67／26.68） |
 
-indexerのkey正規化のInductor configだけを指定すると、状態2（rank 0が8、rank 1が1）と状態1（両方8）を狙って作れた。keyを付けると両rankがこのkernelを `XBLOCK` 8・候補一つで動かし、warmupのlong段は52.1〜52.7 sだった（`records/20260924-inductor-autotune-asymmetry/`、`records/20260925-defaults-deterministic/`）。原因と修正は[再現性](repeatability.ja.md)に、探索の手順（probeのmethod、Probe4・Probe5の起動、深いtrace）は[変更履歴](../CHANGELOG.ja.md)の1.10.0〜1.12.2にある。
+indexerのkey正規化のInductor configだけを指定すると、状態2（rank 0が8、rank 1が1）と状態1（両方8）を狙って作れた。keyを付けると両rankがこのkernelを `XBLOCK` 8・候補一つで動かし、warmupのlong段は52.1〜52.7 sだった（そのconfigだけを指定した参照対の起動は2026-09-24、keyを付けたAXLの3起動は2026-09-25）。原因と修正は[再現性](repeatability.ja.md)に、探索の手順（probeのmethod、Probe4・Probe5の起動、深いtrace）は[変更履歴](../CHANGELOG.ja.md)の1.10.0〜1.12.2にある。
 
 ## 1.10.2での測定
 
@@ -704,7 +704,7 @@ indexerのkey正規化のInductor configだけを指定すると、状態2（ran
 
 ### 公開した任意設定での同時2系列（2026-09-23）
 
-参照対は[AXLの例](../examples/server.axl.example.toml)の設定（再パックした重み、dedup、`max_num_seqs = 2`、rankあたりKV 6 GiB。配信profileはこれにmemory probeとdev経路を足したもの）を、image `76a1172b…`、1起動（[1.9.0](#新imageの6起動5回は同じcompletion1回は違うcompletion)の状態2）で配信した。以下の要求はすべて02:15〜02:27（Asia/Tokyo）に稼働中の対へ送り、何も再起動していない。samplerが `/metrics` とheadの `MemAvailable` を2秒ごとに読んだ（`records/20260923-two-sequence/`）。どの段でもpreemptionは起きなかった。
+参照対は[AXLの例](../examples/server.axl.example.toml)の設定（再パックした重み、dedup、`max_num_seqs = 2`、rankあたりKV 6 GiB。配信profileはこれにmemory probeとdev経路を足したもの）を、image `76a1172b…`、1起動（[1.9.0](#新imageの6起動5回は同じcompletion1回は違うcompletion)の状態2）で配信した。以下の要求はすべて02:15〜02:27（Asia/Tokyo）に稼働中の対へ送り、何も再起動していない。samplerが `/metrics` とheadの `MemAvailable` を2秒ごとに読んだ。どの段でもpreemptionは起きなかった。
 
 | 段 | 結果 |
 |---|---|
@@ -726,7 +726,7 @@ indexerのkey正規化のInductor configだけを指定すると、状態2（ran
 
 ### 同時2系列profileでのsparkDashとtool-eval-bench（2026-09-23）
 
-[1.4.0](#140での測定)・[1.5.0](#150でのsparkdashと200k)の測定を、参照対が2026-09-23に配信していたprofile（[AXLの例](../examples/server.axl.example.toml)の設定にprobeとdev経路を足したもの。image `76a1172b…`。02:53（Asia/Tokyo）の状態1の起動、同時1本の要求）で変えずに繰り返した。順に走らせ、他は何も走らせていない（`records/20260923-bench-1104/`）。sparkDashの12 streamはすべて128トークンで成功した。
+[1.4.0](#140での測定)・[1.5.0](#150でのsparkdashと200k)の測定を、参照対が2026-09-23に配信していたprofile（[AXLの例](../examples/server.axl.example.toml)の設定にprobeとdev経路を足したもの。image `76a1172b…`。02:53（Asia/Tokyo）の状態1の起動、同時1本の要求）で変えずに繰り返した。02:58〜03:10に順に走らせ、他は何も走らせていない。sparkDashの12 streamはすべて128トークンで成功した。
 
 | prompt | decode（token/s）、中央値 | 3回 | TTFT（ms）、中央値 | 1.5.0のdecode／TTFT |
 |---|---:|---|---:|---|
@@ -798,7 +798,7 @@ decode検査の3つのpromptを、単独で、2本同時に、1本目が最初�
 
 ### 同じstepの他の要求で要求が変わる理由（2026-09-25）
 
-GB10一台でのkernel単体（配信image、再起動なし。`records/20260925-moe-batch/`）で、仕組みを二つ名指しした。どちらも、呼び出し全体の大きさから和の分け方を選ぶ：
+GB10一台でのkernel単体（配信image、再起動なし。2026-09-25）で、仕組みを二つ名指しした。どちらも、呼び出し全体の大きさから和の分け方を選ぶ：
 
 - **NVFP4のMarlin MoE** は（expert block, 出力tile）のtileをblock順に並べ、末尾のtileをK方向で切って断片をfp32で足す。どこで切るかは呼び出しのexpert block数で決まる。decodeの大きさではkernel・thread設定・gridは変わらず（4行でも8行でも同じ）、動くのはblock数だけ。要求の4行の隣に別の要求の4行が入ると、乱数のroutingと入力40通りのうち29通りで少なくとも1行が変わった。launchを固定し、どのtileも切られなくなるまでblockを埋めると40通り中0になったが、MoEの呼び出しが3〜13%重く、このreleaseでは採らない（下記）。
 - **sparse MLAのdecode**（SM120 backendの参照flagを切って通したFlashInfer 0.6.18。servingでは届かない、[下記](#servingでの到達性2026-09-26)）は、32ある候補のchunkを各CTAに `chunks_per_block` 個ずつ受け持たせ、その値を呼び出しのtoken数から選ぶ：48 SMで、draftの1 tokenは2、2 tokenは3、深さ3の検証stepの4 tokenは6、2系列では15。そのため2本目の系列が来ると、要求のattentionの全行（4 token×32 headの128行）が変わった。値を固定すると0。
@@ -836,7 +836,7 @@ decodeの速度は動かなかった。servingで一度も実行されないkey�
 
 ### servingでの到達性（2026-09-26）
 
-`runtime.mla_decode_cpb` はservingで一度も実行されず、上の参照対には効いていなかった。稼働中の対（上と同じ2系列の公開した任意設定、memory probeはon。再起動なし。`records/20260926-cpb-reachability/`）のtraceで、sparse MLAのforwardを全部数えた：単独の要求で434、2本の組で448。DSAの11層とMTPのdraft層のattentionのhookと同じ数で、どれも参照のNoPE attentionを通ってreturnした。imageは `GLM53_REFERENCE_ATTENTION=1` を設定し、backendはkeyのpatchが変えるFlashInferのdecodeの呼び出しより前にその経路でreturnする。上のkernel単体は、このflagを手で切っていた。この節の結果（単独のcompletion・decodeの速度・NLLが変わらず、2系列のcompletionが1.13.0とbyte一致）は、効果が無かったことと整合する。flashinfer#5553が書くのはFlashInfer自身の挙動で、このservingはそこを通らない。
+`runtime.mla_decode_cpb` はservingで一度も実行されず、上の参照対には効いていなかった。稼働中の対（上と同じ2系列の公開した任意設定、memory probeはon。再起動なし。2026-09-26）のtraceで、sparse MLAのforwardを全部数えた：単独の要求で434、2本の組で448。DSAの11層とMTPのdraft層のattentionのhookと同じ数で、どれも参照のNoPE attentionを通ってreturnした。imageは `GLM53_REFERENCE_ATTENTION=1` を設定し、backendはkeyのpatchが変えるFlashInferのdecodeの呼び出しより前にその経路でreturnする。上のkernel単体は、このflagを手で切っていた。この節の結果（単独のcompletion・decodeの速度・NLLが変わらず、2系列のcompletionが1.13.0とbyte一致）は、効果が無かったことと整合する。flashinfer#5553が書くのはFlashInfer自身の挙動で、このservingはそこを通らない。
 
 相方がいると変わるとtraceが示したのは、attentionの経路だった。参照attentionは行数が閾値を超える呼び出しをFA2へ送る（[`runtime.fa2_attention`](server-configuration.ja.md#attentionとcacheとcheckpoint)）：深さ3の検証stepは単独で4行（eagerのFP32）、相方ありで8行（BF16 KVのFA2）。GB10一台の合成入力のkernel単体で、eagerはある系列の行を、呼び出しが4行でも5〜8行でも12行でも、系列の位置、paddingのある相方、cache pageの交互配置に依らずbit一致で計算した。FA2は相方の行数と長さで全行を1 BF16 ulp動かし（中身・順序・pageには依らない）、反復はbit一致だった。この切り替わりは2系列の差の主因ではない：稼働中の対でattentionの呼び出しを全部eagerにしても（memory probeの `fa2_stage("off")` を約8分、その後に戻して確認）、2系列のcompletion 8本のうち7本が単独のものと違ったままで（1本は一致、5本は最初に違うtokenが動き、2本は同じ位置）、どの組も反復した。容疑者の先頭は、呼び出しの中の他の要求の行で行が変わるMoE（上記）と、prefillと共有したstepのprefill用のkernel。[同時実行の範囲](validation.ja.md#同時実行の範囲)の運用の結論は変わらない。
 
@@ -846,7 +846,7 @@ decodeの速度は動かなかった。servingで一度も実行されないkey�
 
 ### 参照対でのCPU配置（2026-09-26）
 
-1.15.0の `nodes[].cpuset_cpus` について（[#1](https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/issues/1)）。参照対は公開した任意設定を2系列で配信したまま（image `8444078038c0…`、source `b7cd765`）、`docker update --cpuset-cpus` で各rankの稼働中のコンテナを再起動なしにコア間で移した（`records/20260926-cpu-placement/`）。両ホストとも、最大2.8 GHzの高効率コア10個（0〜4、10〜14）と最大3.9 GHzの高性能コア10個（5〜9、15〜19）を持ち、governorは `performance`、boostはoff、周波数の上限なし。各状態でdecode check（2,048トークン前後のprompt）と22トークンのprompt（`PROMPT_TOKENS=0`、数え上げ）を、512トークンを3サンプルずつ、他の要求なしで走らせた。表はtok/sの中央値。
+1.15.0の `nodes[].cpuset_cpus` について（[#1](https://github.com/Bizuayeu/GLM-5.3-Flash-NVFP4-DGX-Sparks-BIZ/issues/1)）。参照対は公開した任意設定を2系列で配信したまま（image `8444078038c0…`、source `b7cd765`）、`docker update --cpuset-cpus` で各rankの稼働中のコンテナを再起動なしにコア間で移した（2026-09-26）。両ホストとも、最大2.8 GHzの高効率コア10個（0〜4、10〜14）と最大3.9 GHzの高性能コア10個（5〜9、15〜19）を持ち、governorは `performance`、boostはoff、周波数の上限なし。各状態でdecode check（2,048トークン前後のprompt）と22トークンのprompt（`PROMPT_TOKENS=0`、数え上げ）を、512トークンを3サンプルずつ、他の要求なしで走らせた。表はtok/sの中央値。
 
 | rank 0のCPU | rank 1のCPU | 数え上げ／散文／コード | 22トークンのprompt |
 |---|---|---|---:|
@@ -859,11 +859,11 @@ decodeの速度は動かなかった。servingで一度も実行されないkey�
 - どの状態でも、promptごとのcompletionと受理長（3.698 / 2.146 / 3.097 / 3.303）は同じだった。配置が変えたのは速度で、計算ではない。
 - **どちらか一方のrankが高効率コアにいるだけで、decodeは約3分の1になる。** 二つのrankは歩調を合わせて進むので、遅い方が速度を決める。CPU setはrank 0だけでなく両rankに要る。差は#1の約2.1倍（両種のコアとも2.4 GHz上限）より大きい。周波数とコアの種類は切り分けていない。
 - 固定なしでも、この計測の間はrank 0の主workerスレッドが3秒ごとの標本すべてで、rank 1のものも取った標本（約15秒ごと）すべてで高性能コアにいたので、高性能コアへの固定は固定なしを上回らなかった。#1では、固定なしのworkerが待機後に高効率コアへ落ちた。CPU setが買うのはその抽選を無くすことである。
-- launcherの経路は、1.18.0への切替で参照対を通った（2026-09-26、`records/20260926-deploy-1180/`）。両rankに `cpuset_cpus = "5-9,15-19"` を置くと、`server preflight` は両ホストで `cpu_set_available` を返し、各コンテナはそのCPU setで作られて `5-9,15-19` と読み戻され、一番忙しいworkerスレッドはcore 6と5で動いた。decode checkは以前と同じcompletionと受理長で45.74 / 28.18 / 38.16 tok/s、sparkDash DecodeBenchはstructured／prose／code／jsonで48.39 / 31.26 / 41.19 / 34.82 tok/sと、[1.10.4](#1104での測定)と同じ水準だった。参照対はそれ以来このCPU setで配信している。
+- launcherの経路は、1.18.0への切替で参照対を通った（2026-09-26、Asia/Tokyoで12:36〜12:55）。両rankに `cpuset_cpus = "5-9,15-19"` を置くと、`server preflight` は両ホストで `cpu_set_available` を返し、各コンテナはそのCPU setで作られて `5-9,15-19` と読み戻され、一番忙しいworkerスレッドはcore 6と5で動いた。decode checkは以前と同じcompletionと受理長で45.74 / 28.18 / 38.16 tok/s、sparkDash DecodeBenchはstructured／prose／code／jsonで48.39 / 31.26 / 41.19 / 34.82 tok/sと、[1.10.4](#1104での測定)と同じ水準だった。参照対はそれ以来このCPU setで配信している。
 
 ## 1.19.0での測定
 
-基準の2台を、配信profileはそのままで1.18.0から1.19.0のimage（`sha256:99e6cf7a…`、source `05192ca`）へ切り替えました。公開した任意設定、同時2系列、MTP k=3、両rankともCPU 5–9・15–19です（2026-09-26、`records/20260926-release-1190/`）。
+基準の2台を、配信profileはそのままで1.18.0から1.19.0のimage（`sha256:99e6cf7a…`、source `05192ca`）へ切り替えました。公開した任意設定、同時2系列、MTP k=3、両rankともCPU 5–9・15–19です（2026-09-26）。
 
 | | 1.18.0 | 1.19.0 |
 |---|---|---|

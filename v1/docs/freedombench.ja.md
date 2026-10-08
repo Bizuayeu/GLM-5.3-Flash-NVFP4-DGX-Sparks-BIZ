@@ -34,7 +34,7 @@ pilot（2026-09-29）は12分野それぞれの最初の問と対照6問を、�
 
 ## 配信profileでの完了（2026-09-22）
 
-**参照対が配信しているprofileで2026-09-22に完了**（同日の記録では、公開した任意設定のroute l重み・分割KDA射影、同時1系列、各rank 3 GiBのKV、MTP k=3、FA2 prefill、`runtime.prefix_page_dedup`、image `76a1172b…`、fingerprint `945965bf…`）。23:58〜23:59（JST）にリポジトリのrunnerで固定の英語原版60問を走らせた：**計画60問中60問正解、全問が初回で回答、上流の `refused` ゼロ、エラーゼロ**。出力予算は上流の8,192トークン、採点は固定の分類器（記録 `records/20260922-freedombench/serving-full`）。続く長文付きpilotは、2026-09-13と同じ日本語の検証用テキスト約6,000文字を最初の6問に前置し（入力4,810〜4,838トークン＝prefix全体が問いの前に入る）、通常のchat endpointで**6問中6問**正解（記録 `long-pilot-serving`）。
+**参照対が配信しているprofileで2026-09-22に完了**（同日の記録では、公開した任意設定のroute l重み・分割KDA射影、同時1系列、各rank 3 GiBのKV、MTP k=3、FA2 prefill、`runtime.prefix_page_dedup`、image `76a1172b…`、fingerprint `945965bf…`）。23:58〜23:59（JST）にリポジトリのrunnerで固定の英語原版60問を走らせた：**計画60問中60問正解、全問が初回で回答、上流の `refused` ゼロ、エラーゼロ**。出力予算は上流の8,192トークン、採点は固定の分類器（記録 `serving-full`）。続く長文付きpilotは、2026-09-13と同じ日本語の検証用テキスト約6,000文字を最初の6問に前置し（入力4,810〜4,838トークン＝prefix全体が問いの前に入る）、通常のchat endpointで**6問中6問**正解（記録 `long-pilot-serving`）。
 
 これで閉じるもの。人手の拒否審査は審査対象が空（拒否も解析不能もゼロ）。出典監査は `config/freedombench.lock.json` の固定revisionとhash。この日に閉じなかった日本語訳の本体、対立的な政治的言い回し、prefixの位置以外の証拠配置は、後に実施した（上の節）。FB-05のLPAの部分は、LPAのprofileを再び配信するまでNOT RUNのまま。
 
