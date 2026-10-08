@@ -4,6 +4,7 @@
 import argparse
 import json
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,6 +40,20 @@ def main(argv=None):
         )
 
     save("waiting_for_download")
+    if not (state / STATUS_FILE).is_file():
+        # A host that received a copied cache has no download status until download
+        # registers the snapshot (it reuses the copied files).
+        save("failed", reason="no download status")
+        print(
+            f"no {STATUS_FILE} in {state}: run download first"
+            + (
+                ""
+                if args.checkpoint == "pinned"
+                else f" --checkpoint {args.checkpoint}"
+            ),
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
     while True:
         status = json.loads((state / STATUS_FILE).read_text())
         if status["model"] != model or status["revision"] != revision:
