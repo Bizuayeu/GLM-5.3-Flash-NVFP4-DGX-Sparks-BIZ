@@ -42,7 +42,3 @@ def version():
     return tomllib.loads((LINE / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
     ]["version"]
-
-
-MODEL = load_lock()["model"]
-REVISION = load_lock()["revision"]

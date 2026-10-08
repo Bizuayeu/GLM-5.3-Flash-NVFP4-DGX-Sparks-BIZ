@@ -43,9 +43,10 @@ class CheckoutLayoutTests(unittest.TestCase):
 class CheckpointTests(unittest.TestCase):
     def test_the_pinned_checkpoint_keeps_state_itself(self):
         state = Path("state")
+        lock = config.load_lock()
         self.assertEqual(
             config.checkpoint("pinned", state),
-            (config.MODEL, config.REVISION, state),
+            (lock["model"], lock["revision"], state),
         )
 
     def test_axl_is_its_own_full_revision_in_its_own_state_folder(self):
@@ -65,8 +66,9 @@ class ServeScriptTests(unittest.TestCase):
         pattern = r"/hub/models--([\w.-]+)--([\w.-]+)/snapshots/([0-9a-f]{40})"
         match = re.search(pattern, serve)
         self.assertIsNotNone(match)
-        self.assertEqual(f"{match[1]}/{match[2]}", config.MODEL)
-        self.assertEqual(match[3], config.REVISION)
+        lock = config.load_lock()
+        self.assertEqual(f"{match[1]}/{match[2]}", lock["model"])
+        self.assertEqual(match[3], lock["revision"])
 
 
 if __name__ == "__main__":

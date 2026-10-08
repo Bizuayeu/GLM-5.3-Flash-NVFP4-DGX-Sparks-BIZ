@@ -8,7 +8,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from glm53_tf import config, verify_download
-from glm53_tf.config import MODEL, REVISION
 from glm53_tf.download import STATUS_FILE
 
 
@@ -25,7 +24,8 @@ class VerifyDownloadTests(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def download(self, status, **extra):
-        record = {"model": MODEL, "revision": REVISION, "status": status, **extra}
+        model, revision, _ = config.checkpoint("pinned", self.state)
+        record = {"model": model, "revision": revision, "status": status, **extra}
         (self.state / STATUS_FILE).write_text(json.dumps(record))
 
     def run_main(self, *extra, returncode=0, sleep=None):
@@ -94,7 +94,8 @@ class VerifyDownloadTests(unittest.TestCase):
                 self.assertEqual(saved["status"], status)
                 self.assertEqual(saved["exit_code"], returncode)
                 command = run.call_args.args[0]
-                self.assertEqual(command[:4], ["hf", "cache", "verify", MODEL])
+                model = config.checkpoint("pinned", self.state)[0]
+                self.assertEqual(command[:4], ["hf", "cache", "verify", model])
                 self.assertIn("--fail-on-missing-files", command)
                 self.assertIn("--fail-on-extra-files", command)
 

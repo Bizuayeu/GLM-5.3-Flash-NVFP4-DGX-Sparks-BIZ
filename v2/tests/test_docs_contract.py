@@ -259,11 +259,12 @@ class LockTests(unittest.TestCase):
     """The pages that write the pinned revision out write the locked one."""
 
     def test_pages_name_the_locked_revision(self):
+        lock = config.load_lock()
         for suffix in PAIRS:
-            self.assertTrue(f"`{config.MODEL}`" in readme(suffix), suffix)
+            self.assertTrue(f"`{lock['model']}`" in readme(suffix), suffix)
             for name in ("README", "docs/validation"):
                 text = read(f"{name}{suffix}.md")
-                self.assertTrue(config.REVISION in text, name + suffix)
+                self.assertTrue(lock["revision"] in text, name + suffix)
 
 
 class SiteFileTests(unittest.TestCase):
