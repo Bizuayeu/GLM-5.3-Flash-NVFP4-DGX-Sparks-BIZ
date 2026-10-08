@@ -43,6 +43,20 @@ class VerifyDownloadTests(unittest.TestCase):
         saved = json.loads((self.output / "checksum-status.json").read_text())
         return caught.exception.code, saved, run, slept
 
+    def test_no_download_status_exits_one_and_says_to_run_download(self):
+        for extra in ((), ("--wait",)):
+            with self.subTest(extra=extra):
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err):
+                    code, saved, run, _ = self.run_main(*extra)
+                self.assertEqual(code, 1)
+                self.assertEqual(saved["status"], "failed")
+                self.assertEqual(saved["reason"], "no download status")
+                self.assertTrue(
+                    err.getvalue().endswith("run download first\n"), err.getvalue()
+                )
+                run.assert_not_called()
+
     def test_a_download_of_another_revision_exits_one(self):
         for key in ("model", "revision"):
             with self.subTest(key=key):
