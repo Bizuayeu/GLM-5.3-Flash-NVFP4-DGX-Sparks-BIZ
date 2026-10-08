@@ -59,6 +59,8 @@ def readme(suffix):
 
 
 SERVING = {"": "Serving Defaults", ".ja": "配信の既定"}
+DIFFERENCES = {"": "Differences from 1.x", ".ja": "1.x系との違い"}
+HEAT_ROW = {"": "| Heat during a long prefill |", ".ja": "| 長いprefill中の熱 |"}
 
 
 class ServingDefaultsTests(unittest.TestCase):
@@ -105,6 +107,16 @@ class ServingDefaultsTests(unittest.TestCase):
             self.assertIn(
                 f"`{ceiling}`", row(readme(suffix), "| `TF_GLM_HEAT_CEILING`"), suffix
             )
+
+    def test_the_differences_from_1x_quote_the_heat_wait(self):
+        bands = [
+            owned(rf"TF_GLM_HEAT_{name}-(\d+)", "scripts/serve.sh")
+            for name in ("HIGH", "LOW", "CEILING")
+        ]
+        for suffix in PAIRS:
+            heat = row(section(readme(suffix), DIFFERENCES[suffix]), HEAT_ROW[suffix])
+            for band in bands:
+                self.assertIn(f"{band} °C", heat, suffix)
 
     def test_the_heat_wait_starts_below_the_thermal_watch(self):
         # The engine pauses before the watch would stop it, and looks one chunk ahead to stay under it.

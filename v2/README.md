@@ -137,7 +137,7 @@ The NLL check also uses **`/v1/models`** (the model it scores) and **`/v1/comple
 | Image input | accepted | accepted (`VISION=1` in the example rank files) |
 | Published AXL weights | optional | optional from 2.4.0 (`CHECKPOINT` in every rank file), at one sequence |
 | Tool calls | the model API, optionally behind the tool-argument gate | the same gate, this line's copy run from `v2/`, in front of the engine |
-| Heat during a long prefill | no wait in the engine; its measurements rested the hosts between requests with a cooling gate, the one [`host/`](../host/README.md#during-long-runs) now holds | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C |
+| Heat during a long prefill | no wait in the engine; its measurements rested the hosts between requests with a cooling gate, the one [`host/`](../host/README.md#during-long-runs) now holds | the engine waits between prompt chunks, every rank together, at 92 °C until 88 °C, and while the hottest zone plus the last chunk's rise would pass 93 °C ([serving defaults](#serving-defaults)) |
 
 Why each 2.x setting was chosen, and what was tried and not adopted, is in [decisions](docs/decisions.md).
 
