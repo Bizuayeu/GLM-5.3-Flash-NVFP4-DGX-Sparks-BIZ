@@ -79,11 +79,14 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | draft | checkpointのMTP head（`--drafter none`：DFlash2は使わない） | 同じ |
 | 窓（`--context`） | 300,000 token | 0＝収まる最大：参照機のリングで1,048,576（モデルの上限） |
 | 要求が指定しないときの応答の上限 | 32,768 token（`--max-tokens`） | 同じ |
+| 要求が指定しないときの推論のeffort | `high`（`--reasoning-effort`、rank 0のファイルから） | 同じ |
 | NCCL | 各リンク2本のrail・4 channel・IBのtransportを明示、rankごとのファイルから | 2本のrail・4 channel・IBのtransportを明示・subnet-aware routing |
 | 画像入力 | 有効：全rankのファイルの `VISION=1` で `--vision` が付く。rank 0が画像のtower（1.05 GiB）を持ち、他の会話の保持promptは3 GiBのうち2.4 GiBになる | 有効。保持promptは3 GiBのまま |
 | rank間のprefillの交換 | エンジンの既定 `split` | 同じ |
 | 熱によるprefillの休止 | chunkの合間に全rankそろって、どれかのrankのACPIの最高温度が92 °Cを超えたら、全rankが88 °C以下になるまで待つ（`TF_GLM_HEAT_HIGH`／`TF_GLM_HEAT_LOW`）。その温度に直前のchunkの上がり幅を足すと93 °Cを越えるときも、越えなくなるまで待つ（`TF_GLM_HEAT_CEILING`） | 同じ |
 | 他の会話の保持prompt | エンジンの既定：8本、3 GiB | 同じ |
+
+**effortをhighにする理由。** 固定のchat templateは、effortを指定しない要求を `max` として描きます。`max` では思考がほぼ際限なく続き、応答の上限の大半を使います。1.x系はそうした要求を `high` で処理しており（`api.default_reasoning_effort`）、2.7.0から2.x系も同じです。クライアント自身が指定した `low` や `max` はそのまま優先されます。
 
 **TP=2を300,000にする理由。** `--context 0` では対の窓が567,255 tokenになり、他の会話の保持promptに何も残りませんでした。長い履歴を送り直すチャットやエージェントでは保持が効きます。エンジン自身のメモリの見積もりでは、300,000 tokenは567,255に比べてrankあたり約3.3 GiBを空け、既定の3 GiBの保持promptが収まります。1.x系は262,144 tokenですが、それには合わせていません。別の窓にするには `serve.sh` に `--context` を渡します（最後のflagが効きます）。対が持てる最大は約567Kです。
 
@@ -99,6 +102,7 @@ curl -s http://127.0.0.1:8095/v1/chat/completions -H 'Content-Type: application/
 | | `VISION` | 例のファイルは `1`（無ければ `0`） | 画像入力（`serve.sh` が `--vision` を足す）。`0` で無効。全rankで同じ値 |
 | | `NCCL_DEBUG`・`NCCL_DEBUG_SUBSYS` | `INFO`・`INIT,NET` | NCCLが起動時に各接続のtransportを一度だけ書き、[SETUP §6](SETUP.ja.md#6-起動)がそれを読みます |
 | | `MODEL_NAME`・`HOST`・`PORT` | `glm-tf`・`127.0.0.1`・`8095` | rank 0のmodel idと待ち受け |
+| | `REASONING_EFFORT` | `high` | effortを指定しない要求にrank 0が使うeffort（`low`・`medium`・`high`・`xhigh`。空：指定なし＝chat templateの `max`） |
 | | `CHECKPOINT` | `/hub` の下の固定snapshot | container内のcheckpointのdirectory。`/hub/models--Bizuayeu--GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16/snapshots/bbad98c8f380588c16a2326bf5a2ab7344190b07` で公開したAXLの重みを配信します（取得は[手順書 §2](SETUP.ja.md#2-checkoutとcheckpoint)）。全rankで同じ値にします（違えば起動を断ります） |
 | | `TF_GLM_HEAT_HIGH`・`TF_GLM_HEAT_LOW` | `92`・`88`（°C） | prefillの熱の待ち。全rankで同じ値、空にすると待たない |
 | | `TF_GLM_HEAT_CEILING` | `93`（°C） | 待ちの見込み：最高温度に直前のchunkの上がり幅を足した値をこの温度以内に保つ。帯が要る。全rankで同じ値、空にすると見込まない |
@@ -117,7 +121,7 @@ rankのファイルは `bash` が全変数をexportしながら読むので、�
 rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの：
 
 - **`/v1/chat/completions`**：streamとそれ以外、toolと構造化出力（tool-eval-benchのTC-64〜TC-69。imageにxgrammarが要ります）を、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)越しに。
-- **思考**：検査が送る形の `chat_template_kwargs.reasoning_effort` と `clear_thinking`。streamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあります（[制限](#制限)）。
+- **思考**：検査が送る形の `chat_template_kwargs.reasoning_effort` と `clear_thinking`。effortを指定しない要求は `high` になります（[配信の既定](#配信の既定)）。streamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあります（[制限](#制限)）。
 - **`"draft": false`**：要求のbodyに入れると1 roundに1 tokenずつdecodeします。draftした応答が一致すべきserialの基準です。
 - **応答の `tensorfold` block**：`accepted`・`drafted`・`rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`prefill_s` と `heat_wait_s`、copy draftsの `copy_rounds`・`copy_drafted`・`copy_accepted`、`sha256`（応答のtoken idのhash）。
 - **`/health`**（decodeの `rounds` など）と **`/metrics`**。

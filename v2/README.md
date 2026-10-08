@@ -79,11 +79,14 @@ The model thinks before it answers: the reasoning comes back in `reasoning_conte
 | Drafts | the checkpoint's MTP head (`--drafter none`: no DFlash2) | same |
 | Window (`--context`) | 300,000 tokens | 0 = the largest that fits: 1,048,576 (the model's limit) on the reference ring |
 | Reply limit when a request names none | 32,768 tokens (`--max-tokens`) | same |
+| Reasoning effort when a request names none | `high` (`--reasoning-effort`, from rank 0's file) | same |
 | NCCL | two rails per link, four channels, the IB transport named, from each rank's file | two rails, four channels, the IB transport named, subnet-aware routing |
 | Image input | on: `VISION=1` in every rank file adds `--vision`; rank 0 holds the image tower (1.05 GiB), and other conversations' kept prompts get 2.4 GiB of the 3 GiB | on; the kept prompts keep 3 GiB |
 | Prefill exchange between ranks | the engine's default, `split` | same |
 | Prefill pause for heat | between chunks, every rank together, while any rank's hottest ACPI zone is above 92 °C, until all are at or below 88 °C (`TF_GLM_HEAT_HIGH`/`TF_GLM_HEAT_LOW`); also while that zone plus the last chunk's rise would pass 93 °C, until it would not (`TF_GLM_HEAT_CEILING`) | same |
 | Kept prompts of other conversations | the engine's defaults: 8 entries, 3 GiB | same |
+
+**Why effort high.** The pinned chat template renders a request that names no effort as `max`, where the thinking runs on almost without end and takes most of the reply limit; 1.x serves such a request at `high` (`api.default_reasoning_effort`), and from 2.7.0 2.x does too. A client's own effort, `low` or `max`, still wins.
 
 **Why 300,000 at TP=2.** With `--context 0` the pair took a window of 567,255 tokens and left nothing for other conversations' kept prompts, which matter for chat and agents that resend a long history. By the engine's own memory geometry, 300,000 tokens free about 3.3 GiB per rank against 567,255, enough for the default 3 GiB of kept prompts. 1.x serves 262,144; this window is not matched to it. Pass another `--context` to `serve.sh` to choose differently (the last flag wins); the most the pair holds is about 567K.
 
@@ -99,6 +102,7 @@ Three places set a deployment. Copy the two files from [`examples/`](examples/),
 | | `VISION` | `1` in the examples (`0` when unset) | image input (`serve.sh` adds `--vision`); `0` turns it off; the same on every rank |
 | | `NCCL_DEBUG`, `NCCL_DEBUG_SUBSYS` | `INFO`, `INIT,NET` | NCCL logs each connection's transport once at start, which [SETUP §6](SETUP.md#6-start) reads |
 | | `MODEL_NAME`, `HOST`, `PORT` | `glm-tf`, `127.0.0.1`, `8095` | rank 0's model id and listener |
+| | `REASONING_EFFORT` | `high` | rank 0's effort for a request that names none (`low`, `medium`, `high`, `xhigh`; empty: none, the chat template's `max`) |
 | | `CHECKPOINT` | the pinned snapshot under `/hub` | the checkpoint directory inside the container; `/hub/models--Bizuayeu--GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16/snapshots/bbad98c8f380588c16a2326bf5a2ab7344190b07` serves the published AXL weights ([setup §2](SETUP.md#2-checkout-and-checkpoint) downloads them); the same on every rank, or the start is refused |
 | | `TF_GLM_HEAT_HIGH`, `TF_GLM_HEAT_LOW` | `92`, `88` (°C) | the prefill heat wait; the same on every rank, empty for none |
 | | `TF_GLM_HEAT_CEILING` | `93` (°C) | the wait's look-ahead: the hottest zone plus the last chunk's rise stays within it; needs the bands, the same on every rank, empty for none |
@@ -117,7 +121,7 @@ The rank file is sourced by `bash` with every variable exported, so any other `T
 Rank 0 serves the engine's HTTP API. What the acceptance exercised:
 
 - **`/v1/chat/completions`**, streamed and not, with tools and structured output (tool-eval-bench's TC-64 to TC-69, which need xgrammar in the image), through the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional).
-- **Thinking**: `chat_template_kwargs.reasoning_effort` and `clear_thinking`, as the checks send them. A streamed delta can carry both `reasoning_content` and `content` ([limits](#limits)).
+- **Thinking**: `chat_template_kwargs.reasoning_effort` and `clear_thinking`, as the checks send them; a request that names no effort gets `high` ([serving defaults](#serving-defaults)). A streamed delta can carry both `reasoning_content` and `content` ([limits](#limits)).
 - **`"draft": false`** in the request body decodes one token a round, the serial reference that drafted replies must equal.
 - **The reply's `tensorfold` block**: `accepted`, `drafted` and `rounds` (MTP acceptance), `cached` (prompt tokens resumed from a kept prompt), `prefill_s` and `heat_wait_s`, `copy_rounds`, `copy_drafted` and `copy_accepted` (copy drafts), and `sha256` (the reply's token ids' hash).
 - **`/health`** (the decode `rounds`, among others) and **`/metrics`**.

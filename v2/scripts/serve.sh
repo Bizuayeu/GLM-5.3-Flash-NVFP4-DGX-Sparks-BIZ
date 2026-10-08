@@ -6,6 +6,7 @@
 # A prefill waits between chunks while any rank's hottest ACPI zone is above 92 C, or would pass 93 C if the next
 # chunk rose as much as the last one, until all are at or below 88 C and that rise would stay within 93 C
 # (TF_GLM_HEAT_HIGH/LOW/CEILING; the rank file may set other values, the same on every rank, or empty ones for none).
+# A request that names no reasoning effort gets high (REASONING_EFFORT in rank 0's file).
 # RANK_ENV is this host's file (examples/tp*-rank*.env): its NCCL settings and MASTER, rank 0's address on the link
 # between the hosts. Start the other ranks first and rank 0 last (cluster.sh does).
 set -eu
@@ -31,7 +32,7 @@ set +a
 export TF_GLM_KV=fp8
 # 94 C is where the hosts' thermal watch stops the engine; 88 C sits below the 88.8-89.6 C a 1M prefill held
 # at TP=3 before the faster prefill work. Near the end of a 1M prefill one chunk adds about 7 C after the check
-# between chunks, so the wait also looks one chunk ahead and keeps the next reading within 93 C (README.md).
+# between chunks, so the wait also looks one chunk ahead, by the last chunk's rise (README.md).
 export TF_GLM_HEAT_HIGH=${TF_GLM_HEAT_HIGH-92} TF_GLM_HEAT_LOW=${TF_GLM_HEAT_LOW-88}
 export TF_GLM_HEAT_CEILING=${TF_GLM_HEAT_CEILING-93}
 # The pinned checkpoint as the Hugging Face cache holds it, mounted read-only at /hub (create_container.sh)
@@ -41,9 +42,15 @@ vision=()
 if [ "${VISION:-0}" = 1 ]; then
   vision=(--vision)
 fi
+# A request that names no reasoning effort gets REASONING_EFFORT from rank 0's file (default high, as 1.x's
+# api.default_reasoning_effort; empty: none, the chat template's own). The pinned template renders any effort but
+# low and high, an unnamed one included, as max.
 endpoint=()
 if [ "$rank" = 0 ]; then
   endpoint=(--name "${MODEL_NAME:-glm-tf}" --host "${HOST:-127.0.0.1}" --port "${PORT:-8095}")
+  if [ -n "${REASONING_EFFORT-high}" ]; then
+    endpoint+=(--reasoning-effort "${REASONING_EFFORT-high}")
+  fi
 fi
 echo "[serve.sh] $(date -Is) TP=$tp rank $rank master $MASTER NCCL_IB_HCA=${NCCL_IB_HCA:-} VISION=${VISION:-0} tensorfold $(git -C /opt/tensorfold rev-parse HEAD 2>/dev/null || echo '?')"
 # --drafter none: the MTP head drafts; DFlash2 is not used (its weights' terms) and TP=3 refuses it.

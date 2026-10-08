@@ -87,6 +87,15 @@ class ServingDefaultsTests(unittest.TestCase):
             self.assertIn(f"`--drafter {drafter}`", serving, suffix)
             self.assertIn(f"`TF_GLM_KV={kv}`", serving, suffix)
 
+    def test_the_reasoning_effort(self):
+        effort = owned(
+            r'--reasoning-effort "\$\{REASONING_EFFORT-(\w+)\}"', "scripts/serve.sh"
+        )
+        for suffix in PAIRS:
+            self.assertIn(
+                f"`{effort}`", row(self.serving(suffix), "`--reasoning-effort`"), suffix
+            )
+
     def test_the_heat_wait(self):
         high = owned(r"TF_GLM_HEAT_HIGH-(\d+)", "scripts/serve.sh")
         low = owned(r"TF_GLM_HEAT_LOW-(\d+)", "scripts/serve.sh")
@@ -143,6 +152,17 @@ class ConfigurationTableTests(unittest.TestCase):
                 owned(r"MODEL_NAME:-([^}]+)", "scripts/serve.sh"),
                 owned(r"HOST:-([^}]+)", "scripts/serve.sh"),
                 owned(r"PORT:-([^}]+)", "scripts/serve.sh"),
+            ],
+        )
+
+    def test_rank_zero_reasoning_effort(self):
+        self.assert_row(
+            "`REASONING_EFFORT`",
+            [
+                owned(
+                    r'--reasoning-effort "\$\{REASONING_EFFORT-(\w+)\}"',
+                    "scripts/serve.sh",
+                )
             ],
         )
 
