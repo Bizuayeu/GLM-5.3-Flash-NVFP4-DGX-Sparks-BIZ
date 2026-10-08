@@ -102,6 +102,18 @@ OPTIONAL_KEYS = {
     ),
 }
 
+# A removed key gets its own sentence, not "Unknown/missing settings": its section,
+# the key, when it went, and what the refusal adds.
+REMOVED_KEYS = (
+    ("runtime", "mla_decode_cpb", "was retired in 1.16.0 and removed in 1.18.0", ""),
+    (
+        "nodes[]",
+        "host_interface_wifi_test",
+        "was removed in 1.30.0",
+        " (a Wi-Fi host_interface is refused)",
+    ),
+)
+
 
 # What an absent optional key means, where it means a value. canonical_moe_order and
 # stable_indexer_topk have none: absent, the launcher sets nothing and the image decides;
@@ -155,20 +167,21 @@ def check_schema(profile):
     No silent defaults: a typo or a missing category must not quietly change
     a launch, so every key is either present, or named as optional above.
     """
-    # A removed key gets its own sentence, not "Unknown/missing settings".
-    runtime = profile.get("runtime") if isinstance(profile, dict) else None
-    if isinstance(runtime, dict) and "mla_decode_cpb" in runtime:
-        raise ValueError(
-            "runtime.mla_decode_cpb was retired in 1.16.0 and removed in 1.18.0; "
-            "delete the key from the profile"
-        )
-    nodes = profile.get("nodes") if isinstance(profile, dict) else None
-    for rank, node in enumerate(nodes if isinstance(nodes, list) else ()):
-        if isinstance(node, dict) and "host_interface_wifi_test" in node:
-            raise ValueError(
-                f"nodes[{rank}].host_interface_wifi_test was removed in 1.30.0; "
-                "delete the key from the profile (a Wi-Fi host_interface is refused)"
-            )
+    data = profile if isinstance(profile, dict) else {}
+    nodes = data.get("nodes")
+    places = {
+        "runtime": [("runtime", data.get("runtime"))],
+        "nodes[]": [
+            (f"nodes[{rank}]", node)
+            for rank, node in enumerate(nodes if isinstance(nodes, list) else ())
+        ],
+    }
+    for section, key, removed, note in REMOVED_KEYS:
+        for path, value in places[section]:
+            if isinstance(value, dict) and key in value:
+                raise ValueError(
+                    f"{path}.{key} {removed}; delete the key from the profile{note}"
+                )
     with (LINE / "examples/server.example.toml").open("rb") as stream:
         schema = tomllib.load(stream)
 
