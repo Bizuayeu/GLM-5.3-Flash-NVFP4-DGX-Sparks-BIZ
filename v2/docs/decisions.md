@@ -95,7 +95,7 @@ The release branch is upstream v0.6.5 plus the commits that the [changelog](../C
 - `0c9e8da`: `/v1/completions` takes token-id prompts and returns vLLM-shaped `prompt_logprobs` for GLM, which the NLL check (`score-nll`) needs; a request without it is unchanged, and one with it never resumes a kept prompt.
 - `68a7e6a`: the NVFP4 routed experts' prompt kernel (above).
 - `e190c7b`, `9c51f2f`: the KDA conv taps in fp32 (above).
-- `aac7927`: DSA's prompt absorb and expand over row blocks, and the indexer's pool scores four rows a program (after MiaAI-Lab's patch 0009).
+- `aac7927`: DSA's prompt absorb and expand over row blocks, and the indexer's pool scores four rows a program (after MiaAI-Lab's patch 0009; 16 later, the row above).
 - `2caf43c`: the KDA prompt step kernel with eight warps (above).
 - `bee087d`: the BF16 split-K partials only for short windows (above).
 - `c35cfd9`: the startup estimate counts the draft head's rows as packed, so every rank of three loads exactly its estimate.

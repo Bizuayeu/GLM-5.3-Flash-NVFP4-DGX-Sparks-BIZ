@@ -8,19 +8,20 @@ prefill: one user message, a line `nonce <a fresh UUID>`, --lines fixed lines an
 decode: `Write the numbers from 1 to 1000, one per line, and nothing else.`, streamed, up to 512 tokens.
   The rate is the completion tokens after the first over the time after the first streamed token. The
   reply counts until the limit cuts it (`finish_reason` `length`, the count in the 200s), so every token
-  rated is the counting itself, and the pinned and the published AXL weights give the same tokens; a row
-  with another `finish_reason` stopped early and does not compare. Before 2.5.0 the request was
+  rated is the counting itself, and at TP=2 the pinned and the published AXL weights give the same tokens;
+  a row with another `finish_reason` stopped early and does not compare. Before 2.5.0 the request was
   `Count upward from one, one number per line.` with ignore_eos: the model stops by itself after about
   100 tokens, and the rest of the 512 was a conversation the model made up past its end, different per
   weights and TP. The row adds `finish_reason` and the reply's rounds, tokens_per_round and sha256.
 edit (only when asked for): a fixed Python module of about 6,000 characters and three named one-line
-  edits, `Return the whole module with only these edits`, streamed, temperature 0, up to 4,096 tokens
-  and ending on its own (a `finish_reason` of `length` means the reply was cut). Rated as decode is;
-  most of the reply copies the prompt, the load copy drafts are for. Its row adds `prompt_tokens`,
-  `finish_reason` and the reply's rounds, drafted, accepted, copy_rounds, copy_drafted,
-  copy_accepted and sha256 (the token ids' hash: the same every run at temperature 0).
-Each row also carries the reply's `tensorfold` fields prefill_s, heat_wait_s and cached, and the
-request's start and end epochs. One JSON line per request, then a summary with each kind's median.
+  edits, `Return the whole module with only these edits, in one code block:`, streamed, temperature 0,
+  up to 4,096 tokens and ending on its own (a `finish_reason` of `length` means the reply was cut).
+  Rated as decode is; most of the reply copies the prompt, the load copy drafts are for. Its row adds
+  `prompt_tokens`, `finish_reason` and the reply's cached, rounds, drafted, accepted, copy_rounds,
+  copy_drafted, copy_accepted and sha256 (the token ids' hash: the same every run at temperature 0).
+The prefill and decode rows also carry the reply's `tensorfold` fields prefill_s, heat_wait_s and cached,
+and every row the request's start and end epochs. One JSON line per request, then a summary with each
+kind's median.
 
     python -m glm53_tf bench --kinds prefill --runs 1 --lines 250    (warm-up, about 3,000 tokens)
     python -m glm53_tf bench --out ../records/<run>/bench.jsonl
@@ -309,10 +310,10 @@ def kept(block, fields=KEPT):
     return {k: v for k, v in (block or {}).items() if k in fields}
 
 
-def prefill(lines):
+def prefill(args):
     start_epoch = time.time()
     start = time.monotonic()
-    with post("/v1/chat/completions", prefill_body(uuid.uuid4(), lines)) as r:
+    with post("/v1/chat/completions", prefill_body(uuid.uuid4(), args.lines)) as r:
         reply = json.load(r)
     seconds = time.monotonic() - start
     usage = reply["usage"]
@@ -358,7 +359,7 @@ def streamed(body):
     return start_epoch, start, first, time.monotonic(), usage, block, finish
 
 
-def decode():
+def decode(_args):
     start_epoch, start, first, end, usage, block, finish = streamed(decode_body())
     tokens = usage["completion_tokens"]
     return {
@@ -374,7 +375,7 @@ def decode():
     }
 
 
-def edit():
+def edit(_args):
     start_epoch, start, first, end, usage, block, finish = streamed(edit_body())
     tokens = usage["completion_tokens"]
     return {
@@ -391,7 +392,8 @@ def edit():
     }
 
 
-RUN = {"decode": decode, "edit": edit}
+# Each kind's run takes the parsed arguments; only the prefill reads one (--lines).
+RUN = {"prefill": prefill, "decode": decode, "edit": edit}
 
 
 def kinds(text):
@@ -419,7 +421,7 @@ def main(argv=None):
     speeds = {}
     for kind in args.kinds:
         for _ in range(args.runs):
-            row = prefill(args.lines) if kind == "prefill" else RUN[kind]()
+            row = RUN[kind](args)
             speeds.setdefault(kind, []).append(row["tok_per_s"])
             if args.out:
                 with open(args.out, "a", encoding="utf-8") as f:

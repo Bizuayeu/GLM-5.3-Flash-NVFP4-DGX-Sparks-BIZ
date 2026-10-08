@@ -95,7 +95,7 @@
 - `0c9e8da`：GLMの `/v1/completions` がtoken idのpromptを受け、vLLMの形の `prompt_logprobs` を返す。NLLの検査（`score-nll`）はこれを使う。指定の無い要求は変わらず、指定のある要求は保持promptから再開しない。
 - `68a7e6a`：NVFP4のrouted expertのprompt用kernel（上）。
 - `e190c7b`、`9c51f2f`：KDAのconvの係数をfp32で（上）。
-- `aac7927`：DSAのpromptのabsorbとexpandを行のblockごとに、indexerのpoolの採点をprogramあたり4行に（MiaAI-Labのpatch 0009に倣う）。
+- `aac7927`：DSAのpromptのabsorbとexpandを行のblockごとに、indexerのpoolの採点をprogramあたり4行に（MiaAI-Labのpatch 0009に倣う。のち16行、上の表の行）。
 - `2caf43c`：8 warpのKDAのpromptのstep kernel（上）。
 - `bee087d`：BF16のsplit-Kの部分和は短い窓だけ（上）。
 - `c35cfd9`：起動時の見積もりがdraft headの行を詰めた数で数え、3 rankのどれもちょうど見積もりどおりを読み込む。

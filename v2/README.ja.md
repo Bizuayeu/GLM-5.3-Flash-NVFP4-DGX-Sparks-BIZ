@@ -119,7 +119,7 @@ rank 0がエンジンのHTTP APIを出します。受け入れで使ったもの
 - **`/v1/chat/completions`**：streamとそれ以外、toolと構造化出力（tool-eval-benchのTC-64〜TC-69。imageにxgrammarが要ります）を、[tool引数ゲート](SETUP.ja.md#7-tool引数ゲート任意)越しに。
 - **思考**：検査が送る形の `chat_template_kwargs.reasoning_effort` と `clear_thinking`。streamでは1つのdeltaに `reasoning_content` と `content` の両方が乗ることがあります（[制限](#制限)）。
 - **`"draft": false`**：要求のbodyに入れると1 roundに1 tokenずつdecodeします。draftした応答が一致すべきserialの基準です。
-- **応答の `tensorfold` block**：`accepted` と `rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`heat_wait_s`、copy draftsの `copy_rounds`・`copy_drafted`・`copy_accepted`。
+- **応答の `tensorfold` block**：`accepted`・`drafted`・`rounds`（MTPの受理）、`cached`（保持promptから再開したprompt token数）、`prefill_s` と `heat_wait_s`、copy draftsの `copy_rounds`・`copy_drafted`・`copy_accepted`、`sha256`（応答のtoken idのhash）。
 - **`/health`**（decodeの `rounds` など）と **`/metrics`**。
 - **停止**：クライアントの切断やstop文字列で、全rankのdecodeが1 round以内に終わります。
 - **画像**（`VISION=1`）：data URLの `image_url` を、userのメッセージとtoolの結果で受けます。動画は400で拒みます。

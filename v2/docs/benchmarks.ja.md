@@ -52,7 +52,7 @@
 - **199,652 tokenに合言葉一つ。** 8,806行の真ん中に合言葉。行数は1.x系が記録したもので、本文は1.x系のものと同じです。streamなし、最大512 token。応答に合言葉があれば正答です。最初のtokenまでの時間は、rank 0の `[tensorfold] done` の行の `ttft` です。リリースでは両TPとも `304109c` で取りました。
 - **499,622 tokenと1,036,859 tokenに合言葉三つ**（先頭から20分の1、真ん中、末尾から20分の1）。行数はエンジンの `/tokenize` で目標の長さに合わせます。streamで最大256 token、最初にstreamで届いたtokenまでをクライアントが測ります。応答が三つとも挙げれば正答です。リリースの1,036,859 tokenの値はTP=3の `2d4fa9b` で熱の待ちを入れたもので、待ちの合計は応答の `tensorfold` ブロックの `heat_wait_s` が示します。
 
-一つ目は `python -m glm53_tf long-input --passphrases 1 --lines 8806`、二つ目は `--passphrases 3 --tokens <目標>` です。行には `ttft`（streamのときだけ）、`prompt_tokens`、`cached`、`heat_wait_s` が入り、合言葉が欠けると終了コードは1です。
+一つ目は `python -m glm53_tf long-input --passphrases 1 --lines 8806`、二つ目は `--passphrases 3 --tokens <目標>` です（合わせたpromptは目標以下：2.2.0からは目標1,036,859に45,808行・1,035,295 token、AXLのTP=2はその窓262,144を目標に11,591行・262,113 token）。行には `ttft`（streamのときだけ）、`prompt_tokens`、`cached`、`heat_wait_s` が入り、合言葉が欠けると終了コードは1です。
 
 検証の199,652と499,622 tokenの開発版の基準値は、エンジンのprofile（`TF_GLM_PROFILE=1`）を入れて取りました。profileは38,960 tokenのprefillに約11%を足しました。prefillのうち長さで伸びない部分をその分だけ伸ばすと、200Kの基準値は説明でき（見積もり146.4秒、実測145.6秒）、500Kでは約16秒が説明できずに残ります（見積もり438.5秒、実測454.1秒）。
 

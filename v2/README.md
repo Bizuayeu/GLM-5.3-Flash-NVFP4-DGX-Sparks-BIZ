@@ -119,7 +119,7 @@ Rank 0 serves the engine's HTTP API. What the acceptance exercised:
 - **`/v1/chat/completions`**, streamed and not, with tools and structured output (tool-eval-bench's TC-64 to TC-69, which need xgrammar in the image), through the [tool-argument gate](SETUP.md#7-tool-argument-gate-optional).
 - **Thinking**: `chat_template_kwargs.reasoning_effort` and `clear_thinking`, as the checks send them. A streamed delta can carry both `reasoning_content` and `content` ([limits](#limits)).
 - **`"draft": false`** in the request body decodes one token a round, the serial reference that drafted replies must equal.
-- **The reply's `tensorfold` block**: `accepted` and `rounds` (MTP acceptance), `cached` (prompt tokens resumed from a kept prompt), `heat_wait_s`, and `copy_rounds`, `copy_drafted` and `copy_accepted` (copy drafts).
+- **The reply's `tensorfold` block**: `accepted`, `drafted` and `rounds` (MTP acceptance), `cached` (prompt tokens resumed from a kept prompt), `prefill_s` and `heat_wait_s`, `copy_rounds`, `copy_drafted` and `copy_accepted` (copy drafts), and `sha256` (the reply's token ids' hash).
 - **`/health`** (the decode `rounds`, among others) and **`/metrics`**.
 - **Stopping**: a client disconnect or a stop string ends the decode on every rank within a round.
 - **Images** (`VISION=1`): `image_url` parts as data URLs, in user messages and in tool results; a video part is refused with 400.

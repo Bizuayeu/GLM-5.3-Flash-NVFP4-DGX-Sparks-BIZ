@@ -63,7 +63,7 @@ docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
 A new image is a new engine build: accept it again before routine use.
 
-1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:2.5.0 glm53-tf:2.5.0-<engine>`, as the records did), so that going back is a container away.
+1. Build it on one host ([setup §3](../SETUP.md#3-image)). On every host, keep the image in use under a second tag first (`docker tag glm53-tf:<current> glm53-tf:<current>-<engine>`, as the records did), so that going back is a container away.
 2. Load it on the other hosts and compare the image IDs of every host; they must be equal. The ID that `docker images` shows also covers the build's provenance and changes with each checkout the image is built from ([changelog 2.0.0](../CHANGELOG.md)).
 3. Stop, then recreate the container on every host from the new image and run `build_ext.sh` ([above](#recreate-the-container)). For each new engine on the reference hosts it rebuilt all seven extensions, about 155-160 s a host.
 4. Start, and run [validation](validation.md) from the decode check on. A new engine must give the reference hashes; one that does not is a finding to explain, not a value to replace.

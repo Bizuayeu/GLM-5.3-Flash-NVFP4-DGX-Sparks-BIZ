@@ -295,6 +295,13 @@ class RunTests(unittest.TestCase):
             ]
         self.assertEqual(rows, [{"earlier": 1}] + lines[:-1])
 
+    def test_lines_reach_the_prefill_and_leave_the_other_kinds(self):
+        sent = []
+        run(["--kinds", "prefill,decode,edit", "--runs", "1", "--lines", "250"], sent)
+        prefill, decode, edit = sent
+        self.assertEqual(len(prefill["messages"][0]["content"].split("\n")), 252)
+        self.assertEqual((decode, edit), (bench.decode_body(), bench.edit_body()))
+
     def test_an_unknown_kind_is_a_usage_error(self):
         with (
             self.assertRaises(SystemExit) as caught,
