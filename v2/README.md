@@ -148,19 +148,23 @@ Why each 2.x setting was chosen, and what was tried and not adopted, is in [deci
 
 ## Measured on the Release
 
-**2.8.0** (2026-10-09, engine `7458b11`, image `glm53-tf:2.8.0`). A request at `top_k` 0 draws on the device, with the host rule's tokens; the engine is otherwise 2.7.0's ([decisions](docs/decisions.md)). On both weights at both TP sizes with image input on, the decode check gave TBD and `bench --kinds edit` TBD.
+**2.8.0** (2026-10-09, engine `7458b11`, image `glm53-tf:2.8.0`). A request at `top_k` 0 draws on the device, with the host rule's tokens; the engine is otherwise 2.7.0's ([decisions](docs/decisions.md)). On both weights at both TP sizes with image input on, the decode check gave 2.7.0's token ids and `bench --kinds edit` the reference reply; at TP=2 the NLL set and tool-eval-bench equalled 2.7.0's, and on the pinned weights at both TP sizes the image checks passed.
 
 | 2.8.0, image input on | Pinned, TP=2 | AXL, TP=2 | Pinned, TP=3 | AXL, TP=3 |
 |---|---|---|---|---|
-| Decode check count / prose / code (tok/s) | TBD | TBD | TBD | TBD |
-| MTP acceptance length, same tasks | TBD | TBD | TBD | TBD |
-| `bench --kinds decode`, 2.5.0's request (tok/s, median) | TBD | TBD | TBD | TBD |
-| `bench --kinds edit` (tok/s, median) | TBD | TBD | TBD | TBD |
-| `top_k` 0, temperature 1, `top_p` 0.95, two prompts (tok/s, against 2.7.0) | TBD | — | — | — |
-| Prefill of 38,960 tokens (s, two prompts) | TBD | — | TBD | — |
-| Rank 0's startup estimate (GiB) | TBD | TBD | TBD | TBD |
-| Teacher-forced NLL, ja / en / code / math | TBD | TBD | — | — |
-| tool-eval-bench, directly / through the tool-argument gate | TBD | TBD | — | — |
+| Decode check count / prose / code (tok/s) | 43.57 / 27.30 / 35.69 | 56.88 / 37.37 / 44.66 | 58.86 / 38.17 / 48.50 | 71.59 / 48.80 / 59.67 |
+| MTP acceptance length, same tasks | 3.961 / 2.098 / 3.180 | 3.813 / 2.004 / 2.893 | 4.056 / 2.222 / 3.234 | 3.631 / 2.060 / 2.994 |
+| `bench --kinds decode`, 2.5.0's request (tok/s, median) | 42.59 | 57.14 | 56.79 | 76.48 |
+| `bench --kinds edit` (tok/s, median) | 57.75 | 74.08 | 76.54 | 96.52 |
+| `top_k` 0, temperature 1, `top_p` 0.95, two prompts (tok/s, against 2.7.0) | counting 12.64 → 36.80, a story 8.82 → 23.98 | — | — | — |
+| Prefill of 38,960 tokens (s, two prompts) | 30.41 / 28.95 | — | 24.00 / 22.99 | — |
+| Rank 0's startup estimate (GiB) | 101.35 | 96.71 | 81.93 | 78.68 |
+| Teacher-forced NLL, ja / en / code / math | 2.5474 / 2.9257 / 1.3184 / 0.6250 | 2.5556 / 2.9438 / 1.3334 / 0.6474 | — | — |
+| tool-eval-bench, directly / through the tool-argument gate | 92 / 93 | 89 / 91 | — | — |
+
+- **`top_k` 0.** Temperature 1, `top_p` 0.95, seed 7, thinking off, 512 tokens, two requests each, against the same requests on 2.7.0 in a launch before the window: every reply's tokens equal 2.7.0's, and the device draw runs about as fast as the server's default `top_k` 20 (38.70 and 24.12 tok/s, unchanged from 2.7.0's 38.67 and 24.13).
+- **Against 2.7.0.** The same token ids in the decode check, the same replies in `bench --kinds decode` and `bench --kinds edit`, and at TP=2 the same NLL to four places and the same tool-eval-bench scores and outcome. The decode check, `bench --kinds decode` and edits within −0.2% to +0.4% on both weights at both TP sizes.
+- **Not measured on this release** (`—`): as on 2.7.0, whose results stand for this engine on the default path.
 
 **2.7.0** (2026-10-09, engine `9cdd935`, image `glm53-tf:2.7.0`). A request that names no reasoning effort gets `high` ([serving defaults](#serving-defaults)); the checks name their own effort. The engine's prompt chunks score the DSA pools one row and 32 pool blocks a program, with the same bits; `/v1/responses` accepts OpenAI's `include` values; a loop guard is there, off by default ([decisions](docs/decisions.md)). Before the release, in six launches at TP=3 on the pinned weights, three without the new pool scores and three with them, the median prefill without its heat waits fell from 154.15 to 145.12 s at 226,154 tokens and from 155.16 to 146.11 s at 227,369 tokens (5.8-5.9%); every launch with them ran faster than every launch without, and the replies were the same. On both weights at both TP sizes with image input on, the decode check gave 2.5.0's token ids and `bench --kinds edit` the reference reply; at TP=2 the NLL set and tool-eval-bench equalled 2.5.0's, and on the pinned weights at both TP sizes the image checks passed.
 

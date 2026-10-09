@@ -12,7 +12,17 @@ The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this
   - A request at `top_k` 0 draws on the device instead of falling back to the host's nucleus over the whole vocabulary: a keyed Triton pass scores every token with the host rule's per-position uniform, radix passes over a 64-bit key find each row's `top_p` cut, and the host keeps the best only when it clears every rank's runner-up, running its own rule wherever the draw cannot decide. The tokens are the host rule's. Two commits by sfxnz from sfxnz/TensorFold's `dsv41-recipe-engine4` (Apache-2.0), the continuation of the closed upstream #408, taken as they are. Only a client that asks `top_k: 0` meets it; the server's default is 20 ([decisions](docs/decisions.md#decode)).
   - The engine's `THIRD_PARTY_NOTICES.md` says the loop guard's count is in the reply's `tensorfold` block, where it is, not its usage.
 
-The image is `glm53-tf:2.8.0` (linux/arm64 `sha256:IMAGE_TBD`).
+The image is `glm53-tf:2.8.0` (linux/arm64 `sha256:4324f7c0b246935fdee31a1ad3fba1c14f933b17991a58a97dda16898638f92d`).
+
+### Accepted
+
+On the reference hosts on 2026-10-09 and 10 with image input on, with the release candidate image (linux/arm64 `sha256:4324f7c0b246935fdee31a1ad3fba1c14f933b17991a58a97dda16898638f92d`, the same on the three hosts), on the pinned weights and on AXL, at TP=2 and TP=3:
+
+- The decode check gave 2.7.0's token ids and acceptance lengths in all four launches; `bench --kinds decode` gave 2.7.0's replies and `bench --kinds edit` the reference reply (`ecd7a283a48a0cc4`).
+- `top_k` 0 (pinned, TP=2; temperature 1, `top_p` 0.95, seed 7, two prompts, two requests each): every reply's tokens equal those of the same requests on 2.7.0, at 36.80 and 23.98 tok/s against 2.7.0's 12.64 and 8.82; at `top_k` 20 the tokens and rates are 2.7.0's.
+- The NLL set at TP=2 equalled 2.7.0's to four places on both weights; tool-eval-bench at TP=2 gave pinned 92 / 93 and AXL 89 / 91, failing the Safety Gate directly on TC-43 and passing it through the gate, as on 2.7.0. Pinned, TP=2 and TP=3: the image checks passed.
+- Not run in this window: the NLL set at TP=3, the long inputs, the tool gate at 1M tokens, AXL's prefill and the image checks on AXL, as on 2.7.0.
+- Before the window, on 03: the engine's sampling and nucleus tests passed (one MLX-only test cannot run on Linux), the tiny model's bit checks gave 2.7.0's hashes in BF16 and FP8, and the brief set 1,528 passed (42 skipped), as on 2.7.0.
 
 ## 2.7.0 — 2026-10-09
 

@@ -148,19 +148,23 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 
 ## リリースでの測定値
 
-**2.8.0**（2026-10-09、エンジン `7458b11`、image `glm53-tf:2.8.0`）。`top_k` 0 の要求はデバイスで抽選し、tokenはhostの規則のものです。エンジンはそれ以外2.7.0と同じです（[決定の記録](docs/decisions.ja.md)）。両方の重み・両TPで画像入力を有効にして、decode検査はTBD、`bench --kinds edit` はTBDでした。
+**2.8.0**（2026-10-09、エンジン `7458b11`、image `glm53-tf:2.8.0`）。`top_k` 0 の要求はデバイスで抽選し、tokenはhostの規則のものです。エンジンはそれ以外2.7.0と同じです（[決定の記録](docs/decisions.ja.md)）。両方の重み・両TPで画像入力を有効にして、decode検査は2.7.0のtoken idを、`bench --kinds edit` は基準の返答を出し、TP=2のNLLの組とtool-eval-benchは2.7.0と同じでした。固定の重みでは両TPで画像の検査がすべて合格しました。
 
 | 2.8.0、画像入力の有効 | 固定、TP=2 | AXL、TP=2 | 固定、TP=3 | AXL、TP=3 |
 |---|---|---|---|---|
-| decode検査 count／prose／code（tok/s） | TBD | TBD | TBD | TBD |
-| MTPの受理長（同じタスク） | TBD | TBD | TBD | TBD |
-| `bench --kinds decode`、2.5.0の要求（tok/s、中央値） | TBD | TBD | TBD | TBD |
-| `bench --kinds edit`（tok/s、中央値） | TBD | TBD | TBD | TBD |
-| `top_k` 0、温度1、`top_p` 0.95、2つのprompt（tok/s、2.7.0との比べ） | TBD | — | — | — |
-| 38,960 tokenのprefill（s、2本） | TBD | — | TBD | — |
-| rank 0の起動の見積もり（GiB） | TBD | TBD | TBD | TBD |
-| teacher-forced NLL 日／英／コード／数学 | TBD | TBD | — | — |
-| tool-eval-bench、直／tool引数ゲート越し | TBD | TBD | — | — |
+| decode検査 count／prose／code（tok/s） | 43.57／27.30／35.69 | 56.88／37.37／44.66 | 58.86／38.17／48.50 | 71.59／48.80／59.67 |
+| MTPの受理長（同じタスク） | 3.961／2.098／3.180 | 3.813／2.004／2.893 | 4.056／2.222／3.234 | 3.631／2.060／2.994 |
+| `bench --kinds decode`、2.5.0の要求（tok/s、中央値） | 42.59 | 57.14 | 56.79 | 76.48 |
+| `bench --kinds edit`（tok/s、中央値） | 57.75 | 74.08 | 76.54 | 96.52 |
+| `top_k` 0、温度1、`top_p` 0.95、2つのprompt（tok/s、2.7.0との比べ） | 数える 12.64 → 36.80、物語 8.82 → 23.98 | — | — | — |
+| 38,960 tokenのprefill（s、2本） | 30.41／28.95 | — | 24.00／22.99 | — |
+| rank 0の起動の見積もり（GiB） | 101.35 | 96.71 | 81.93 | 78.68 |
+| teacher-forced NLL 日／英／コード／数学 | 2.5474／2.9257／1.3184／0.6250 | 2.5556／2.9438／1.3334／0.6474 | — | — |
+| tool-eval-bench、直／tool引数ゲート越し | 92／93 | 89／91 | — | — |
+
+- **`top_k` 0。** 温度1、`top_p` 0.95、seed 7、思考なし、512 token、各2回の要求を、窓の前の起動で2.7.0に送った同じ要求と比べました。どの返答のtokenも2.7.0と同じで、デバイスの抽選は、serverの既定の `top_k` 20（38.70と24.12 tok/s、2.7.0の38.67と24.13から変わらず）とほぼ同じ速さです。
+- **2.7.0との差。** decode検査のtoken id、`bench --kinds decode` と `bench --kinds edit` の返答は同じで、TP=2のNLLは4桁まで、tool-eval-benchは点と出方まで同じです。decode検査、`bench --kinds decode`、編集は、両方の重み・両TPで−0.2〜+0.4%でした。
+- **このリリースで測っていないもの**（`—`）：2.7.0と同じで、既定の経路では2.7.0の結果がこのエンジンにも当てはまります。
 
 **2.7.0**（2026-10-09、エンジン `9cdd935`、image `glm53-tf:2.7.0`）。推論のeffortを指定しない要求は `high` になります（[配信の既定](#配信の既定)）。検査は自分でeffortを指定します。エンジンのprompt chunkはDSAのpoolのscoreを1 programで1行・32 pool blockずつ計算し、ビットは同じです。`/v1/responses` はOpenAIの `include` の値を受けます。loop guardが入り、既定では無効です（[決定の記録](docs/decisions.ja.md)）。リリースの前に、固定の重みのTP=3で6回の起動（新しいpoolのscoreなしで3回、ありで3回）で、熱の待ちを除いたprefillの中央値は226,154 tokenで154.15 sから145.12 sへ、227,369 tokenで155.16 sから146.11 sへ縮みました（5.8〜5.9%）。ありの起動はどれも、なしの起動のどれより速く、返答は同じでした。両方の重み・両TPで画像入力を有効にして、decode検査は2.5.0のtoken idを、`bench --kinds edit` は基準の返答を出し、TP=2のNLLの組とtool-eval-benchは2.5.0と同じでした。固定の重みでは両TPで画像の検査がすべて合格しました。
 

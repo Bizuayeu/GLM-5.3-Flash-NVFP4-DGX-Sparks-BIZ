@@ -14,7 +14,17 @@ TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの
   - `top_k` 0 の要求は、hostで語彙全体のnucleusに落ちる代わりに、デバイスで抽選します。鍵つきのTritonのpassがhostの規則の位置ごとの一様乱数で全tokenを採点し、64 bitの鍵の上のradixのpassが各行の `top_p` の切れ目を見つけ、hostは最良が各rankの次点を越えるときだけそれを採り、抽選が決められないところでは自分の規則を回します。tokenはhostの規則のものです。sfxnz/TensorFold の `dsv41-recipe-engine4` からsfxnzの2つのcommit（Apache-2.0、閉じた上流 #408 の続き）を、そのまま取り込みました。当たるのは `top_k: 0` を明示するclientだけで、serverの既定は20です（[決定の記録](docs/decisions.ja.md#decode)）。
   - エンジンの `THIRD_PARTY_NOTICES.md` は、loop guardの数が応答のusageでなく、実際に出る `tensorfold` ブロックにあると書きます。
 
-imageは `glm53-tf:2.8.0`（linux/arm64 `sha256:IMAGE_TBD`）です。
+imageは `glm53-tf:2.8.0`（linux/arm64 `sha256:4324f7c0b246935fdee31a1ad3fba1c14f933b17991a58a97dda16898638f92d`）です。
+
+### Accepted
+
+2026-10-09〜10に参照機で、画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:4324f7c0b246935fdee31a1ad3fba1c14f933b17991a58a97dda16898638f92d`、3台で同じ）で、固定の重みとAXLのそれぞれをTP=2とTP=3で：
+
+- decode検査は4回の起動すべてで2.7.0のtoken idと受理長を出し、`bench --kinds decode` は2.7.0の返答、`bench --kinds edit` は基準の返答（`ecd7a283a48a0cc4`）。
+- `top_k` 0（固定の重み、TP=2。温度1、`top_p` 0.95、seed 7、2つのprompt、各2回）：どの返答のtokenも、2.7.0に送った同じ要求と同じで、2.7.0の12.64と8.82 tok/sに対して36.80と23.98。`top_k` 20ではtokenも速さも2.7.0と同じ。
+- TP=2のNLLの組は、両方の重みで2.7.0と4桁まで同じ。TP=2のtool-eval-benchは固定の重みが92／93、AXLが89／91で、直ではTC-43でSafety Gateを通らず、ゲート越しでは通過（2.7.0と同じ）。固定の重み、TP=2とTP=3：画像の検査はすべて合格。
+- この窓では回していないもの：TP=3のNLLの組、長い入力、1M tokenのtool gate、AXLのprefill、AXLでの画像の検査（2.7.0と同じ）。
+- 窓の前に03で：エンジンのsamplingとnucleusの試験が通り（MLX専用の1本はLinuxでは回らない）、小さなモデルのビットの照合はBF16とFP8とも2.7.0と同じhash、briefの一式は1,528 passed（42 skipped）で2.7.0と同じ。
 
 ## 2.7.0 — 2026-10-09
 
