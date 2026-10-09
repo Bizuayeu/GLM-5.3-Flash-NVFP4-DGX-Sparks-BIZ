@@ -11,7 +11,7 @@
 ## 要約
 
 - **何であるか。** 固定したcheckpointを、固定したTensorFoldのcommitで一つのOpenAI互換endpointとして配信するための、build手順・起動の台本・受け入れ検査です。2台なら直結のConnectX-7リンクでTP=2、3台ならswitchなしのリングでTP=3です。公開している測定値はMSI EdgeXpert（MS-C931）で取りました。
-- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.7.0）はTP=2とTP=3・画像入力の有効で、固定のcheckpointと公開したAXLの重みの両方で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
+- **状態。** 2.0.0は2026-10-04に参照機で、[検証](docs/validation.ja.md)の基準値に対して両TPで受け入れました（[リリースでの測定値](#リリースでの測定値)）。以後のimageは、それぞれ[変更履歴](CHANGELOG.ja.md)の節が挙げるTPと検査で、同じ基準値に対して受け入れました。今のimage（2.8.0）はTP=2とTP=3・画像入力の有効で、固定のcheckpointと公開したAXLの重みの両方で受け入れています（[リリースでの測定値](#リリースでの測定値)）。主張の範囲はそこまでです。他の機体は同じ検査を回して確かめます。
 - **反復性はエンジンの契約。** draftした応答はserialと同じ、再開したpromptは最初からと同じ、promptのchunkの切り方で結果が変わらない。これはエンジンの契約で、1.x系はvLLMの上でスイッチを入れて反復性を得ています（[1.x系との違い](#1x系との違い)）。
 - **精度。** routed expertとdense MLPはW4A16、他はBF16、KVはFP8です。任意で使う公開したAXLの重みは、attentionのprojectionとheadもW4A16にします。NVIDIAのmodel cardは別のレシピ・別の機材でcheckpointを測っており、その精度表はこの配信を表しません。この配信を表す数字は[検証](docs/validation.ja.md)にあります。
 - **ライセンス。** コードとエンジンはApache-2.0、重みはMITで運用者がダウンロードします。配信の経路に非商用の条件はありません（[ライセンスの早見表](../README.ja.md#ライセンスの早見表)）。
@@ -20,7 +20,7 @@
 ## 何であるか
 
 - **重み**：`nvidia/GLM-5.3-Flash-NVFP4` のrevision `423acf37583782c51c142d145aef733d72943d93`。1.x系と同じで、[Z.aiのGLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash)から作られています。routed expertとdense MLPはcheckpointのNVFP4 blockからW4A16で、attention・shared expert・headはBF16のまま計算します。例外はエンジンの中の一つだけです：MTP層のrouted expertはcheckpointではBF16で、draft専用にNVFP4へ量子化します。draftしたtokenは全部本体のモデルが検証するので、応答は変わりません。このcheckpointが既定です。任意で使えるのは公開したAXLの重み（NVFP4 BIZ AXL、[1.x系](../v1/README.ja.md)の公開した任意設定）：`Bizuayeu/GLM-5.3-Flash-NVFP4-attn-lmhead-W4A16` のrevision `bbad98c8f380588c16a2326bf5a2ab7344190b07`（[`config/axl.lock.json`](config/axl.lock.json)）で、attentionのprojectionと `lm_head` をW4A16のNVFP4に詰め直し、他は固定のcheckpointのままのものです。rankのファイルの `CHECKPOINT` で選びます（[設定](#設定)）。
-- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.7.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み（W4A16のNVFP4のattentionとheadも読み、公開したAXLの重みをそのテンソルのとおりに読む）、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善（prompt chunkのpoolのscoreを1 programで1行・32 pool blockずつ計算するもの〔MiaAI-Labのpatch 0086に倣う〕を含む）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、tokenを変えないdecodeの改善（copy drafts〔外れた後も減らさない〕、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない）を足したものです。上流とそのレシピからは、pull request #301（止めた要求が全rankで1 round以内に終わる）、#421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、#285（end tokenが `</tool_call>` より先に来たGLMのtool呼び出しを、全体がparseできれば送る）、#294（起動時に開けるファイル数の上限を上げる）、本物の画像の隣で文字のままにする引用の `<|image|>`（MiaAI-Labのpatch 0080に倣う）、`/v1/responses` が受けるOpenAIの `include` の値（そのpatch 0093に倣う）、同じ繰り返しに潰れた思考のblockを閉じる既定で無効のguard（`TF_GLM_LOOP_GUARD`、そのpatch 0091から）を持ちます。TR3のcheckpointはbrandonmusicのものとして名指します（[決定の記録](docs/decisions.ja.md)）。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
+- **エンジン**：TensorFoldのBIZ版。[Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.8.0` として公開します。TensorFold v0.6.5に、GLMのNVFP4の読み込み（W4A16のNVFP4のattentionとheadも読み、公開したAXLの重みをそのテンソルのとおりに読む）、FP8 latent KV、TP=3の分割、ビットを変えないprefillの改善（prompt chunkのpoolのscoreを1 programで1行・32 pool blockずつ計算するもの〔MiaAI-Labのpatch 0086に倣う〕を含む）、prompt chunkの合間に熱で待つprefill、上流のpull request #194の画像入力（3 rankへ広げたもの）、tokenを変えないdecodeの改善（copy drafts〔外れた後も減らさない〕、KDAのdecodeの窓を3 kernelの経路で、BF16のdecodeの行列積の形ごとのタイル、読まれないDSAのkey・value行の複製を作らない）を足したものです。上流とそのレシピからは、pull request #301（止めた要求が全rankで1 round以内に終わる）、#421（長い会話の後に新しい会話が来ても保持promptを写しては捨てない）、#285（end tokenが `</tool_call>` より先に来たGLMのtool呼び出しを、全体がparseできれば送る）、#294（起動時に開けるファイル数の上限を上げる）、本物の画像の隣で文字のままにする引用の `<|image|>`（MiaAI-Labのpatch 0080に倣う）、`/v1/responses` が受けるOpenAIの `include` の値（そのpatch 0093に倣う）、同じ繰り返しに潰れた思考のblockを閉じる既定で無効のguard（`TF_GLM_LOOP_GUARD`、そのpatch 0091から）を持ちます。TR3のcheckpointはbrandonmusicのものとして名指します（[決定の記録](docs/decisions.ja.md)）。imageはその一つのcommitに固定します（[`TENSORFOLD_REF`](docker/Dockerfile)）。
 - **image**：[`docker/Dockerfile`](docker/Dockerfile)。NVIDIAのPyTorch container 26.07に、測定した版のpackage（transformers 5.18.0、構造化出力のxgrammar 0.2.8、Hugging Face hubのclient）とエンジンを入れます。
 - **起動**：[`scripts/`](scripts/) のshellの台本と、rankごとの環境ファイル一つ（[`examples/`](examples/) に参照機のファイル）。順番は[SETUP.ja.md](SETUP.ja.md)にあります。
 
@@ -45,8 +45,8 @@ python -m glm53_tf download --background
 python -m glm53_tf verify-download --hf .venv/bin/hf --output ../records/checksum --wait
 
 # 各機で、checkoutのルートから（SETUP §3〜§5）。1台でbuildして他は `docker load`、image IDを比べる
-docker build -f v2/docker/Dockerfile -t glm53-tf:2.7.0 .
-v2/scripts/create_container.sh glm53-tf:2.7.0
+docker build -f v2/docker/Dockerfile -t glm53-tf:2.8.0 .
+v2/scripts/create_container.sh glm53-tf:2.8.0
 cp v2/examples/tp2-rank0.env ~/glm53-tf/rank.env      # もう1台は tp2-rank1。その後この機の値に直す
 docker exec glm53-tf bash /opt/glm53-tf/build_ext.sh
 
@@ -147,6 +147,20 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 2.x系の各設定を選んだ理由と、試して採らなかったものは[決定](docs/decisions.ja.md)にあります。
 
 ## リリースでの測定値
+
+**2.8.0**（2026-10-09、エンジン `7458b11`、image `glm53-tf:2.8.0`）。`top_k` 0 の要求はデバイスで抽選し、tokenはhostの規則のものです。エンジンはそれ以外2.7.0と同じです（[決定の記録](docs/decisions.ja.md)）。両方の重み・両TPで画像入力を有効にして、decode検査はTBD、`bench --kinds edit` はTBDでした。
+
+| 2.8.0、画像入力の有効 | 固定、TP=2 | AXL、TP=2 | 固定、TP=3 | AXL、TP=3 |
+|---|---|---|---|---|
+| decode検査 count／prose／code（tok/s） | TBD | TBD | TBD | TBD |
+| MTPの受理長（同じタスク） | TBD | TBD | TBD | TBD |
+| `bench --kinds decode`、2.5.0の要求（tok/s、中央値） | TBD | TBD | TBD | TBD |
+| `bench --kinds edit`（tok/s、中央値） | TBD | TBD | TBD | TBD |
+| `top_k` 0、温度1、`top_p` 0.95、2つのprompt（tok/s、2.7.0との比べ） | TBD | — | — | — |
+| 38,960 tokenのprefill（s、2本） | TBD | — | TBD | — |
+| rank 0の起動の見積もり（GiB） | TBD | TBD | TBD | TBD |
+| teacher-forced NLL 日／英／コード／数学 | TBD | TBD | — | — |
+| tool-eval-bench、直／tool引数ゲート越し | TBD | TBD | — | — |
 
 **2.7.0**（2026-10-09、エンジン `9cdd935`、image `glm53-tf:2.7.0`）。推論のeffortを指定しない要求は `high` になります（[配信の既定](#配信の既定)）。検査は自分でeffortを指定します。エンジンのprompt chunkはDSAのpoolのscoreを1 programで1行・32 pool blockずつ計算し、ビットは同じです。`/v1/responses` はOpenAIの `include` の値を受けます。loop guardが入り、既定では無効です（[決定の記録](docs/decisions.ja.md)）。リリースの前に、固定の重みのTP=3で6回の起動（新しいpoolのscoreなしで3回、ありで3回）で、熱の待ちを除いたprefillの中央値は226,154 tokenで154.15 sから145.12 sへ、227,369 tokenで155.16 sから146.11 sへ縮みました（5.8〜5.9%）。ありの起動はどれも、なしの起動のどれより速く、返答は同じでした。両方の重み・両TPで画像入力を有効にして、decode検査は2.5.0のtoken idを、`bench --kinds edit` は基準の返答を出し、TP=2のNLLの組とtool-eval-benchは2.5.0と同じでした。固定の重みでは両TPで画像の検査がすべて合格しました。
 

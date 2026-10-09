@@ -6,6 +6,16 @@
 
 TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの節を公開します。1.x系の履歴は[v1/CHANGELOG.ja.md](../v1/CHANGELOG.ja.md)にあります。
 
+## 2.8.0 — 2026-10-09
+
+### Engine
+
+- imageは [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) のbranch `release/2.8.0` の `7458b111c9aab673460eedf9f60167d5fa8c925f` からTensorFoldをbuildします（[`TENSORFOLD_REF`](docker/Dockerfile)）。2.7.0のエンジンに次を足したものです：
+  - `top_k` 0 の要求は、hostで語彙全体のnucleusに落ちる代わりに、デバイスで抽選します。鍵つきのTritonのpassがhostの規則の位置ごとの一様乱数で全tokenを採点し、64 bitの鍵の上のradixのpassが各行の `top_p` の切れ目を見つけ、hostは最良が各rankの次点を越えるときだけそれを採り、抽選が決められないところでは自分の規則を回します。tokenはhostの規則のものです。sfxnz/TensorFold の `dsv41-recipe-engine4` からsfxnzの2つのcommit（Apache-2.0、閉じた上流 #408 の続き）を、そのまま取り込みました。当たるのは `top_k: 0` を明示するclientだけで、serverの既定は20です（[決定の記録](docs/decisions.ja.md#decode)）。
+  - エンジンの `THIRD_PARTY_NOTICES.md` は、loop guardの数が応答のusageでなく、実際に出る `tensorfold` ブロックにあると書きます。
+
+imageは `glm53-tf:2.8.0`（linux/arm64 `sha256:IMAGE_TBD`）です。
+
 ## 2.7.0 — 2026-10-09
 
 ### Changed

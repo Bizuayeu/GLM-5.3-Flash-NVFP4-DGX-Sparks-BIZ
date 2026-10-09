@@ -4,6 +4,16 @@
 
 The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this file. The 1.x line's history is in [v1/CHANGELOG.md](../v1/CHANGELOG.md).
 
+## 2.8.0 — 2026-10-09
+
+### Engine
+
+- The image builds TensorFold from the branch `release/2.8.0` of [Bizuayeu/TensorFold](https://github.com/Bizuayeu/TensorFold) at `7458b111c9aab673460eedf9f60167d5fa8c925f` ([`TENSORFOLD_REF`](docker/Dockerfile)): 2.7.0's engine with these:
+  - A request at `top_k` 0 draws on the device instead of falling back to the host's nucleus over the whole vocabulary: a keyed Triton pass scores every token with the host rule's per-position uniform, radix passes over a 64-bit key find each row's `top_p` cut, and the host keeps the best only when it clears every rank's runner-up, running its own rule wherever the draw cannot decide. The tokens are the host rule's. Two commits by sfxnz from sfxnz/TensorFold's `dsv41-recipe-engine4` (Apache-2.0), the continuation of the closed upstream #408, taken as they are. Only a client that asks `top_k: 0` meets it; the server's default is 20 ([decisions](docs/decisions.md#decode)).
+  - The engine's `THIRD_PARTY_NOTICES.md` says the loop guard's count is in the reply's `tensorfold` block, where it is, not its usage.
+
+The image is `glm53-tf:2.8.0` (linux/arm64 `sha256:IMAGE_TBD`).
+
 ## 2.7.0 — 2026-10-09
 
 ### Changed
