@@ -16,7 +16,7 @@
 
 ### Reference image
 
-Built on 2026-10-09 from this release's tree: `sha256:REFERENCE_IMAGE_TBD` on the reference hosts.
+Built on 2026-10-09 from this release's tree: `sha256:a627fad13eaf517e5d2c45d45f5a0ace79c9de915235401d828405c8f4a26bc7` on the reference hosts. Against the 1.30.0 image, its vLLM and the patch records are the same file for file (2,708 `.py` files); the files that differ are the three `glm53_setup` modules this release changed and `pyproject.toml`, and its environment and labels are 1.30.0's. On the reference pair the AXL profile, reading the KDA overlay with the new hash, and the default profile passed preflight with 1.30.0's results, the decode check gave 1.30.0's token ids and texts in both, and the nine images and the NLL set gave 1.30.0's results. Profiles carrying either removed key were refused before launch with the texts 1.30.0 printed, and `verify-download` without a download status exited 1, with and without `--wait`, on the line that says to run `download`.
 
 ## 1.30.1 — 2026-10-08
 

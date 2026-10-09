@@ -18,7 +18,7 @@
 
 ### Reference image
 
-2026-10-09にこの版の木から作りました：参照機で `sha256:REFERENCE_IMAGE_TBD`。
+2026-10-09にこの版の木から作りました：参照機で `sha256:a627fad13eaf517e5d2c45d45f5a0ace79c9de915235401d828405c8f4a26bc7`。1.30.0のimageと比べて、vLLMとpatchの記録はファイルごとに同じ（`.py` 2,708本）。違うファイルはこの版が変えた `glm53_setup` の3モジュールと `pyproject.toml` で、環境変数とラベルは1.30.0と同じです。参照の対で、新しいhashのKDAのoverlayを読むAXLのprofileと既定のprofileはpreflightが1.30.0と同じ結果、decode検査はどちらも1.30.0のtoken idと文字列、画像9形とNLLの組も1.30.0と同じ結果でした。撤去したkeyのどちらかを持つprofileは、1.30.0と同じ文面で起動前に断られました。ダウンロードの状態の無い `verify-download` は、`--wait` の有無によらず、`download` を回すよう告げる行で1で終わりました。
 
 ## 1.30.1 — 2026-10-08
 
