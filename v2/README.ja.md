@@ -148,19 +148,23 @@ NLLの検査は **`/v1/models`**（採点するモデル）と **`/v1/completion
 
 ## リリースでの測定値
 
-**2.7.0**（2026-10-09、エンジン `9cdd935`、image `glm53-tf:2.7.0`）。推論のeffortを指定しない要求は `high` になります（[配信の既定](#配信の既定)）。検査は自分でeffortを指定します。エンジンのprompt chunkはDSAのpoolのscoreを1 programで1行・32 pool blockずつ計算し、ビットは同じです。`/v1/responses` はOpenAIの `include` の値を受けます。loop guardが入り、既定では無効です（[決定の記録](docs/decisions.ja.md)）。リリースの前に、固定の重みのTP=3で6回の起動（新しいpoolのscoreなしで3回、ありで3回）で、熱の待ちを除いたprefillの中央値は226,154 tokenで154.15 sから145.12 sへ、227,369 tokenで155.16 sから146.11 sへ縮みました（5.8〜5.9%）。ありの起動はどれも、なしの起動のどれより速く、返答は同じでした。両方の重み・両TPで画像入力を有効にして、decode検査はTBD、`bench --kinds edit` はTBDでした。
+**2.7.0**（2026-10-09、エンジン `9cdd935`、image `glm53-tf:2.7.0`）。推論のeffortを指定しない要求は `high` になります（[配信の既定](#配信の既定)）。検査は自分でeffortを指定します。エンジンのprompt chunkはDSAのpoolのscoreを1 programで1行・32 pool blockずつ計算し、ビットは同じです。`/v1/responses` はOpenAIの `include` の値を受けます。loop guardが入り、既定では無効です（[決定の記録](docs/decisions.ja.md)）。リリースの前に、固定の重みのTP=3で6回の起動（新しいpoolのscoreなしで3回、ありで3回）で、熱の待ちを除いたprefillの中央値は226,154 tokenで154.15 sから145.12 sへ、227,369 tokenで155.16 sから146.11 sへ縮みました（5.8〜5.9%）。ありの起動はどれも、なしの起動のどれより速く、返答は同じでした。両方の重み・両TPで画像入力を有効にして、decode検査は2.5.0のtoken idを、`bench --kinds edit` は基準の返答を出し、TP=2のNLLの組とtool-eval-benchは2.5.0と同じでした。固定の重みでは両TPで画像の検査がすべて合格しました。
 
 | 2.7.0、画像入力の有効 | 固定、TP=2 | AXL、TP=2 | 固定、TP=3 | AXL、TP=3 |
 |---|---|---|---|---|
-| decode検査 count／prose／code（tok/s） | TBD | TBD | TBD | TBD |
-| MTPの受理長（同じタスク） | TBD | TBD | TBD | TBD |
-| `bench --kinds decode`、2.5.0の要求（tok/s、中央値） | TBD | TBD | TBD | TBD |
-| `bench --kinds edit`（tok/s、中央値） | TBD | TBD | TBD | TBD |
-| 38,960 tokenのprefill（s、2本） | TBD | TBD | TBD | TBD |
-| 長い入力（262Kと1M token）、1M tokenのtool gate | TBD | TBD | TBD | TBD |
-| rank 0の起動の見積もり（GiB） | TBD | TBD | TBD | TBD |
-| teacher-forced NLL 日／英／コード／数学 | TBD | TBD | TBD | TBD |
-| tool-eval-bench、直／tool引数ゲート越し | TBD | TBD | TBD | TBD |
+| decode検査 count／prose／code（tok/s） | 43.48／27.26／35.65 | 56.99／37.42／44.75 | 58.91／38.03／48.60 | 71.45／48.80／59.71 |
+| MTPの受理長（同じタスク） | 3.961／2.098／3.180 | 3.813／2.004／2.893 | 4.056／2.222／3.234 | 3.631／2.060／2.994 |
+| `bench --kinds decode`、2.5.0の要求（tok/s、中央値） | 42.55 | 57.22 | 56.80 | 76.45 |
+| `bench --kinds edit`（tok/s、中央値） | 57.70 | 74.04 | 76.43 | 96.30 |
+| 38,960 tokenのprefill（s、2本） | 29.24／29.10 | — | 23.14／23.08 | — |
+| 長い入力（262Kと1M token）、1M tokenのtool gate | — | — | — | — |
+| rank 0の起動の見積もり（GiB） | 101.35 | 96.71 | 81.93 | 78.68 |
+| teacher-forced NLL 日／英／コード／数学 | 2.5474／2.9257／1.3184／0.6250 | 2.5556／2.9438／1.3334／0.6474 | — | — |
+| tool-eval-bench、直／tool引数ゲート越し | 92／93 | 89／91 | — | — |
+
+- **2.5.0との差。** decode検査のtoken id、`bench --kinds decode`（TP=3の固定の重みは今回も `27fc79ab52b7830f`、他は `7754eb09bd6615fd`）と `bench --kinds edit` の返答は同じで、TP=2のNLLは4桁まで、tool-eval-benchは点と出方まで同じです（直では両方の重みがTC-43でSafety Gateを通らず、ゲート越しでは両方とも通過）。decode検査、`bench --kinds decode`、編集は、両方の重み・両TPで−0.7〜+0.3%でした。
+- **38,960 tokenのprefill。** 固定の重みで2.5.0より0.8〜4.5%短く、それぞれ1回の起動です。poolのscoreの効果は上のA/Bが測っています。
+- **このリリースで測っていないもの**（`—`）。既定の経路のtoken idは両TPで2.5.0とも2.4.0とも同じなので、2.4.0のTP=3のNLL、長い入力、1Mのtool gateの結果がこのエンジンにも当てはまります。AXLのprefillと、AXLでの画像の検査は回していません。
 
 **2.5.0**（2026-10-08、エンジン `8a36b2c`、image `glm53-tf:2.5.0`）。`bench --kinds decode` は上限まで数える新しい要求を送り（[ベンチマークの方法](docs/benchmarks.ja.md#prefillとdecodeの速さ)）、エンジンは上流のpull request #285と#294、本物の画像の隣で文字のままにする引用の `<|image|>`、TR3の新しい名を取り込みました。既定の経路（画像なし・toolなし）のtokenは2.4.0と同じです（[決定の記録](docs/decisions.ja.md#エンジン)）。両方の重み・両TPで画像入力を有効にして、decode検査は2.4.0のtoken idを、`bench --kinds edit` は基準の返答を出し、TP=2のNLLの組は両方の重みで2.4.0と4桁まで同じでした。固定の重みでは両TPで画像の検査がすべて合格し、引用の `<|image|>` を本物の画像の隣に含む会話は200を返して画像を読みました。
 

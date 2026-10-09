@@ -27,7 +27,20 @@ TensorFoldで配信する2.x系です。`v2.*` のタグはこのファイルの
 
 - [README](README.ja.md#設定)は `TF_GLM_LOOP_GUARD`、`/v1/responses` の `include` の扱い、[TensorFoldの他のレシピ](README.ja.md#tensorfoldの他のレシピ)でのMiaAI-Labの3つのpatchを載せます。[決定の記録](docs/decisions.ja.md)にeffort、poolのscore、loop guardの行があります。
 
-imageは `glm53-tf:2.7.0`（linux/arm64 `sha256:IMAGE_TBD`）です。
+imageは `glm53-tf:2.7.0`（linux/arm64 `sha256:7e9fe184cb406f6592f74b4ba3d5d1d11cd4184147283edf84bfc4d3ef9d6dd0`）です。
+
+### Accepted
+
+2026-10-09に参照機で、画像入力を有効にして、リリース候補のimage（linux/arm64 `sha256:7e9fe184cb406f6592f74b4ba3d5d1d11cd4184147283edf84bfc4d3ef9d6dd0`、3台で同じ）で、固定の重みとAXLのそれぞれをTP=2とTP=3で：
+
+- decode検査は4回の起動すべてで2.5.0のtoken idを出し、受理長も2.5.0と同じでした：3.961／2.098／3.180（固定 TP=2）、3.813／2.004／2.893（AXL TP=2）、4.056／2.222／3.234（固定 TP=3）、3.631／2.060／2.994（AXL TP=3）。
+- `bench --kinds decode` は2.5.0の返答を出しました：TP=2の両方の重みとTP=3のAXLで `7754eb09bd6615fd`、TP=3の固定の重みで `27fc79ab52b7830f`。どの行も上限で止まりました。
+- `bench --kinds edit` は4回の起動すべてで基準の返答（`ecd7a283a48a0cc4`）。
+- TP=2のNLLの組は、両方の重みで2.5.0と4桁まで同じ：固定 2.5474／2.9257／1.3184／0.6250、AXL 2.5556／2.9438／1.3334／0.6474。
+- 固定の重み、TP=2とTP=3：画像の検査はすべて合格。
+- TP=2のtool-eval-bench、同じ呼び方（69シナリオ）：固定の重みは直で92、tool引数ゲート越しで93、AXLは89と91。直ではTC-43でSafety Gateを通らず、ゲート越しでは通過。2.5.0と同じ点と出方です。
+- この窓では回していないもの：TP=3のNLLの組、長い入力（262Kと1M token）、1M tokenのtool gate、AXLのprefill、AXLでの画像の検査。既定の経路のtoken idは両TPで2.5.0とも2.4.0とも同じなので、2.4.0の結果がこのエンジンにも当てはまります。
+- 窓の前に：新旧のpoolのscoreは14例（decodeの窓とprompt chunk、BF16とFP8、位置2,047〜262,144）で同じtokenを同じ数だけ選び、同じscoreの列を読みました。エンジンのbriefの一式は1,528 passed（42 skipped）で、GLMのエンジンのGPUの試験を含みます。loop guardとthinkingを含む選んだ試験は237 passed（8 skipped）。小さなモデルのビットの照合は、BF16とFP8とも2つのpatchの無い場合と同じhashでした。
 
 ## 2.6.1 — 2026-10-09
 

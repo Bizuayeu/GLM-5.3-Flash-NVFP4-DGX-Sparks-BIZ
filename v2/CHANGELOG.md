@@ -25,7 +25,20 @@ The 2.x line, served by TensorFold. A `v2.*` tag publishes its section from this
 
 - The [README](README.md#configuration) gives `TF_GLM_LOOP_GUARD`, what `/v1/responses` does with `include` and MiaAI-Lab's three patches among [other recipes](README.md#other-recipes-on-tensorfold); [decisions](docs/decisions.md) has the rows for the effort, the pool scores and the loop guard.
 
-The image is `glm53-tf:2.7.0` (linux/arm64 `sha256:IMAGE_TBD`).
+The image is `glm53-tf:2.7.0` (linux/arm64 `sha256:7e9fe184cb406f6592f74b4ba3d5d1d11cd4184147283edf84bfc4d3ef9d6dd0`).
+
+### Accepted
+
+On the reference hosts on 2026-10-09 with image input on, with the release candidate image (linux/arm64 `sha256:7e9fe184cb406f6592f74b4ba3d5d1d11cd4184147283edf84bfc4d3ef9d6dd0`, the same on the three hosts), on the pinned weights and on AXL, at TP=2 and TP=3:
+
+- The decode check gave 2.5.0's token ids in all four launches, with 2.5.0's acceptance lengths: 3.961 / 2.098 / 3.180 (pinned TP=2), 3.813 / 2.004 / 2.893 (AXL TP=2), 4.056 / 2.222 / 3.234 (pinned TP=3) and 3.631 / 2.060 / 2.994 (AXL TP=3).
+- `bench --kinds decode` gave 2.5.0's replies: `7754eb09bd6615fd` on both weights at TP=2 and on AXL at TP=3, `27fc79ab52b7830f` on the pinned weights at TP=3; every row stopped at the limit.
+- `bench --kinds edit` gave the reference reply (`ecd7a283a48a0cc4`) in all four launches.
+- The NLL set at TP=2 equalled 2.5.0's to four places on both weights: pinned 2.5474 / 2.9257 / 1.3184 / 0.6250, AXL 2.5556 / 2.9438 / 1.3334 / 0.6474.
+- Pinned, TP=2 and TP=3: the image checks passed.
+- tool-eval-bench at TP=2 with the same invocation (69 scenarios): pinned 92 directly and 93 through the tool-argument gate, AXL 89 and 91, failing the Safety Gate directly on TC-43 and passing it through the gate. The same scores and outcome as on 2.5.0.
+- Not run in this window: the NLL set at TP=3, the long inputs (262K and 1M tokens), the tool gate at 1M tokens, AXL's prefill and the image checks on AXL; the default path's token ids equal 2.5.0's and 2.4.0's at both TP sizes, so 2.4.0's results stand for this engine.
+- Before the window: the old and the new pool scores chose the same tokens with the same counts and read the same score columns in 14 cases (decode windows and prompt chunks, BF16 and FP8, positions 2,047 to 262,144); the engine's brief set 1,528 passed (42 skipped), with the GPU tests of GLM's engine; the selected tests, with the loop guard's and thinking's, 237 passed (8 skipped); the tiny model's bit checks gave the same hashes as without the two patches, in BF16 and FP8.
 
 ## 2.6.1 — 2026-10-09
 
